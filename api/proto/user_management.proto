@@ -1,0 +1,442 @@
+syntax = "proto3";
+
+package usermanagement;
+
+option go_package = "github.com/ShristiRnr/NHIT_Backend/api/userpb;userpb";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+// ====================
+// User Management Service with RBAC
+// ====================
+service UserManagement {
+  // Tenant / Super Admin
+  rpc CreateTenant(CreateTenantRequest) returns (TenantResponse);
+  rpc GetTenant(GetTenantRequest) returns (TenantResponse);
+
+  // Organization Management
+  rpc CreateOrganization(CreateOrganizationRequest) returns (OrganizationResponse);
+  rpc ListOrganizations(ListOrganizationsRequest) returns (ListOrganizationsResponse);
+  rpc GetOrganization(GetOrganizationRequest) returns (GetOrganizationResponse);
+  rpc UpdateOrganization(UpdateOrganizationRequest) returns (UpdateOrganizationResponse);
+  rpc DeleteOrganization(DeleteOrganizationRequest) returns (google.protobuf.Empty);
+
+  // Role Management
+  rpc CreateRole(CreateRoleRequest) returns (RoleResponse);
+  rpc ListRoles(ListRolesRequest) returns (ListRolesResponse);
+  rpc GetRole(GetRoleRequest) returns (RoleResponse);
+  rpc UpdateRole(UpdateRoleRequest) returns (RoleResponse);
+  rpc DeleteRole(DeleteRoleRequest) returns (google.protobuf.Empty);
+
+  // --------------------
+  // User Management (CRUD + Roles)
+  // --------------------
+  rpc CreateUser(CreateUserRequest) returns (UserResponse);
+  rpc GetUser(GetUserRequest) returns (UserResponse);
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
+  rpc UpdateUser(UpdateUserRequest) returns (UserResponse);
+  rpc DeleteUser(DeleteUserRequest) returns (google.protobuf.Empty);
+  rpc ConfirmPassword(ConfirmPasswordRequest) returns (ConfirmPasswordResponse);
+
+  // Assign or Update Roles
+  rpc AssignRolesToUser(AssignRolesRequest) returns (UserResponse);
+  rpc ListRolesOfUser(GetUserRequest) returns (ListRolesResponse);
+
+  // Organization-specific User Management
+  rpc AddUserToOrganization(AddUserToOrgRequest) returns (google.protobuf.Empty);
+  rpc ListUsersByOrganization(ListUsersByOrgRequest) returns (ListUsersByOrgResponse);
+
+  // Authentication (JWT-based)
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc RefreshToken(RefreshTokenRequest) returns (LoginResponse);
+  rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
+
+  // User Login History
+  rpc CreateUserLoginHistory(CreateUserLoginHistoryRequest) returns (UserLoginHistoryResponse);
+  rpc ListUserLoginHistories(ListUserLoginHistoriesRequest) returns (ListUserLoginHistoriesResponse);
+
+  // Session Management
+  rpc CreateSession(CreateSessionRequest) returns (SessionResponse);
+  rpc GetSession(GetSessionRequest) returns (SessionResponse);
+  rpc DeleteSession(DeleteSessionRequest) returns (google.protobuf.Empty);
+
+  // Password Reset
+  rpc CreatePasswordResetToken(CreatePasswordResetTokenRequest) returns (PasswordResetTokenResponse);
+  rpc GetPasswordResetToken(GetPasswordResetTokenRequest) returns (PasswordResetTokenResponse);
+  rpc ResetPassword(ResetPasswordRequest) returns (google.protobuf.Empty);
+
+  // Pagination & Count
+  rpc ListUsersPaginated(ListUsersPaginatedRequest) returns (ListUsersPaginatedResponse);
+  rpc CountUsersByTenant(CountUsersByTenantRequest) returns (CountUsersByTenantResponse);
+}
+
+// ====================
+// RBAC: Roles & Permissions
+// ====================
+message Role {
+  string role_id = 1;
+  string tenant_id = 2;
+  string name = 3;
+  repeated string permissions = 4;
+}
+
+message Permission {
+  string permission_id = 1;
+  string name = 2;
+  string description = 3;
+}
+
+message CreateRoleRequest {
+  string tenant_id = 1;
+  string name = 2;
+  repeated string permissions = 3; // e.g., manage-users, view-reports
+}
+
+message UpdateRoleRequest {
+  string role_id = 1;
+  string name = 2;
+  repeated string permissions = 3;
+}
+
+message GetRoleRequest {
+  string role_id = 1;
+}
+
+message DeleteRoleRequest {
+  string role_id = 1;
+}
+
+message RoleResponse {
+  string role_id = 1;
+  string tenant_id = 2;
+  string name = 3;
+  repeated string permissions = 4;
+}
+
+message ListRolesRequest {
+  string tenant_id = 1;
+}
+
+message ListRolesResponse {
+  repeated RoleResponse roles = 1;
+}
+
+// ====================
+// Users
+// ====================
+message User {
+  string user_id = 1;
+  string name = 2;
+  string email = 3;
+  google.protobuf.Timestamp email_verified_at = 4;
+  google.protobuf.Timestamp last_login_at = 5;
+  google.protobuf.Timestamp last_logout_at = 6;
+  string last_login_ip = 7;
+  string user_agent = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+  repeated string roles = 11;       // Role names
+  repeated string permissions = 12; // Derived from roles
+}
+
+message CreateUserRequest {
+  string tenant_id = 1;
+  string email = 2;
+  string name = 3;
+  string password = 4;
+  repeated string roles = 5;
+}
+
+message UpdateUserRequest {
+  string user_id = 1;
+  string name = 2;
+  string email = 3;
+  string password = 4;
+  repeated string roles = 5;
+}
+
+message DeleteUserRequest {
+  string user_id = 1;
+}
+
+message GetUserRequest {
+  string user_id = 1;
+}
+
+message ListUsersRequest {
+  string tenant_id = 1;
+  PageRequest page = 2;
+}
+
+message ListUsersResponse {
+  repeated User users = 1;
+  PageResponse pagination = 2;
+}
+
+message AssignRolesRequest {
+  string user_id = 1;
+  repeated string roles = 2;
+}
+
+message UserResponse {
+  string user_id = 1;
+  string name = 2;
+  string email = 3;
+  repeated string roles = 4;
+  repeated string permissions = 5;
+}
+
+// ====================
+// Confirm Password
+// ====================
+message ConfirmPasswordRequest {
+  string user_id = 1;
+  string password = 2;
+}
+
+message ConfirmPasswordResponse {
+  bool valid = 1;
+}
+
+// ====================
+// Tenant
+// ====================
+message CreateTenantRequest {
+  string name = 1;
+  string email = 2;     // Super Admin email
+  string password = 3;  // Super Admin password
+}
+
+message GetTenantRequest {
+  string tenant_id = 1;
+}
+
+message TenantResponse {
+  string tenant_id = 1;
+  string name = 2;
+  string super_admin_user_id = 3;
+}
+
+// ====================
+// Organization
+// ====================
+message CreateOrganizationRequest {
+  string tenant_id = 1;
+  string name = 2;
+}
+
+message OrganizationResponse {
+  string org_id = 1;
+  string tenant_id = 2;
+  string name = 3;
+}
+
+message ListOrganizationsRequest {
+  string tenant_id = 1;
+}
+
+message ListOrganizationsResponse {
+  repeated OrganizationResponse organizations = 1;
+}
+
+message GetOrganizationRequest {
+  string org_id = 1;
+}
+
+message GetOrganizationResponse {
+  string org_id = 1;
+  string tenant_id = 2;
+  string name = 3;
+}
+
+message UpdateOrganizationRequest {
+  string org_id = 1;
+  string name = 2;
+}
+
+message UpdateOrganizationResponse {
+  string org_id = 1;
+  string tenant_id = 2;
+  string name = 3;
+}
+
+message DeleteOrganizationRequest {
+  string org_id = 1;
+}
+
+// ====================
+// Organization-User Link
+// ====================
+message AddUserToOrgRequest {
+  string user_id = 1;
+  string org_id = 2;
+  string role_id = 3;
+}
+
+message ListUsersByOrgRequest {
+  string org_id = 1;
+}
+
+message ListUsersByOrgResponse {
+  repeated UserOrgInfo users = 1;
+}
+
+message UserOrgInfo {
+  string user_id = 1;
+  string email = 2;
+  string name = 3;
+  string role_id = 4;
+  string role_name = 5;
+  repeated string permissions = 6;
+}
+
+// ====================
+// Auth / JWT
+// ====================
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+  string tenant_id = 3;
+  string org_id = 4;
+}
+
+message LoginResponse {
+  string token = 1;
+  string refresh_token = 2;
+  string user_id = 3;
+  string role = 4;
+  repeated string permissions = 5;
+}
+
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+
+message ValidateTokenRequest {
+  string token = 1;
+}
+
+message ValidateTokenResponse {
+  bool valid = 1;
+  string user_id = 2;
+  string tenant_id = 3;
+  string org_id = 4;
+  string role = 5;
+  repeated string permissions = 6;
+  google.protobuf.Timestamp issued_at = 7;
+  google.protobuf.Timestamp expires_at = 8;
+}
+
+// ====================
+// User Login History
+// ====================
+message CreateUserLoginHistoryRequest {
+  string user_id = 1;
+  string ip_address = 2;
+  string user_agent = 3;
+}
+
+message UserLoginHistoryResponse {
+  string history_id = 1;
+  string user_id = 2;
+  string ip_address = 3;
+  string user_agent = 4;
+  google.protobuf.Timestamp login_time = 5;
+}
+
+message ListUserLoginHistoriesRequest {
+  string user_id = 1;
+  PageRequest page = 2;
+}
+
+message ListUserLoginHistoriesResponse {
+  repeated UserLoginHistoryResponse histories = 1;
+  PageResponse pagination = 2;
+}
+
+// ====================
+// Session Management
+// ====================
+message CreateSessionRequest {
+  string user_id = 1;
+  string token = 2;
+}
+
+message SessionResponse {
+  string session_id = 1;
+  string user_id = 2;
+  string token = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp expires_at = 5;
+}
+
+message GetSessionRequest {
+  string session_id = 1;
+}
+
+message DeleteSessionRequest {
+  string session_id = 1;
+}
+
+// ====================
+// Password Reset
+// ====================
+message CreatePasswordResetTokenRequest {
+  string email = 1;
+}
+
+message PasswordResetTokenResponse {
+  string token = 1;
+  string email = 2;
+  google.protobuf.Timestamp expires_at = 3;
+
+}
+
+message GetPasswordResetTokenRequest {
+  string token = 1;
+}
+
+message ResetPasswordRequest {
+  string token = 1;
+  string new_password = 2;
+}
+
+// ====================
+// Pagination
+// ====================
+message PageRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+}
+
+message PageResponse {
+  int32 page = 1;
+  int32 page_size = 2;
+  int32 total_pages = 3;
+  int32 total_items = 4;
+}
+
+// ====================
+// Users Paginated & Count
+// ====================
+message ListUsersPaginatedRequest {
+  string tenant_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message ListUsersPaginatedResponse {
+  repeated User users = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+}
+
+message CountUsersByTenantRequest {
+  string tenant_id = 1;
+}
+
+message CountUsersByTenantResponse {
+  int64 count = 1;
+}
