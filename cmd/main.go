@@ -53,6 +53,8 @@ func main() {
 	emailRepo := repository.NewEmailVerificationRepo(queries)
 	tenantRepo := repository.NewTenantRepo(queries)
 	userLoginRepo := repository.NewUserLoginRepo(queries)
+	deptRepo := repository.NewDepartmentRepository(queries)
+	designationRepo := repository.NewDesignationRepository(queries)
 
 	// ---------- Services ----------
 	userService := services.NewUserService(userRepo)
@@ -60,6 +62,8 @@ func main() {
 	orgService := services.NewOrganizationService(orgRepo)
 	userOrgService := services.NewUserOrganizationService(userOrgRepo)
 	pagService := services.NewPaginationService(pagRepo)
+	deptService := services.NewDepartmentService(deptRepo)
+	designationService := services.NewDesignationService(designationRepo)
 
 	// TLS SMTP Sender for Gmail (port 465)
 	tlsSender := &email.SMTPTLSender{
@@ -102,48 +106,56 @@ func main() {
 	userLoginHandler := http_server.NewUserLoginHandler(userLoginService)
 	userHandler := http_server.NewUserHandler(userService)
 	emailHandler := http_server.NewEmailVerificationHandler(emailService)
+	deptHandler := http_server.NewDepartmentHandler(deptService)
+	designationHandler := http_server.NewDesignationHandler(designationService)
 
 	// ---------- Router ----------
 	r := chi.NewRouter()
 
-	// Auth routes
+	// ---------- Department Routes ----------
+	r.Route("/departments", deptHandler.Routes)
+	r.Route("/designations", designationHandler.Routes)
+
+	// ---------- Auth ----------
 	r.Post("/register", authHandler.Register)
 	r.Post("/login", authHandler.Login)
 	r.Post("/logout", authHandler.Logout)
 
-	// Organization
+	// ---------- Organization ----------
 	orgHandler.RegisterRoutes(r)
 
-	// UserOrganization
+	// ---------- UserOrganization ----------
 	userOrgHandler.RegisterRoutes(r)
 
-	// Pagination
+	// ---------- Pagination ----------
 	pagHandler.RegisterRoutes(r)
 
-	// Password Reset
+	// ---------- Password Reset ----------
 	resetHandler.RegisterRoutes(r)
 
-	// Refresh Token
+	// ---------- Refresh Token ----------
 	refreshHandler.RegisterRoutes(r)
 
-	// Roles
+	// ---------- Roles ----------
 	roleHandler.RegisterRoutes(r)
 
-	// Sessions
+	// ---------- Sessions ----------
 	sessionHandler.RegisterRoutes(r)
 
-	// Tenant
+	// ---------- Tenant ----------
 	tenantHandler.RegisterRoutes(r)
 
-	// User Login
+	// ---------- User Login ----------
 	userLoginHandler.RegisterRoutes(r)
 
-	// User
+	// ---------- User ----------
 	userHandler.RegisterRoutes(r)
 
-	// Email Verification
-	r.Post("/users/{userID}/send-verification", emailHandler.SendVerification)
-	r.Get("/verify-email", emailHandler.VerifyEmail)
+	// ---------- Email Verification ----------
+	emailHandler.Routes(r) 
+
+	// ---------- Designation ----------
+	designationHandler.Routes(r)
 
 	// ---------- Start HTTP Server ----------
 	log.Printf("Server listening on %s", port)

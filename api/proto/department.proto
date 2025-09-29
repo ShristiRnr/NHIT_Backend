@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package departments;
+
+option go_package = "api/departmentpb;departmentpb";
+
+import "google/protobuf/timestamp.proto";
+
+// Department entity
+message Department {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp updated_at = 5;
+}
+
+// ========== Requests ==========
+
+message CreateDepartmentRequest {
+  string name = 1;
+  string description = 2;
+}
+
+message GetDepartmentRequest {
+  string id = 1;
+}
+
+message UpdateDepartmentRequest {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+}
+
+message DeleteDepartmentRequest {
+  string id = 1;
+}
+
+message ListDepartmentsRequest {
+  int32 page = 1;        // optional for pagination
+  int32 page_size = 2;   // optional for pagination
+}
+
+// ========== Responses ==========
+
+message DepartmentResponse {
+  Department department = 1;
+}
+
+message ListDepartmentsResponse {
+  repeated Department departments = 1;
+  int32 total_count = 2; // useful for pagination
+}
+
+message DeleteDepartmentResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// ========== Service ==========
+
+service DepartmentService {
+  rpc CreateDepartment(CreateDepartmentRequest) returns (DepartmentResponse);
+  rpc GetDepartment(GetDepartmentRequest) returns (DepartmentResponse);
+  rpc UpdateDepartment(UpdateDepartmentRequest) returns (DepartmentResponse);
+  rpc DeleteDepartment(DeleteDepartmentRequest) returns (DeleteDepartmentResponse);
+  rpc ListDepartments(ListDepartmentsRequest) returns (ListDepartmentsResponse);
+}

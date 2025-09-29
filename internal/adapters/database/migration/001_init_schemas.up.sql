@@ -150,6 +150,26 @@ CREATE TABLE email_verifications (
 );
 
 -- --------------------
+-- Departments
+-- --------------------
+CREATE TABLE departments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    description VARCHAR(500) NOT NULL,
+    created_at TIMESTAMP DEFAULT now(),
+    updated_at TIMESTAMP DEFAULT now()
+);
+
+
+CREATE TABLE designations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    description VARCHAR(500) NOT NULL,
+    created_at TIMESTAMP DEFAULT now(),
+    updated_at TIMESTAMP DEFAULT now()
+);
+
+-- --------------------
 -- Indexes
 -- --------------------
 CREATE INDEX idx_users_tenant_id ON users(tenant_id);
@@ -161,4 +181,9 @@ CREATE INDEX idx_sessions_user_id ON sessions(user_id);
 CREATE INDEX idx_user_login_history_user_id ON user_login_history(user_id);
 CREATE INDEX idx_password_resets_email ON password_resets(email);
 CREATE INDEX idx_email_verifications_user_id ON email_verifications(user_id);
-
+CREATE INDEX idx_departments_name ON departments(name);
+CREATE INDEX idx_departments_created_at ON departments(created_at);
+CREATE INDEX idx_departments_updated_at ON departments(updated_at);
+CREATE INDEX idx_designations_name ON designations(name);
+CREATE INDEX idx_designations_created_at ON designations(created_at);
+CREATE INDEX idx_designations_updated_at ON designations(updated_at);

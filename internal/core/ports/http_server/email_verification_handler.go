@@ -13,11 +13,10 @@ type EmailVerificationHandler struct {
 	svc *services.EmailVerificationService
 }
 
-// writeJSON writes a JSON response with the given status code and data.
+// writeJSON writes a JSON response
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-
 	if data != nil {
 		if err := json.NewEncoder(w).Encode(data); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -27,6 +26,12 @@ func writeJSON(w http.ResponseWriter, status int, data interface{}) {
 
 func NewEmailVerificationHandler(svc *services.EmailVerificationService) *EmailVerificationHandler {
 	return &EmailVerificationHandler{svc: svc}
+}
+
+// Routes registers all email verification endpoints
+func (h *EmailVerificationHandler) Routes(r chi.Router) {
+	r.Post("/users/{userID}/send-verification", h.SendVerification)
+	r.Get("/verify-email", h.VerifyEmail)
 }
 
 // POST /users/{userID}/send-verification

@@ -103,3 +103,27 @@ type EmailSender interface {
 	SendVerificationEmail(ctx context.Context, to string, link string, expiresAt string) error
 	SendResetPasswordEmail(ctx context.Context, to, link, expiresAt string) error
 }
+
+type DepartmentRepository interface {
+	Create(ctx context.Context, name, description string) (db.Department, error)
+	Get(ctx context.Context, id string) (db.Department, error)
+	List(ctx context.Context, limit, offset int32) ([]db.Department, error)
+	Update(ctx context.Context, id, name, description string) (db.Department, error)
+	Delete(ctx context.Context, id string) error
+}
+
+type DepartmentService interface {
+	Create(ctx context.Context, name, description string) (db.Department, error)
+	Get(ctx context.Context, id string) (db.Department, error)
+	List(ctx context.Context, page, pageSize int32) ([]db.Department, error)
+	Update(ctx context.Context, id, name, description string) (db.Department, error)
+	Delete(ctx context.Context, id string) error
+}
+
+type DesignationRepository interface {
+	Create(ctx context.Context, d db.Designation) (db.Designation, error)
+	Get(ctx context.Context, id uuid.UUID) (db.Designation, error)
+	Update(ctx context.Context, d db.Designation) (db.Designation, error)
+	Delete(ctx context.Context, id uuid.UUID) error
+	List(ctx context.Context, limit, offset int32) ([]db.Designation, error)
+}
