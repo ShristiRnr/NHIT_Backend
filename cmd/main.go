@@ -113,8 +113,8 @@ func main() {
 	r := chi.NewRouter()
 
 	// ---------- Department Routes ----------
-	r.Route("/departments", deptHandler.Routes)
-	r.Route("/designations", designationHandler.Routes)
+	r.Route("/departments", deptHandler.Register)
+	r.Route("/designations", designationHandler.Register)
 
 	// ---------- Auth ----------
 	r.Post("/register", authHandler.Register)
@@ -152,10 +152,10 @@ func main() {
 	userHandler.RegisterRoutes(r)
 
 	// ---------- Email Verification ----------
-	emailHandler.Routes(r) 
+	emailHandler.Routes(r)
 
 	// ---------- Designation ----------
-	designationHandler.Routes(r)
+	designationHandler.Register(r)
 
 	// ---------- Start HTTP Server ----------
 	log.Printf("Server listening on %s", port)

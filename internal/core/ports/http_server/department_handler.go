@@ -17,8 +17,8 @@ func NewDepartmentHandler(svc ports.DepartmentService) *DepartmentHandler {
 	return &DepartmentHandler{svc: svc}
 }
 
-// Routes registers all department endpoints
-func (h *DepartmentHandler) Routes(r chi.Router) {
+// RegisterRoutes registers all department endpoints
+func (h *DepartmentHandler) Register(r chi.Router) {
 	r.Get("/", h.List)         // GET /departments
 	r.Post("/", h.Create)      // POST /departments
 	r.Get("/{id}", h.Get)      // GET /departments/{id}

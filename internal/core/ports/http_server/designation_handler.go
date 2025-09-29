@@ -17,7 +17,7 @@ func NewDesignationHandler(svc *services.DesignationService) *DesignationHandler
 	return &DesignationHandler{svc: svc}
 }
 
-func (h *DesignationHandler) Routes(r chi.Router) {
+func (h *DesignationHandler) Register(r chi.Router) {
 	r.Get("/", h.List)
 	r.Post("/", h.Create)
 	r.Get("/{id}", h.Get)
