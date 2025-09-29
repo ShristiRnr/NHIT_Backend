@@ -76,15 +76,31 @@ func (h *SessionHandler) GetSession(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(session)
 }
 
+func (h *SessionHandler) GetSessionByToken(w http.ResponseWriter, r *http.Request) {
+	token := chi.URLParam(r, "token")
+	if token == "" {
+		http.Error(w, "token required", http.StatusBadRequest)
+		return
+	}
+
+	session, err := h.svc.GetSessionByToken(r.Context(), token)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	json.NewEncoder(w).Encode(session)
+}
+
 // DeleteSession handles DELETE /sessions/{sessionID}
 func (h *SessionHandler) DeleteSession(w http.ResponseWriter, r *http.Request) {
-	sessionID, err := uuid.Parse(chi.URLParam(r, "sessionID"))
-	if err != nil {
+	token := chi.URLParam(r, "sessionID")
+	if token == "" {
 		http.Error(w, "invalid sessionID", http.StatusBadRequest)
 		return
 	}
 
-	if err := h.svc.DeleteSession(r.Context(), sessionID); err != nil {
+	if err := h.svc.DeleteSession(r.Context(), token); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

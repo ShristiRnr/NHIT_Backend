@@ -2,39 +2,56 @@ package services
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"time"
-	"database/sql"
+	"log"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+
 	"github.com/ShristiRnr/NHIT_Backend/internal/adapters/database/db"
+	"github.com/ShristiRnr/NHIT_Backend/internal/core/ports"
 )
 
 type AuthService struct {
-	userRepo    *db.Queries
-	roleRepo    *db.Queries
-	sessionRepo *db.Queries
+	userRepo    ports.UserRepository
+	roleRepo    ports.RoleRepository
+	sessionRepo ports.SessionRepository
+	refreshRepo ports.RefreshTokenRepository
 }
 
-func NewAuthService(u *db.Queries, r *db.Queries, s *db.Queries) *AuthService {
+// AuthUser represents a logged-in user
+type AuthUser struct {
+	ID    uuid.UUID
+	Name  string
+	Email string
+	Roles []string
+}
+
+// Constructor
+func NewAuthService(
+	u ports.UserRepository,
+	r ports.RoleRepository,
+	s ports.SessionRepository,
+	refresh ports.RefreshTokenRepository,
+) *AuthService {
 	return &AuthService{
 		userRepo:    u,
 		roleRepo:    r,
 		sessionRepo: s,
+		refreshRepo: refresh,
 	}
 }
 
-// Register a new user with default role assignment
+// Register a new user with role assignment
 func (s *AuthService) Register(ctx context.Context, tenantID uuid.UUID, name, email, password, roleName string) (db.User, error) {
-	// Hash password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return db.User{}, err
 	}
 
-	// Create user
-	user, err := s.userRepo.CreateUser(ctx, db.CreateUserParams{
+	user, err := s.userRepo.Create(ctx, db.CreateUserParams{
 		TenantID: tenantID,
 		Name:     name,
 		Email:    email,
@@ -44,8 +61,7 @@ func (s *AuthService) Register(ctx context.Context, tenantID uuid.UUID, name, em
 		return db.User{}, err
 	}
 
-	// Get role by name (optional: create if doesn't exist)
-	roles, err := s.roleRepo.ListRolesByTenant(ctx, tenantID)
+	roles, err := s.roleRepo.List(ctx, tenantID)
 	if err != nil {
 		return db.User{}, err
 	}
@@ -57,8 +73,9 @@ func (s *AuthService) Register(ctx context.Context, tenantID uuid.UUID, name, em
 			break
 		}
 	}
+
 	if roleID == uuid.Nil {
-		newRole, err := s.roleRepo.CreateRole(ctx, db.CreateRoleParams{
+		newRole, err := s.roleRepo.Create(ctx, db.CreateRoleParams{
 			TenantID: tenantID,
 			Name:     roleName,
 		})
@@ -68,7 +85,6 @@ func (s *AuthService) Register(ctx context.Context, tenantID uuid.UUID, name, em
 		roleID = newRole.RoleID
 	}
 
-	// Assign role to user
 	err = s.roleRepo.AssignRoleToUser(ctx, db.AssignRoleToUserParams{
 		UserID: user.UserID,
 		RoleID: roleID,
@@ -80,35 +96,109 @@ func (s *AuthService) Register(ctx context.Context, tenantID uuid.UUID, name, em
 	return user, nil
 }
 
-
-func (s *AuthService) Login(ctx context.Context, email, password string, sessionDuration time.Duration) (string, error) {
-	// Get user by email
-	user, err := s.userRepo.GetUserByEmail(ctx, email)
+// Login authenticates a user and creates session + refresh token
+func (s *AuthService) Login(ctx context.Context, email, password string, sessionDuration time.Duration, refreshDuration time.Duration) (sessionToken string, refreshToken string, err error) {
+	user, err := s.userRepo.GetByEmail(ctx, email)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) { // <-- use sql.ErrNoRows
-			return "", errors.New("invalid credentials")
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", "", errors.New("invalid credentials")
 		}
-		return "", err
+		return "", "", err
 	}
 
-	// Compare password
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+		return "", "", errors.New("invalid credentials")
+	}
+
+	// Create session token
+	sessionToken = uuid.New().String()
+	sessionExpire := time.Now().Add(sessionDuration)
+
+	_, err = s.sessionRepo.Create(ctx, user.UserID, sessionToken, sessionExpire)
 	if err != nil {
-		return "", errors.New("invalid credentials")
+		return "", "", err
 	}
 
-	// Generate session token
-	token := uuid.New().String()
-	expireAt := time.Now().Add(sessionDuration)
+	// Create refresh token
+	refreshToken = uuid.New().String()
+	refreshExpire := time.Now().Add(refreshDuration)
 
-	_, err = s.sessionRepo.CreateSession(ctx, db.CreateSessionParams{
-		UserID:    uuid.NullUUID{UUID: user.UserID, Valid: true},
-		Token:     token,
-		ExpiresAt: sql.NullTime{Time: expireAt, Valid: true},
-	})
+	err = s.refreshRepo.Create(ctx, user.UserID, refreshToken, refreshExpire)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	return token, nil
+	return sessionToken, refreshToken, nil
+}
+
+func (s *AuthService) Logout(ctx context.Context, sessionToken, refreshToken string) error {
+    // Delete session by token
+    if err := s.sessionRepo.Delete(ctx, sessionToken); err != nil {
+        return err
+    }
+
+    // Delete refresh token
+    if err := s.refreshRepo.Delete(ctx, refreshToken); err != nil {
+        return err
+    }
+
+    return nil
+}
+
+// UserHasPermission checks if a user has a specific permission
+func (s *AuthService) UserHasPermission(ctx context.Context, userID uuid.UUID, permission string) bool {
+	// TODO: implement proper permission check
+	// For now, allow everything for demonstration
+	return true
+}
+
+// LogUserActivity logs a user action
+func (s *AuthService) LogUserActivity(ctx context.Context, action string, entityID uuid.UUID, status string) error {
+	// You could write to a table `user_activities` here
+	log.Printf("[UserActivity] Action=%s, EntityID=%s, Status=%s\n", action, entityID, status)
+	return nil
+}
+
+// NotifySuperAdmins sends notifications to all super admins
+func (s *AuthService) NotifySuperAdmins(ctx context.Context, entity interface{}) error {
+    superAdmins, err := s.roleRepo.ListSuperAdmins(ctx)
+    if err != nil {
+        return err
+    }
+
+    for _, admin := range superAdmins {
+        // for now, just log; later you can send email
+        log.Printf("[NotifySuperAdmins] Notify %s about %v\n", admin.Email, entity)
+    }
+
+    return nil
+}
+
+
+// GetUserBySessionToken retrieves user info from a session token
+func (s *AuthService) GetUserBySessionToken(ctx context.Context, token string) (*db.User, error) {
+	// Fetch session
+	session, err := s.sessionRepo.GetByToken(ctx, token)
+	if err != nil {
+		return nil, errors.New("invalid or expired session")
+	}
+
+	// Check if UserID is valid
+	if !session.UserID.Valid {
+		return nil, errors.New("invalid session user")
+	}
+	userID := session.UserID.UUID
+
+	// Get user by ID
+	user, err := s.userRepo.Get(ctx, userID)
+	if err != nil {
+		return nil, errors.New("user not found")
+	}
+
+	// Optional: check if session is expired
+	if !session.ExpiresAt.Valid || time.Now().After(session.ExpiresAt.Time) {
+		return nil, errors.New("session expired")
+	}
+
+	return &user, nil
 }

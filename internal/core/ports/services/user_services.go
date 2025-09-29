@@ -8,13 +8,6 @@ import (
 	"github.com/google/uuid"
 )
 
-type AuthUser struct {
-    ID    uuid.UUID
-    Name  string
-    Email string
-    Roles []string
-}
-
 type UserService struct {
 	repo ports.UserRepository
 }

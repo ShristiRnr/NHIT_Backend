@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"log"
 
 	"github.com/google/uuid"
 	"github.com/ShristiRnr/NHIT_Backend/internal/adapters/database/db"
@@ -75,4 +76,19 @@ func (s *RoleService) ListRolesOfUser(ctx context.Context, userID uuid.UUID) ([]
 // List permissions of a user via roles
 func (s *RoleService) ListPermissionsOfUser(ctx context.Context, userID uuid.UUID) ([]db.Permission, error) {
 	return s.repo.ListPermissionsOfUserViaRoles(ctx, userID)
+}
+
+// ListSuperAdmins returns all super admin users
+func (s *RoleService) ListSuperAdmins(ctx context.Context) ([]db.User, error) {
+	superAdmins, err := s.repo.ListSuperAdmins(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// log for debug purposes
+	for _, admin := range superAdmins {
+		log.Printf("[RoleService] SuperAdmin: %s (%s)\n", admin.Name, admin.Email)
+	}
+
+	return superAdmins, nil
 }

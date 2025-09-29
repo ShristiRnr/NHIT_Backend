@@ -10,4 +10,9 @@ WHERE session_id = $1;
 
 -- name: DeleteSession :exec
 DELETE FROM sessions
-WHERE session_id = $1;
+WHERE token =$1;
+
+-- name: GetSessionByToken :one
+SELECT *
+FROM sessions
+WHERE token = $1;

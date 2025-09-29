@@ -35,7 +35,11 @@ func (r *SessionRepo) Get(ctx context.Context, sessionID uuid.UUID) (db.Session,
 	return r.q.GetSession(ctx, sessionID)
 }
 
+func (r *SessionRepo) GetByToken(ctx context.Context, token string) (db.Session, error) {
+	return r.q.GetSessionByToken(ctx, token)
+}
+
 // Delete removes a session by its ID.
-func (r *SessionRepo) Delete(ctx context.Context, sessionID uuid.UUID) error {
-	return r.q.DeleteSession(ctx, sessionID)
+func (r *SessionRepo) Delete(ctx context.Context, token string) error {
+	return r.q.DeleteSession(ctx, token)
 }

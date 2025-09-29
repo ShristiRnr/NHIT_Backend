@@ -53,3 +53,10 @@ FROM roles r
 JOIN user_roles ur ON ur.role_id = r.role_id
 JOIN users u ON ur.user_id = u.user_id
 WHERE u.email = $1;
+
+-- name: ListSuperAdmins :many
+SELECT u.user_id, u.name, u.email
+FROM users u
+JOIN user_roles ur ON u.user_id = ur.user_id
+JOIN roles r ON ur.role_id = r.role_id
+WHERE r.name = 'super_admin';

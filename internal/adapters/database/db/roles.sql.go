@@ -226,6 +226,43 @@ func (q *Queries) ListRolesOfUser(ctx context.Context, userID uuid.UUID) ([]Role
 	return items, nil
 }
 
+const listSuperAdmins = `-- name: ListSuperAdmins :many
+SELECT u.user_id, u.name, u.email
+FROM users u
+JOIN user_roles ur ON u.user_id = ur.user_id
+JOIN roles r ON ur.role_id = r.role_id
+WHERE r.name = 'super_admin'
+`
+
+type ListSuperAdminsRow struct {
+	UserID uuid.UUID
+	Name   string
+	Email  string
+}
+
+func (q *Queries) ListSuperAdmins(ctx context.Context) ([]ListSuperAdminsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listSuperAdmins)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListSuperAdminsRow
+	for rows.Next() {
+		var i ListSuperAdminsRow
+		if err := rows.Scan(&i.UserID, &i.Name, &i.Email); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateRole = `-- name: UpdateRole :one
 UPDATE roles
 SET name = $2, updated_at = now()

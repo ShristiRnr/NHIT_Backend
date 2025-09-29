@@ -11,8 +11,8 @@ import (
 
 // RoleHandler handles role-related HTTP requests
 type RoleHandler struct {
-	svc *services.RoleService
-	auth AuthMiddleware // hypothetical middleware to check user and permissions
+	svc  *services.RoleService
+	auth AuthMiddleware // middleware to check user and permissions
 }
 
 func NewRoleHandler(svc *services.RoleService, auth AuthMiddleware) *RoleHandler {
@@ -23,7 +23,6 @@ func NewRoleHandler(svc *services.RoleService, auth AuthMiddleware) *RoleHandler
 func (h *RoleHandler) RegisterRoutes(r chi.Router) {
 	r.Group(func(r chi.Router) {
 		r.Use(h.auth.RequirePermission("create-role", "edit-role", "delete-role"))
-
 		r.Get("/roles", h.ListRoles)
 		r.Get("/roles/{roleID}", h.GetRole)
 	})
@@ -53,8 +52,8 @@ func (h *RoleHandler) RegisterRoutes(r chi.Router) {
 // CreateRole creates a new role
 func (h *RoleHandler) CreateRole(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		TenantID string `json:"tenant_id"`
-		Name     string `json:"name"`
+		TenantID    string      `json:"tenant_id"`
+		Name        string      `json:"name"`
 		Permissions []uuid.UUID `json:"permissions"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -79,8 +78,11 @@ func (h *RoleHandler) CreateRole(w http.ResponseWriter, r *http.Request) {
 		h.svc.AssignPermissionToRole(r.Context(), role.RoleID, pid)
 	}
 
-	// Activity log (similar to Laravel activity())
+	// Log activity
 	h.auth.LogActivity(r.Context(), "Role Created", role.RoleID, "created")
+
+	// Notify super admins
+	h.auth.NotifySuperAdminsIfNeeded(r.Context(), role)
 
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(role)
@@ -107,10 +109,12 @@ func (h *RoleHandler) UpdateRole(w http.ResponseWriter, r *http.Request) {
 		h.svc.AssignPermissionToRole(r.Context(), role.RoleID, pid)
 	}
 
-	// Example: send email if super admin (like Laravel logic)
+	// Log activity
+	h.auth.LogActivity(r.Context(), "Role Updated", role.RoleID, "updated")
+
+	// Notify super admins
 	h.auth.NotifySuperAdminsIfNeeded(r.Context(), role)
 
-	h.auth.LogActivity(r.Context(), "Role Updated", role.RoleID, "updated")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(role)
 }
@@ -131,6 +135,12 @@ func (h *RoleHandler) DeleteRole(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Log activity
+	h.auth.LogActivity(r.Context(), "Role Deleted", role.RoleID, "deleted")
+
+	// Notify super admins
+	h.auth.NotifySuperAdminsIfNeeded(r.Context(), role)
 
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -167,6 +177,9 @@ func (h *RoleHandler) AssignRoleToUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Log activity
+	h.auth.LogActivity(r.Context(), "Assigned Role To User", roleID, "assigned")
+
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -179,6 +192,9 @@ func (h *RoleHandler) AssignPermissionToRole(w http.ResponseWriter, r *http.Requ
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Log activity
+	h.auth.LogActivity(r.Context(), "Assigned Permission To Role", roleID, "assigned")
 
 	w.WriteHeader(http.StatusNoContent)
 }

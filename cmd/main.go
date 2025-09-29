@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	_ "github.com/lib/pq"
+	"github.com/joho/godotenv"
 
 	"github.com/ShristiRnr/NHIT_Backend/internal/adapters"
 	"github.com/ShristiRnr/NHIT_Backend/internal/adapters/database/db"
@@ -21,6 +22,10 @@ import (
 
 func main() {
 	// Load environment variables
+	if err := godotenv.Load(); err != nil {
+        log.Println("No .env file found, using defaults")
+    }
+
 	port := getEnv("SERVER_PORT", "8080")
 	dbURL := getEnv("DB_URL", "postgres://user:pass@localhost:5432/nhit?sslmode=disable")
 
@@ -31,108 +36,112 @@ func main() {
 	}
 	defer conn.Close()
 
-	// Init sqlc queries
 	queries := db.New(conn)
 
 	// ---------- Token TTL ----------
 	tokenTTL := 24 * time.Hour
 
-	// ---------- User repository & service ----------
+	// ---------- Repositories ----------
 	userRepo := repository.NewUserRepo(queries)
-	userService := services.NewUserService(userRepo)
-
-	// ---------- Auth middleware ----------
-	userAdapter := adapters.NewUserServiceAdapter(userService)
-	authMiddleware := http_server.NewAuthMiddleware(userAdapter)
-	_ =authMiddleware
-
-	// ---------- Organization ----------
-	orgRepo := repository.NewOrganizationRepo(queries)
-	orgService := services.NewOrganizationService(orgRepo)
-	orgHandler := http_server.NewOrganizationHandler(orgService)
-
-	// ---------- UserOrganization ----------
-	userOrgRepo := repository.NewUserOrganizationRepo(queries)
-	userOrgService := services.NewUserOrganizationService(userOrgRepo)
-	userOrgHandler := http_server.NewUserOrganizationHandler(userOrgService)
-
-	// ---------- Pagination ----------
-	pagRepo := repository.NewPaginationRepo(queries)
-	pagService := services.NewPaginationService(pagRepo)
-	pagHandler := http_server.NewPaginationHandler(pagService)
-
-	// ---------- Password Reset ----------
-	resetRepo := repository.NewPasswordResetRepo(queries)
-	smtpSender := email.NewSMTPSender(
-		"smtp.gmail.com", // host
-		587,              // port
-		"your_email@gmail.com", // username
-		"your_app_password",     // password (App Password from Gmail)
-		"your_email@gmail.com",  // from
-		"NHIT",                  // appName (use your app’s name)
-	)
-
-	resetService := services.NewPasswordResetService(resetRepo, userRepo, tokenTTL, smtpSender)
-	resetHandler := http_server.NewPasswordResetHandler(resetService)
-	
-	// ---------- Refresh Token ----------
-	refreshRepo := repository.NewRefreshRepo(queries)
-	refreshService := services.NewRefreshTokenService(refreshRepo)
-	refreshHandler := http_server.NewRefreshTokenHandler(refreshService)
-
-	// ---------- Roles ----------
 	roleRepo := repository.NewRoleRepo(queries)
-	roleService := services.NewRoleService(roleRepo)
-	roleHandler := http_server.NewRoleHandler(roleService, authMiddleware)
-
-	// ---------- Sessions ----------
 	sessionRepo := repository.NewSessionRepo(queries)
-	sessionService := services.NewSessionService(sessionRepo)
-	sessionHandler := http_server.NewSessionHandler(sessionService)
-
-	// ---------- Tenant ----------
+	refreshRepo := repository.NewRefreshRepo(queries)
+	orgRepo := repository.NewOrganizationRepo(queries)
+	userOrgRepo := repository.NewUserOrganizationRepo(queries)
+	pagRepo := repository.NewPaginationRepo(queries)
+	resetRepo := repository.NewPasswordResetRepo(queries)
+	emailRepo := repository.NewEmailVerificationRepo(queries)
 	tenantRepo := repository.NewTenantRepo(queries)
-	tenantService := services.NewTenantService(tenantRepo)
-	tenantHandler := http_server.NewTenantHandler(tenantService)
-
-	// ---------- User Login ----------
 	userLoginRepo := repository.NewUserLoginRepo(queries)
-	userLoginService := services.NewUserLoginService(userLoginRepo)
-	userLoginHandler := http_server.NewUserLoginHandler(userLoginService)
 
-	// ---------- User ----------
+	// ---------- Services ----------
+	userService := services.NewUserService(userRepo)
+	authService := services.NewAuthService(userRepo, roleRepo, sessionRepo, refreshRepo)
+	orgService := services.NewOrganizationService(orgRepo)
+	userOrgService := services.NewUserOrganizationService(userOrgRepo)
+	pagService := services.NewPaginationService(pagRepo)
+	resetService := services.NewPasswordResetService(resetRepo, userRepo, tokenTTL,
+		email.NewSMTPSender(
+			getEnv("SMTP_HOST", "smtp.gmail.com"),
+			getEnvInt("SMTP_PORT", 587),
+			getEnv("SMTP_USER", "your_email@gmail.com"),
+			getEnv("SMTP_PASS", "app_password"),
+			getEnv("SMTP_FROM", "your_email@gmail.com"),
+			"NHIT",
+		),
+	)
+	refreshService := services.NewRefreshTokenService(refreshRepo)
+	roleService := services.NewRoleService(roleRepo)
+	sessionService := services.NewSessionService(sessionRepo)
+	tenantService := services.NewTenantService(tenantRepo)
+	userLoginService := services.NewUserLoginService(userLoginRepo)
+	emailSender := email.NewSMTPSender(
+		getEnv("SMTP_HOST", "smtp.gmail.com"),
+		getEnvInt("SMTP_PORT", 587),
+		getEnv("SMTP_USER", "your_email@gmail.com"),
+		getEnv("SMTP_PASS", "app_password"),
+		getEnv("SMTP_FROM", "your_email@gmail.com"),
+		"NHIT",
+	)
+	emailService := services.NewEmailVerificationService(emailRepo, userRepo, emailSender, getEnv("BASE_URL", "http://localhost:"+port))
+
+	// ---------- Adapters / Middleware ----------
+	userAdapter := adapters.NewUserServiceAdapter(authService)
+	authMiddleware := http_server.NewAuthMiddleware(userAdapter)
+
+	// ---------- Handlers ----------
+	authHandler := http_server.NewAuthHandler(authService)
+	orgHandler := http_server.NewOrganizationHandler(orgService)
+	userOrgHandler := http_server.NewUserOrganizationHandler(userOrgService)
+	pagHandler := http_server.NewPaginationHandler(pagService)
+	resetHandler := http_server.NewPasswordResetHandler(resetService)
+	refreshHandler := http_server.NewRefreshTokenHandler(refreshService)
+	roleHandler := http_server.NewRoleHandler(roleService, authMiddleware)
+	sessionHandler := http_server.NewSessionHandler(sessionService)
+	tenantHandler := http_server.NewTenantHandler(tenantService)
+	userLoginHandler := http_server.NewUserLoginHandler(userLoginService)
 	userHandler := http_server.NewUserHandler(userService)
+	emailHandler := http_server.NewEmailVerificationHandler(emailService)
 
 	// ---------- Router ----------
 	r := chi.NewRouter()
+
+	// Auth routes
+	r.Post("/register", authHandler.Register)
+	r.Post("/login", authHandler.Login)
+	r.Post("/logout", authHandler.Logout)
+
+	// Organization
 	orgHandler.RegisterRoutes(r)
+
+	// UserOrganization
 	userOrgHandler.RegisterRoutes(r)
+
+	// Pagination
 	pagHandler.RegisterRoutes(r)
+
+	// Password Reset
 	resetHandler.RegisterRoutes(r)
+
+	// Refresh Token
 	refreshHandler.RegisterRoutes(r)
+
+	// Roles
 	roleHandler.RegisterRoutes(r)
+
+	// Sessions
 	sessionHandler.RegisterRoutes(r)
+
+	// Tenant
 	tenantHandler.RegisterRoutes(r)
+
+	// User Login
 	userLoginHandler.RegisterRoutes(r)
+
+	// User
 	userHandler.RegisterRoutes(r)
 
-	// ---------- Email Verification ----------
-	// SMTP Config (load from env)
-	smtpHost := getEnv("SMTP_HOST", "smtp.gmail.com")
-	smtpPort := getEnvInt("SMTP_PORT", 587)
-	smtpUser := getEnv("SMTP_USER", "your-email@gmail.com")
-	smtpPass := getEnv("SMTP_PASS", "app-password")
-	smtpFrom := getEnv("SMTP_FROM", "your-email@gmail.com")
-	appName := getEnv("APP_NAME", "NHIT")
-	baseURL := getEnv("BASE_URL", "http://localhost:"+port)
-
-	emailSender := email.NewSMTPSender(smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom, appName)
-
-	emailRepo := repository.NewEmailVerificationRepo(queries)
-	emailService := services.NewEmailVerificationService(emailRepo, userRepo, emailSender, baseURL)
-	emailHandler := http_server.NewEmailVerificationHandler(emailService)
-
-	// Email Verification Routes
+	// Email Verification
 	r.Post("/users/{userID}/send-verification", emailHandler.SendVerification)
 	r.Get("/verify-email", emailHandler.VerifyEmail)
 

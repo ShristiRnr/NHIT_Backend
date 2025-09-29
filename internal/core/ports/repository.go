@@ -8,6 +8,13 @@ import (
 	"github.com/ShristiRnr/NHIT_Backend/internal/adapters/database/db"
 )
 
+type AuthUser struct {
+	ID    uuid.UUID
+	Name  string
+	Email string
+	Roles []string
+}
+
 // OrganizationRepository defines the interface for Organization operations.
 type OrganizationRepository interface {
 	Create(ctx context.Context, tenantID uuid.UUID, name string) (db.Organization, error)
@@ -35,12 +42,14 @@ type RoleRepository interface {
     ListRolesOfUser(ctx context.Context, userID uuid.UUID) ([]db.Role, error)
     ListPermissionsOfUserViaRoles(ctx context.Context, userID uuid.UUID) ([]db.Permission, error)
     GetByEmail(ctx context.Context, email string) (db.User, error) // optional if needed
+	ListSuperAdmins(ctx context.Context) ([]db.User, error)
 }
 
 type SessionRepository interface {
     Create(ctx context.Context, userID uuid.UUID, token string, expiresAt time.Time) (db.Session, error)
     Get(ctx context.Context, sessionID uuid.UUID) (db.Session, error)
-    Delete(ctx context.Context, sessionID uuid.UUID) error
+    Delete(ctx context.Context, token string) error
+	GetByToken(ctx context.Context, token string) (db.Session, error)
 }
 
 type TenantRepository interface {

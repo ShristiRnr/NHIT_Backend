@@ -39,11 +39,11 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 
 const deleteSession = `-- name: DeleteSession :exec
 DELETE FROM sessions
-WHERE session_id = $1
+WHERE token =$1
 `
 
-func (q *Queries) DeleteSession(ctx context.Context, sessionID uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deleteSession, sessionID)
+func (q *Queries) DeleteSession(ctx context.Context, token string) error {
+	_, err := q.db.ExecContext(ctx, deleteSession, token)
 	return err
 }
 
@@ -55,6 +55,25 @@ WHERE session_id = $1
 
 func (q *Queries) GetSession(ctx context.Context, sessionID uuid.UUID) (Session, error) {
 	row := q.db.QueryRowContext(ctx, getSession, sessionID)
+	var i Session
+	err := row.Scan(
+		&i.SessionID,
+		&i.UserID,
+		&i.Token,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+	)
+	return i, err
+}
+
+const getSessionByToken = `-- name: GetSessionByToken :one
+SELECT session_id, user_id, token, created_at, expires_at
+FROM sessions
+WHERE token = $1
+`
+
+func (q *Queries) GetSessionByToken(ctx context.Context, token string) (Session, error) {
+	row := q.db.QueryRowContext(ctx, getSessionByToken, token)
 	var i Session
 	err := row.Scan(
 		&i.SessionID,

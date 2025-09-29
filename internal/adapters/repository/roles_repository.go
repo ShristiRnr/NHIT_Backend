@@ -66,3 +66,21 @@ func (r *RoleRepo) ListPermissionsOfUserViaRoles(ctx context.Context, userID uui
 func (r *RoleRepo) GetByEmail(ctx context.Context, email string) (db.User, error) {
     return r.q.GetUserByEmail(ctx, email)
 }
+
+func (r *RoleRepo) ListSuperAdmins(ctx context.Context) ([]db.User, error) {
+	rows, err := r.q.ListSuperAdmins(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	users := make([]db.User, len(rows))
+	for i, row := range rows {
+		users[i] = db.User{
+			UserID: row.UserID,
+			Name:   row.Name,
+			Email:  row.Email,
+		}
+	}
+
+	return users, nil
+}

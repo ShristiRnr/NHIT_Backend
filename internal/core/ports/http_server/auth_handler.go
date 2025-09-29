@@ -32,6 +32,14 @@ type LoginResponse struct {
 	Token string `json:"token"`
 }
 
+type LogoutRequest struct {
+	Token string `json:"token"`
+}
+
+type LogoutResponse struct {
+	Message string `json:"message"`
+}
+
 type AuthHandler struct {
 	svc *services.AuthService
 }
@@ -73,7 +81,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Example: session lasts 24 hours
-	token, err := h.svc.Login(r.Context(), req.Email, req.Password, 24*time.Hour)
+	token, _, err := h.svc.Login(r.Context(), req.Email, req.Password, 24*time.Hour, 7*24*time.Hour)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -81,6 +89,27 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	resp := LoginResponse{
 		Token: token,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
+func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	var req LogoutRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Call service directly with tokens
+	if err := h.svc.Logout(r.Context(), req.Token, req.Token); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	resp := LogoutResponse{
+		Message: "Logged out successfully",
 	}
 
 	w.Header().Set("Content-Type", "application/json")
