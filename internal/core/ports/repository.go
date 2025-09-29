@@ -90,3 +90,7 @@ type EmailVerificationRepository interface {
 	DeleteByUserID(ctx context.Context, userID uuid.UUID) error
 }
 
+type EmailSender interface {
+	SendVerificationEmail(ctx context.Context, to string, link string, expiresAt string) error
+	SendResetPasswordEmail(ctx context.Context, to, link, expiresAt string) error
+}

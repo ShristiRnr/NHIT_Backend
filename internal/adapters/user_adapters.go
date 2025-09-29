@@ -41,10 +41,10 @@ func (a *userServiceAdapter) UserHasPermission(ctx context.Context, userID uuid.
 
 // LogActivity stub
 func (a *userServiceAdapter) LogActivity(ctx context.Context, action string, entityID uuid.UUID, status string) {
-	// Optional: add real logging logic here
+	//in future
 }
 
 // NotifySuperAdminsIfNeeded stub
 func (a *userServiceAdapter) NotifySuperAdminsIfNeeded(ctx context.Context, entity interface{}) {
-	// Optional: add notification logic here
+	//in future
 }

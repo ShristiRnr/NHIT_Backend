@@ -29,3 +29,14 @@ func (s *SMTPSender) SendVerificationEmail(ctx context.Context, to string, link 
 	msg := []byte(fmt.Sprintf("To: %s\r\nSubject: %s\r\n\r\n%s", to, subject, body))
 	return smtp.SendMail(s.addr, s.auth, s.from, []string{to}, msg)
 }
+
+func (s *SMTPSender) SendResetPasswordEmail(ctx context.Context, to string, link string, expiresAt string) error {
+	subject := fmt.Sprintf("[%s] Reset Your Password", s.appName)
+	body := fmt.Sprintf(
+		"Hello,\n\nYou requested to reset your password. Click the link below:\n\n%s\n\nThis link expires at %s.\n\nIf you did not request this, please ignore.\n\nThanks,\n%s Team",
+		link, expiresAt, s.appName,
+	)
+
+	msg := []byte(fmt.Sprintf("To: %s\r\nSubject: %s\r\n\r\n%s", to, subject, body))
+	return smtp.SendMail(s.addr, s.auth, s.from, []string{to}, msg)
+}

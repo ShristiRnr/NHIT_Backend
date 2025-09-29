@@ -55,12 +55,8 @@ func (s *EmailVerificationService) VerifyEmail(ctx context.Context, token uuid.U
 	if err != nil {
 		return err
 	}
-
-	// mark user as verified
 	if err := s.userRepo.MarkEmailVerified(ctx, verification.UserID.UUID); err != nil {
 		return err
 	}
-
-	// delete token after successful verification
 	return s.repo.DeleteByUserID(ctx, verification.UserID.UUID)
 }

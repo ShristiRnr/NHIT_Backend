@@ -4,42 +4,49 @@ import (
 	"context"
 	"time"
 	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt" 
 	"github.com/ShristiRnr/NHIT_Backend/internal/core/ports"
 )
 
+
 type PasswordResetService struct {
 	repo ports.PasswordResetRepository
 	userRepo  ports.UserRepository
 	tokenTTL  time.Duration
+	emailSender ports.EmailSender
 }
 
-func NewPasswordResetService(repo ports.PasswordResetRepository, userRepo ports.UserRepository, ttl time.Duration) *PasswordResetService {
-	return &PasswordResetService{repo: repo, userRepo: userRepo, tokenTTL: ttl}
+func NewPasswordResetService(repo ports.PasswordResetRepository, userRepo ports.UserRepository, ttl time.Duration, emailSender ports.EmailSender) *PasswordResetService {
+	return &PasswordResetService{repo: repo, userRepo: userRepo, tokenTTL: ttl, emailSender: emailSender}
 }
 
 // CreateToken generates a new password reset token for an email
 func (s *PasswordResetService) CreateToken(ctx context.Context, email string) (uuid.UUID, error) {
-	// Check if user exists
-	user, err := s.userRepo.GetByEmail(ctx, email)
-	if err != nil {
-		return uuid.Nil, errors.New("if this email is registered, you will receive a password reset link")
-	}
+    user, err := s.userRepo.GetByEmail(ctx, email)
+    if err != nil {
+        return uuid.Nil, errors.New("if this email is registered, you will receive a password reset link")
+    }
 
-	token := uuid.New()
-	expiresAt := time.Now().Add(s.tokenTTL)
+    token := uuid.New()
+    expiresAt := time.Now().Add(s.tokenTTL)
 
-	_, err = s.repo.Create(ctx, email, token, expiresAt)
-	if err != nil {
-		return uuid.Nil, err
-	}
+    _, err = s.repo.Create(ctx, email, token, expiresAt)
+    if err != nil {
+        return uuid.Nil, err
+    }
 
-	// TODO: Send token via email
-	_ = user // can pass to email sending logic
+    // Password reset link
+    resetLink := fmt.Sprintf("https://yourapp.com/reset-password/%s", token.String())
 
-	return token, nil
+    // Yaha mail bhejna hai
+    go func() {
+        _ = s.emailSender.SendResetPasswordEmail(ctx, user.Email, resetLink, expiresAt.Format(time.RFC1123))
+    }()
+
+    return token, nil
 }
 
 // GetToken retrieves a password reset token by token UUID
