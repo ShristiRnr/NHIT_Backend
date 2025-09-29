@@ -23,8 +23,8 @@ import (
 func main() {
 	// Load environment variables
 	if err := godotenv.Load(); err != nil {
-        log.Println("No .env file found, using defaults")
-    }
+		log.Println("No .env file found, using defaults")
+	}
 
 	port := getEnv("SERVER_PORT", "8080")
 	dbURL := getEnv("DB_URL", "postgres://user:pass@localhost:5432/nhit?sslmode=disable")
@@ -60,30 +60,30 @@ func main() {
 	orgService := services.NewOrganizationService(orgRepo)
 	userOrgService := services.NewUserOrganizationService(userOrgRepo)
 	pagService := services.NewPaginationService(pagRepo)
-	resetService := services.NewPasswordResetService(resetRepo, userRepo, tokenTTL,
-		email.NewSMTPSender(
-			getEnv("SMTP_HOST", "smtp.gmail.com"),
-			getEnvInt("SMTP_PORT", 587),
-			getEnv("SMTP_USER", "your_email@gmail.com"),
-			getEnv("SMTP_PASS", "app_password"),
-			getEnv("SMTP_FROM", "your_email@gmail.com"),
-			"NHIT",
-		),
-	)
+
+	// TLS SMTP Sender for Gmail (port 465)
+	tlsSender := &email.SMTPTLSender{
+		Host:     getEnv("SMTP_HOST", "smtp.gmail.com"),
+		Port:     getEnvInt("SMTP_PORT", 465),
+		Username: getEnv("SMTP_USER", "your_email@gmail.com"),
+		Password: getEnv("SMTP_PASS", "app_password"), // Use App Password
+		From:     getEnv("SMTP_FROM", "your_email@gmail.com"),
+		AppName:  getEnv("APP_NAME", "NHIT"),
+	}
+
+	resetService := services.NewPasswordResetService(resetRepo, userRepo, tokenTTL, tlsSender)
 	refreshService := services.NewRefreshTokenService(refreshRepo)
 	roleService := services.NewRoleService(roleRepo)
 	sessionService := services.NewSessionService(sessionRepo)
 	tenantService := services.NewTenantService(tenantRepo)
 	userLoginService := services.NewUserLoginService(userLoginRepo)
-	emailSender := email.NewSMTPSender(
-		getEnv("SMTP_HOST", "smtp.gmail.com"),
-		getEnvInt("SMTP_PORT", 587),
-		getEnv("SMTP_USER", "your_email@gmail.com"),
-		getEnv("SMTP_PASS", "app_password"),
-		getEnv("SMTP_FROM", "your_email@gmail.com"),
-		"NHIT",
+
+	emailService := services.NewEmailVerificationService(
+		emailRepo,
+		userRepo,
+		tlsSender,
+		getEnv("BASE_URL", "http://localhost:"+port),
 	)
-	emailService := services.NewEmailVerificationService(emailRepo, userRepo, emailSender, getEnv("BASE_URL", "http://localhost:"+port))
 
 	// ---------- Adapters / Middleware ----------
 	userAdapter := adapters.NewUserServiceAdapter(authService)
