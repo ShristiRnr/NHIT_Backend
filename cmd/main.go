@@ -115,7 +115,7 @@ func main() {
 	tenantHandler := http_server.NewTenantHandler(tenantService)
 	userLoginHandler := http_server.NewUserLoginHandler(userLoginService)
 	userHandler := http_server.NewUserHandler(userService)
-	emailHandler := http_server.NewEmailVerificationHandler(emailService)
+	emailHandler := http_server.NewEmailVerificationHandler(emailService, tlsSender)
 	deptHandler := http_server.NewDepartmentHandler(deptService)
 	designationHandler := http_server.NewDesignationHandler(designationService)
 	vendorHandler := http_server.NewVendorHandler(vendorService, authMiddleware)

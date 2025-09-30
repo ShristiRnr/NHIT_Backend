@@ -4,9 +4,12 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"net"
 	"net/smtp"
+	"time"
 )
 
+// SMTPTLSender is a secure SMTP sender for production
 type SMTPTLSender struct {
 	Host     string
 	Port     int
@@ -14,70 +17,99 @@ type SMTPTLSender struct {
 	Password string
 	From     string
 	AppName  string
+	Timeout  time.Duration // optional timeout for sending emails
 }
 
-// sendMailTLS sends an email via Gmail using TLS (port 465)
-func (s *SMTPTLSender) sendMailTLS(to, subject, body string) error {
+// sendMailTLS sends an email securely via TLS (supports plain text and HTML)
+func (s *SMTPTLSender) sendMailTLS(ctx context.Context, to, subject, body, mimeType string) error {
 	addr := fmt.Sprintf("%s:%d", s.Host, s.Port)
 
-	tlsConfig := &tls.Config{
-		InsecureSkipVerify: true,
-		ServerName:         s.Host,
-	}
-
-	conn, err := tls.Dial("tcp", addr, tlsConfig)
+	// Dial with context for cancellation/timeout
+	dialer := &net.Dialer{}
+	conn, err := tls.DialWithDialer(dialer, "tcp", addr, &tls.Config{
+		ServerName: s.Host,
+		MinVersion: tls.VersionTLS12,
+	})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to connect to SMTP server: %w", err)
 	}
 	defer conn.Close()
 
-	client, err := smtp.NewClient(conn, s.Host)
-	if err != nil {
+	// Wrap the connection in a context-aware client
+	done := make(chan error, 1)
+	go func() {
+		client, err := smtp.NewClient(conn, s.Host)
+		if err != nil {
+			done <- fmt.Errorf("failed to create SMTP client: %w", err)
+			return
+		}
+		defer client.Quit()
+
+		auth := smtp.PlainAuth("", s.Username, s.Password, s.Host)
+		if err := client.Auth(auth); err != nil {
+			done <- fmt.Errorf("SMTP auth failed: %w", err)
+			return
+		}
+
+		if err := client.Mail(s.From); err != nil {
+			done <- fmt.Errorf("MAIL FROM failed: %w", err)
+			return
+		}
+		if err := client.Rcpt(to); err != nil {
+			done <- fmt.Errorf("RCPT TO failed: %w", err)
+			return
+		}
+
+		w, err := client.Data()
+		if err != nil {
+			done <- fmt.Errorf("failed to get SMTP writer: %w", err)
+			return
+		}
+
+		msg := fmt.Sprintf(
+			"From: %s <%s>\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: %s; charset=\"UTF-8\"\r\n\r\n%s",
+			s.AppName, s.From, to, subject, mimeType, body,
+		)
+		if _, err := w.Write([]byte(msg)); err != nil {
+			done <- fmt.Errorf("failed to write email body: %w", err)
+			return
+		}
+		if err := w.Close(); err != nil {
+			done <- fmt.Errorf("failed to finalize email: %w", err)
+			return
+		}
+		done <- nil
+	}()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err() // respect cancellation
+	case err := <-done:
 		return err
 	}
-	defer client.Quit()
-
-	auth := smtp.PlainAuth("", s.Username, s.Password, s.Host)
-	if err = client.Auth(auth); err != nil {
-		return err
-	}
-
-	if err = client.Mail(s.From); err != nil {
-		return err
-	}
-
-	if err = client.Rcpt(to); err != nil {
-		return err
-	}
-
-	w, err := client.Data()
-	if err != nil {
-		return err
-	}
-
-	msg := []byte(fmt.Sprintf("To: %s\r\nSubject: %s\r\n\r\n%s", to, subject, body))
-	_, err = w.Write(msg)
-	if err != nil {
-		return err
-	}
-
-	if err = w.Close(); err != nil {
-		return err
-	}
-
-	return nil
 }
 
-func (s *SMTPTLSender) SendVerificationEmail(ctx context.Context, to, link, expiresAt string) error {
+// SendVerificationEmail sends an HTML/Plain email for verification
+func (s *SMTPTLSender) SendVerificationEmail(ctx context.Context, to, link string, expiresAt string) error {
 	subject := fmt.Sprintf("[%s] Verify Your Email", s.AppName)
-	body := fmt.Sprintf("Hello,\n\nPlease verify your email by clicking the link below:\n\n%s\n\nThis link expires at %s.\n\nThanks,\n%s Team",
+	body := fmt.Sprintf("Hello,<br><br>Please verify your email by clicking the link below:<br><a href=\"%s\">Verify Email</a><br><br>This link expires at %s.<br><br>Thanks,<br>%s Team",
 		link, expiresAt, s.AppName)
-	return s.sendMailTLS(to, subject, body)
+	return s.sendMailTLS(ctx, to, subject, body, "text/html")
 }
 
-func (s *SMTPTLSender) SendResetPasswordEmail(ctx context.Context, to, link, expiresAt string) error {
+// SendResetPasswordEmail sends an HTML/Plain email for password reset
+func (s *SMTPTLSender) SendResetPasswordEmail(ctx context.Context, to, link string, expiresAt string) error {
 	subject := fmt.Sprintf("[%s] Reset Your Password", s.AppName)
-	body := fmt.Sprintf("Hello,\n\nYou requested to reset your password. Click the link below:\n\n%s\n\nThis link expires at %s.\n\nIf you did not request this, please ignore.\n\nThanks,\n%s Team",
+	body := fmt.Sprintf("Hello,<br><br>You requested to reset your password. Click the link below:<br><a href=\"%s\">Reset Password</a><br><br>This link expires at %s.<br>If you did not request this, please ignore.<br><br>Thanks,<br>%s Team",
 		link, expiresAt, s.AppName)
-	return s.sendMailTLS(to, subject, body)
+	return s.sendMailTLS(ctx, to, subject, body, "text/html")
+}
+
+// Optional: Send email asynchronously (non-blocking)
+func (s *SMTPTLSender) SendAsync(ctx context.Context, to, subject, body, mimeType string) {
+	go func() {
+		if err := s.sendMailTLS(ctx, to, subject, body, mimeType); err != nil {
+			fmt.Printf("Failed to send email to %s: %v\n", to, err)
+		}
+	}()
 }
