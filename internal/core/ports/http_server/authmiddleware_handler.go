@@ -20,8 +20,8 @@ type AuthMiddleware struct {
 }
 
 // NewAuthMiddleware creates a new AuthMiddleware with the given UserService
-func NewAuthMiddleware(svc UserService) AuthMiddleware {
-	return AuthMiddleware{
+func NewAuthMiddleware(svc UserService) *AuthMiddleware {
+	return &AuthMiddleware{
 		userSvc: svc,
 	}
 }

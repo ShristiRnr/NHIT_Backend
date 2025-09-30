@@ -127,3 +127,21 @@ type DesignationRepository interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 	List(ctx context.Context, limit, offset int32) ([]db.Designation, error)
 }
+
+type VendorRepository interface {
+	Create(ctx context.Context, arg db.CreateVendorParams) (db.Vendor, error)
+	Get(ctx context.Context, id uuid.UUID) (db.Vendor, error)
+	Update(ctx context.Context, arg db.UpdateVendorParams) (db.Vendor, error)
+	Delete(ctx context.Context, id uuid.UUID) error
+	List(ctx context.Context, limit, offset int32) ([]db.Vendor, error)
+	Search(ctx context.Context, query string, limit, offset int32) ([]db.Vendor, error)
+}
+
+type VendorService interface {
+	List(ctx context.Context, onlyActive bool) ([]db.Vendor, error)
+	Get(ctx context.Context, id uuid.UUID) (*db.Vendor, error)
+	Create(ctx context.Context, v db.Vendor) (*db.Vendor, error)
+	Update(ctx context.Context, id uuid.UUID, v db.Vendor) (*db.Vendor, error)
+	Delete(ctx context.Context, id uuid.UUID) error
+	Search(ctx context.Context, query string, limit, offset int32) ([]db.Vendor, error)
+}

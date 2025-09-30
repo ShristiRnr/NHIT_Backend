@@ -12,10 +12,10 @@ import (
 // RoleHandler handles role-related HTTP requests
 type RoleHandler struct {
 	svc  *services.RoleService
-	auth AuthMiddleware // middleware to check user and permissions
+	auth *AuthMiddleware // middleware to check user and permissions
 }
 
-func NewRoleHandler(svc *services.RoleService, auth AuthMiddleware) *RoleHandler {
+func NewRoleHandler(svc *services.RoleService, auth *AuthMiddleware) *RoleHandler {
 	return &RoleHandler{svc: svc, auth: auth}
 }
 

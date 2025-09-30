@@ -7,21 +7,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/go-chi/chi/v5"
 	"github.com/ShristiRnr/NHIT_Backend/internal/core/ports/services"
+	"github.com/ShristiRnr/NHIT_Backend/helpers"
 )
 
 type EmailVerificationHandler struct {
 	svc *services.EmailVerificationService
-}
-
-// writeJSON writes a JSON response
-func writeJSON(w http.ResponseWriter, status int, data interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	if data != nil {
-		if err := json.NewEncoder(w).Encode(data); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-	}
 }
 
 func NewEmailVerificationHandler(svc *services.EmailVerificationService) *EmailVerificationHandler {
@@ -56,7 +46,7 @@ func (h *EmailVerificationHandler) SendVerification(w http.ResponseWriter, r *ht
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, map[string]string{"token": token.String()})
+	helpers.WriteJSON(w, http.StatusCreated, map[string]string{"token": token.String()})
 }
 
 // GET /verify-email?token=...
@@ -73,5 +63,5 @@ func (h *EmailVerificationHandler) VerifyEmail(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]string{"message": "Email verified successfully"})
+	helpers.WriteJSON(w, http.StatusOK, map[string]string{"message": "Email verified successfully"})
 }

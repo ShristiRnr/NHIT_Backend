@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/sqlc-dev/pqtype"
 )
 
 type Department struct {
@@ -133,4 +134,53 @@ type UserOrganization struct {
 type UserRole struct {
 	UserID uuid.UUID
 	RoleID uuid.UUID
+}
+
+type Vendor struct {
+	ID                     uuid.UUID
+	SNo                    sql.NullString
+	FromAccountType        sql.NullString
+	Status                 sql.NullString
+	Project                sql.NullString
+	AccountName            sql.NullString
+	ShortName              sql.NullString
+	Parent                 sql.NullString
+	AccountNumber          string
+	NameOfBank             string
+	IfscCodeID             sql.NullString
+	IfscCode               string
+	VendorType             sql.NullString
+	VendorCode             string
+	VendorName             string
+	VendorEmail            string
+	VendorMobile           sql.NullString
+	ActivityType           sql.NullString
+	VendorNickName         sql.NullString
+	Email                  sql.NullString
+	Mobile                 sql.NullString
+	Gstin                  sql.NullString
+	Pan                    string
+	Pin                    sql.NullString
+	CountryID              sql.NullString
+	StateID                sql.NullString
+	CityID                 sql.NullString
+	CountryName            sql.NullString
+	StateName              sql.NullString
+	CityName               sql.NullString
+	MsmeClassification     sql.NullString
+	Msme                   sql.NullString
+	MsmeRegistrationNumber sql.NullString
+	MsmeStartDate          sql.NullTime
+	MsmeEndDate            sql.NullTime
+	MaterialNature         sql.NullString
+	GstDefaulted           sql.NullString
+	Section206abVerified   sql.NullString
+	BenificiaryName        string
+	RemarksAddress         sql.NullString
+	CommonBankDetails      sql.NullString
+	IncomeTaxType          sql.NullString
+	FilePath               pqtype.NullRawMessage
+	Active                 string
+	CreatedAt              sql.NullTime
+	UpdatedAt              sql.NullTime
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -36,6 +37,13 @@ func main() {
 	}
 	defer conn.Close()
 
+	// Ping DB to verify connection
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := conn.PingContext(ctx); err != nil {
+		log.Fatalf("failed to ping DB: %v", err)
+	}
+
 	queries := db.New(conn)
 
 	// ---------- Token TTL ----------
@@ -55,6 +63,7 @@ func main() {
 	userLoginRepo := repository.NewUserLoginRepo(queries)
 	deptRepo := repository.NewDepartmentRepository(queries)
 	designationRepo := repository.NewDesignationRepository(queries)
+	vendorRepo := repository.NewVendorRepositoryPG(queries)
 
 	// ---------- Services ----------
 	userService := services.NewUserService(userRepo)
@@ -64,13 +73,14 @@ func main() {
 	pagService := services.NewPaginationService(pagRepo)
 	deptService := services.NewDepartmentService(deptRepo)
 	designationService := services.NewDesignationService(designationRepo)
+	vendorService := services.NewVendorService(vendorRepo)
 
 	// TLS SMTP Sender for Gmail (port 465)
 	tlsSender := &email.SMTPTLSender{
 		Host:     getEnv("SMTP_HOST", "smtp.gmail.com"),
 		Port:     getEnvInt("SMTP_PORT", 465),
 		Username: getEnv("SMTP_USER", "your_email@gmail.com"),
-		Password: getEnv("SMTP_PASS", "app_password"), // Use App Password
+		Password: getEnv("SMTP_PASS", "app_password"),
 		From:     getEnv("SMTP_FROM", "your_email@gmail.com"),
 		AppName:  getEnv("APP_NAME", "NHIT"),
 	}
@@ -91,7 +101,7 @@ func main() {
 
 	// ---------- Adapters / Middleware ----------
 	userAdapter := adapters.NewUserServiceAdapter(authService)
-	authMiddleware := http_server.NewAuthMiddleware(userAdapter)
+	authMiddleware := http_server.NewAuthMiddleware(userAdapter) // <- pointer, fixed
 
 	// ---------- Handlers ----------
 	authHandler := http_server.NewAuthHandler(authService)
@@ -108,13 +118,15 @@ func main() {
 	emailHandler := http_server.NewEmailVerificationHandler(emailService)
 	deptHandler := http_server.NewDepartmentHandler(deptService)
 	designationHandler := http_server.NewDesignationHandler(designationService)
+	vendorHandler := http_server.NewVendorHandler(vendorService, authMiddleware)
 
 	// ---------- Router ----------
 	r := chi.NewRouter()
 
 	// ---------- Department Routes ----------
-	r.Route("/departments", deptHandler.Register)
-	r.Route("/designations", designationHandler.Register)
+	r.Route("/departments", deptHandler.Register)         // make sure Register exists
+	r.Route("/designations", designationHandler.Register) // make sure Register exists
+	r.Route("/vendors", vendorHandler.Routes)             // <- fixed, use Routes
 
 	// ---------- Auth ----------
 	r.Post("/register", authHandler.Register)

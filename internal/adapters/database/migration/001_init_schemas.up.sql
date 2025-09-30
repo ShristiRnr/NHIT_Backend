@@ -169,6 +169,70 @@ CREATE TABLE designations (
     updated_at TIMESTAMP DEFAULT now()
 );
 
+-- vendors table
+CREATE TABLE vendors (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    s_no VARCHAR(255),
+    from_account_type VARCHAR(255),
+    status VARCHAR(255),
+    project VARCHAR(255),
+    account_name VARCHAR(255),
+    short_name VARCHAR(255),
+    parent VARCHAR(255),
+    account_number VARCHAR(255) NOT NULL,
+    name_of_bank VARCHAR(255) NOT NULL,
+    ifsc_code_id VARCHAR(255),
+    ifsc_code VARCHAR(11) NOT NULL CHECK (ifsc_code ~ '^[A-Z]{4}0[A-Z0-9]{6}$'),
+    vendor_type VARCHAR(255),
+    vendor_code VARCHAR(255) NOT NULL UNIQUE,
+    vendor_name VARCHAR(255) NOT NULL UNIQUE,
+    vendor_email VARCHAR(255) NOT NULL UNIQUE,
+    vendor_mobile VARCHAR(10) UNIQUE,
+    activity_type VARCHAR(255),
+    vendor_nick_name VARCHAR(255),
+    email VARCHAR(255),
+    mobile VARCHAR(10),
+    gstin VARCHAR(255),
+    pan VARCHAR(20) NOT NULL,
+    pin VARCHAR(20),
+    country_id VARCHAR(255),
+    state_id VARCHAR(255),
+    city_id VARCHAR(255),
+    country_name VARCHAR(255),
+    state_name VARCHAR(255),
+    city_name VARCHAR(255),
+    msme_classification VARCHAR(255),
+    msme VARCHAR(255),
+    msme_registration_number VARCHAR(255),
+    msme_start_date DATE,
+    msme_end_date DATE,
+    material_nature VARCHAR(255),
+    gst_defaulted VARCHAR(255),
+    section_206AB_verified VARCHAR(255),
+    benificiary_name VARCHAR(255) NOT NULL,
+    remarks_address VARCHAR(255),
+    common_bank_details VARCHAR(255),
+    income_tax_type VARCHAR(255),
+    file_path JSONB DEFAULT '[]'::jsonb,
+    active CHAR(1) NOT NULL DEFAULT 'Y',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- auto update updated_at
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+   NEW.updated_at = NOW();
+   RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_vendors_updated_at
+BEFORE UPDATE ON vendors
+FOR EACH ROW
+EXECUTE FUNCTION update_updated_at_column();
+
 -- --------------------
 -- Indexes
 -- --------------------
@@ -187,3 +251,13 @@ CREATE INDEX idx_departments_updated_at ON departments(updated_at);
 CREATE INDEX idx_designations_name ON designations(name);
 CREATE INDEX idx_designations_created_at ON designations(created_at);
 CREATE INDEX idx_designations_updated_at ON designations(updated_at);
+CREATE INDEX idx_vendors_country_id ON vendors(country_id);
+CREATE INDEX idx_vendors_state_id ON vendors(state_id);
+CREATE INDEX idx_vendors_city_id ON vendors(city_id);
+CREATE INDEX idx_vendors_vendor_type ON vendors(vendor_type);
+CREATE INDEX idx_vendors_status ON vendors(status);
+CREATE INDEX idx_vendors_active ON vendors(active);
+CREATE INDEX idx_vendors_vendor_name_trgm ON vendors USING gin (vendor_name gin_trgm_ops);
+CREATE INDEX idx_vendors_vendor_code_trgm ON vendors USING gin (vendor_code gin_trgm_ops);
+CREATE INDEX idx_vendors_file_path ON vendors USING gin (file_path);
+CREATE INDEX idx_vendors_created_at ON vendors(created_at DESC);
