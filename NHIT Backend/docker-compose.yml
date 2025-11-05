@@ -1,0 +1,95 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: nhit-postgres
+    environment:
+      POSTGRES_USER: nhit_user
+      POSTGRES_PASSWORD: nhit_password
+      POSTGRES_DB: nhit
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - nhit-network
+
+  user-service:
+    build:
+      context: .
+      dockerfile: services/user-service/Dockerfile
+    container_name: nhit-user-service
+    environment:
+      SERVER_PORT: "50051"
+      DB_URL: "postgres://nhit_user:nhit_password@postgres:5432/nhit?sslmode=disable"
+      JWT_SECRET: "your-secret-key-here"
+    ports:
+      - "50051:50051"
+    depends_on:
+      - postgres
+    networks:
+      - nhit-network
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+    container_name: nhit-auth-service
+    environment:
+      SERVER_PORT: "50052"
+      DB_URL: "postgres://nhit_user:nhit_password@postgres:5432/nhit?sslmode=disable"
+      JWT_SECRET: "your-secret-key-here"
+      JWT_EXPIRY: "15m"
+      REFRESH_TOKEN_EXPIRY: "168h"
+      USER_SERVICE_URL: "user-service:50051"
+    ports:
+      - "50052:50052"
+    depends_on:
+      - postgres
+      - user-service
+    networks:
+      - nhit-network
+
+  organization-service:
+    build:
+      context: .
+      dockerfile: services/organization-service/Dockerfile
+    container_name: nhit-organization-service
+    environment:
+      SERVER_PORT: "50053"
+      DB_URL: "postgres://nhit_user:nhit_password@postgres:5432/nhit?sslmode=disable"
+      USER_SERVICE_URL: "user-service:50051"
+    ports:
+      - "50053:50053"
+    depends_on:
+      - postgres
+      - user-service
+    networks:
+      - nhit-network
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
+    container_name: nhit-api-gateway
+    environment:
+      SERVER_PORT: "8080"
+      USER_SERVICE_URL: "user-service:50051"
+      AUTH_SERVICE_URL: "auth-service:50052"
+      ORG_SERVICE_URL: "organization-service:50053"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - user-service
+      - auth-service
+      - organization-service
+    networks:
+      - nhit-network
+
+volumes:
+  postgres_data:
+
+networks:
+  nhit-network:
+    driver: bridge
