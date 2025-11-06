@@ -146,6 +146,42 @@ CREATE TABLE refresh_tokens (
 );
 
 -- --------------------
+-- Departments
+-- --------------------
+CREATE TABLE departments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL UNIQUE,
+    description TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Add department_id to users table
+ALTER TABLE users ADD COLUMN department_id UUID REFERENCES departments(id) ON DELETE SET NULL;
+
+-- --------------------
+-- Designations
+-- --------------------
+CREATE TABLE designations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(250) NOT NULL,
+    description VARCHAR(500) NOT NULL,
+    slug VARCHAR(100) NOT NULL UNIQUE,
+    is_active BOOLEAN DEFAULT true,
+    parent_id UUID REFERENCES designations(id) ON DELETE SET NULL,
+    level INT DEFAULT 0,
+    user_count INT DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Create unique index for case-insensitive name
+CREATE UNIQUE INDEX idx_designations_name_lower ON designations (LOWER(name));
+
+-- Add designation_id to users table
+ALTER TABLE users ADD COLUMN designation_id UUID REFERENCES designations(id) ON DELETE SET NULL;
+
+-- --------------------
 -- Indexes
 -- --------------------
 CREATE INDEX idx_users_tenant_id ON users(tenant_id);
@@ -157,3 +193,10 @@ CREATE INDEX idx_sessions_user_id ON sessions(user_id);
 CREATE INDEX idx_user_login_history_user_id ON user_login_history(user_id);
 CREATE INDEX idx_password_resets_user_id ON password_resets(user_id);
 CREATE INDEX idx_email_verification_tokens_user_id ON email_verification_tokens(user_id);
+CREATE INDEX idx_departments_name ON departments(name);
+CREATE INDEX idx_users_department_id ON users(department_id);
+CREATE INDEX idx_designations_name ON designations(name);
+CREATE INDEX idx_designations_slug ON designations(slug);
+CREATE INDEX idx_designations_parent_id ON designations(parent_id);
+CREATE INDEX idx_designations_is_active ON designations(is_active);
+CREATE INDEX idx_users_designation_id ON users(designation_id);

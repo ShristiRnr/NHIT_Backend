@@ -117,7 +117,7 @@ func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshToken
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (tenant_id, name, email, password)
 VALUES ($1, $2, $3, $4)
-RETURNING user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, created_at, updated_at
+RETURNING user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, created_at, updated_at, department_id, designation_id
 `
 
 type CreateUserParams struct {
@@ -149,6 +149,8 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.UserAgent,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DepartmentID,
+		&i.DesignationID,
 	)
 	return i, err
 }
@@ -212,7 +214,7 @@ func (q *Queries) GetPasswordResetToken(ctx context.Context, token uuid.UUID) (P
 }
 
 const getUserByEmailAndTenant = `-- name: GetUserByEmailAndTenant :one
-SELECT user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, created_at, updated_at
+SELECT user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, created_at, updated_at, department_id, designation_id
 FROM users
 WHERE tenant_id = $1 AND email = $2
 `
@@ -238,12 +240,14 @@ func (q *Queries) GetUserByEmailAndTenant(ctx context.Context, arg GetUserByEmai
 		&i.UserAgent,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DepartmentID,
+		&i.DesignationID,
 	)
 	return i, err
 }
 
 const getUserByEmailTenantAndOrg = `-- name: GetUserByEmailTenantAndOrg :one
-SELECT u.user_id, u.tenant_id, u.name, u.email, u.password, u.email_verified_at, u.last_login_at, u.last_logout_at, u.last_login_ip, u.user_agent, u.created_at, u.updated_at
+SELECT u.user_id, u.tenant_id, u.name, u.email, u.password, u.email_verified_at, u.last_login_at, u.last_logout_at, u.last_login_ip, u.user_agent, u.created_at, u.updated_at, u.department_id, u.designation_id
 FROM users u
 JOIN user_organizations uo ON uo.user_id = u.user_id
 WHERE u.tenant_id = $1 AND uo.org_id = $2 AND u.email = $3
@@ -272,6 +276,8 @@ func (q *Queries) GetUserByEmailTenantAndOrg(ctx context.Context, arg GetUserByE
 		&i.UserAgent,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DepartmentID,
+		&i.DesignationID,
 	)
 	return i, err
 }

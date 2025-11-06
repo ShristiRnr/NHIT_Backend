@@ -68,6 +68,37 @@ services:
     networks:
       - nhit-network
 
+  department-service:
+    build:
+      context: .
+      dockerfile: services/department-service/Dockerfile
+    container_name: nhit-department-service
+    environment:
+      SERVER_PORT: "50054"
+      DB_URL: "postgres://nhit_user:nhit_password@postgres:5432/nhit?sslmode=disable"
+      USER_SERVICE_URL: "user-service:50051"
+    ports:
+      - "50054:50054"
+    depends_on:
+      - postgres
+      - user-service
+    networks:
+      - nhit-network
+
+  designation-service:
+    build:
+      context: .
+      dockerfile: services/designation-service/Dockerfile
+    environment:
+      DATABASE_URL: "postgres://nhit_user:nhit_password@postgres:5432/nhit?sslmode=disable"
+      PORT: "50055"
+    ports:
+      - "50055:50055"
+    depends_on:
+      - postgres
+    networks:
+      - nhit-network
+
   api-gateway:
     build:
       context: .
@@ -78,12 +109,16 @@ services:
       USER_SERVICE_URL: "user-service:50051"
       AUTH_SERVICE_URL: "auth-service:50052"
       ORG_SERVICE_URL: "organization-service:50053"
+      DEPT_SERVICE_URL: "department-service:50054"
+      DESIGNATION_SERVICE_URL: "designation-service:50055"
     ports:
       - "8080:8080"
     depends_on:
       - user-service
       - auth-service
       - organization-service
+      - department-service
+      - designation-service
     networks:
       - nhit-network
 

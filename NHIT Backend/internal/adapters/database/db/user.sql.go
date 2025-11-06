@@ -15,7 +15,7 @@ import (
 const createUserWithVerification = `-- name: CreateUserWithVerification :one
 INSERT INTO users (tenant_id, name, email, password, email_verified_at)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, created_at, updated_at
+RETURNING user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, created_at, updated_at, department_id, designation_id
 `
 
 type CreateUserWithVerificationParams struct {
@@ -48,6 +48,8 @@ func (q *Queries) CreateUserWithVerification(ctx context.Context, arg CreateUser
 		&i.UserAgent,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DepartmentID,
+		&i.DesignationID,
 	)
 	return i, err
 }
@@ -63,7 +65,7 @@ func (q *Queries) DeleteUser(ctx context.Context, userID uuid.UUID) error {
 }
 
 const getUser = `-- name: GetUser :one
-SELECT user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, created_at, updated_at
+SELECT user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, created_at, updated_at, department_id, designation_id
 FROM users
 WHERE user_id = $1
 `
@@ -84,12 +86,14 @@ func (q *Queries) GetUser(ctx context.Context, userID uuid.UUID) (User, error) {
 		&i.UserAgent,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DepartmentID,
+		&i.DesignationID,
 	)
 	return i, err
 }
 
 const listUsersByTenant = `-- name: ListUsersByTenant :many
-SELECT user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, created_at, updated_at
+SELECT user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, created_at, updated_at, department_id, designation_id
 FROM users
 WHERE tenant_id = $1
 ORDER BY created_at DESC
@@ -124,6 +128,8 @@ func (q *Queries) ListUsersByTenant(ctx context.Context, arg ListUsersByTenantPa
 			&i.UserAgent,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DepartmentID,
+			&i.DesignationID,
 		); err != nil {
 			return nil, err
 		}
@@ -145,7 +151,7 @@ SET name = $2,
     password = $4,
     updated_at = now()
 WHERE user_id = $1
-RETURNING user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, created_at, updated_at
+RETURNING user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, created_at, updated_at, department_id, designation_id
 `
 
 type UpdateUserParams struct {
@@ -176,6 +182,8 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.UserAgent,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DepartmentID,
+		&i.DesignationID,
 	)
 	return i, err
 }

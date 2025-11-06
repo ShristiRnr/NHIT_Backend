@@ -25,7 +25,7 @@ func (q *Queries) CountUsersByTenant(ctx context.Context, tenantID uuid.UUID) (i
 }
 
 const paginatedUsersByTenant = `-- name: PaginatedUsersByTenant :many
-SELECT user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, created_at, updated_at
+SELECT user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, created_at, updated_at, department_id, designation_id
 FROM users
 WHERE tenant_id = $1
 ORDER BY created_at DESC
@@ -60,6 +60,8 @@ func (q *Queries) PaginatedUsersByTenant(ctx context.Context, arg PaginatedUsers
 			&i.UserAgent,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DepartmentID,
+			&i.DesignationID,
 		); err != nil {
 			return nil, err
 		}

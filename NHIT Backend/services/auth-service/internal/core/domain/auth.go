@@ -63,3 +63,16 @@ type LoginResponse struct {
 	TokenExpiresAt     int64
 	RefreshExpiresAt   int64
 }
+
+// TokenValidation represents a validated token
+type TokenValidation struct {
+	Valid       bool
+	UserID      uuid.UUID
+	Email       string
+	Name        string
+	TenantID    uuid.UUID
+	OrgID       *uuid.UUID
+	Roles       []string
+	Permissions []string
+	ExpiresAt   time.Time
+}

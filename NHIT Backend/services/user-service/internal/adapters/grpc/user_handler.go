@@ -159,6 +159,30 @@ func (h *UserHandler) AssignRolesToUser(ctx context.Context, req *userpb.AssignR
 	return response, nil
 }
 
+func (h *UserHandler) ListRolesOfUser(ctx context.Context, req *userpb.GetUserRequest) (*userpb.ListRolesResponse, error) {
+	userID, err := uuid.Parse(req.UserId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid user_id: %v", err)
+	}
+
+	roles, err := h.userService.GetUserRoles(ctx, userID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get user roles: %v", err)
+	}
+
+	pbRoles := make([]*userpb.RoleResponse, len(roles))
+	for i, role := range roles {
+		pbRoles[i] = &userpb.RoleResponse{
+			RoleId:      role.RoleID.String(),
+			TenantId:    role.TenantID.String(),
+			Name:        role.Name,
+			Permissions: role.Permissions,
+		}
+	}
+
+	return &userpb.ListRolesResponse{Roles: pbRoles}, nil
+}
+
 // Helper function to convert domain user to protobuf user
 func toPBUser(user *domain.User) *userpb.UserResponse {
 	return &userpb.UserResponse{

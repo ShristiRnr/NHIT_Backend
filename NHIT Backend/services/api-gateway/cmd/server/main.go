@@ -6,7 +6,9 @@ import (
 	"net/http"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	authpb "github.com/ShristiRnr/NHIT_Backend/api/pb/authpb"
+	authpb "github.com/ShristiRnr/NHIT_Backend/api/proto"
+	departmentpb "github.com/ShristiRnr/NHIT_Backend/api/pb/departmentpb"
+	designationpb "github.com/ShristiRnr/NHIT_Backend/api/pb/designationpb"
 	userpb "github.com/ShristiRnr/NHIT_Backend/api/pb/userpb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -23,6 +25,8 @@ func main() {
 	// gRPC service endpoints
 	userServiceEndpoint := "localhost:50051"
 	authServiceEndpoint := "localhost:50052"
+	departmentServiceEndpoint := "localhost:50054"
+	designationServiceEndpoint := "localhost:50055"
 
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 
@@ -40,6 +44,20 @@ func main() {
 	}
 	log.Printf("✅ Registered Auth Service gateway -> %s", authServiceEndpoint)
 
+	// Register Department Service
+	err = departmentpb.RegisterDepartmentServiceHandlerFromEndpoint(ctx, mux, departmentServiceEndpoint, opts)
+	if err != nil {
+		log.Fatalf("Failed to register department service gateway: %v", err)
+	}
+	log.Printf("✅ Registered Department Service gateway -> %s", departmentServiceEndpoint)
+
+	// Register Designation Service
+	err = designationpb.RegisterDesignationServiceHandlerFromEndpoint(ctx, mux, designationServiceEndpoint, opts)
+	if err != nil {
+		log.Fatalf("Failed to register designation service gateway: %v", err)
+	}
+	log.Printf("✅ Registered Designation Service gateway -> %s", designationServiceEndpoint)
+
 	// Add CORS middleware
 	handler := cors(mux)
 
@@ -47,7 +65,10 @@ func main() {
 	port := ":8080"
 	log.Printf("🚀 API Gateway listening on %s", port)
 	log.Printf("📖 REST API available at http://localhost%s/api/v1/", port)
-	log.Printf("📝 Example: curl http://localhost%s/api/v1/users", port)
+	log.Printf("📝 Examples:")
+	log.Printf("   - Users: curl http://localhost%s/api/v1/users", port)
+	log.Printf("   - Departments: curl http://localhost%s/api/v1/departments", port)
+	log.Printf("   - Designations: curl http://localhost%s/api/v1/designations", port)
 	
 	if err := http.ListenAndServe(port, handler); err != nil {
 		log.Fatalf("Failed to serve: %v", err)

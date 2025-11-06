@@ -22,6 +22,16 @@ proto: ## Generate protobuf code (gRPC + Gateway)
 		--grpc-gateway_out=. --grpc-gateway_opt=paths=source_relative \
 		--grpc-gateway_opt=generate_unbound_methods=true \
 		api/proto/auth.proto
+	protoc -I . -I third_party/googleapis \
+		--go_out=. --go_opt=paths=source_relative \
+		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
+		--grpc-gateway_out=. --grpc-gateway_opt=paths=source_relative \
+		--grpc-gateway_opt=generate_unbound_methods=true \
+		api/proto/department.proto
+	@echo "Moving generated files to correct locations..."
+	@mv api/proto/department.pb.go api/pb/departmentpb/ 2>/dev/null || true
+	@mv api/proto/department_grpc.pb.go api/pb/departmentpb/ 2>/dev/null || true
+	@mv api/proto/department.pb.gw.go api/pb/departmentpb/ 2>/dev/null || true
 
 proto-swagger: ## Generate OpenAPI/Swagger documentation
 	@echo "Generating Swagger docs..."

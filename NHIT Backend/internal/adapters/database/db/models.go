@@ -11,6 +11,27 @@ import (
 	"github.com/google/uuid"
 )
 
+type Department struct {
+	ID          uuid.UUID
+	Name        string
+	Description string
+	CreatedAt   sql.NullTime
+	UpdatedAt   sql.NullTime
+}
+
+type Designation struct {
+	ID          uuid.UUID
+	Name        string
+	Description string
+	Slug        string
+	IsActive    sql.NullBool
+	ParentID    uuid.NullUUID
+	Level       sql.NullInt32
+	UserCount   sql.NullInt32
+	CreatedAt   sql.NullTime
+	UpdatedAt   sql.NullTime
+}
+
 type EmailVerificationToken struct {
 	Token     uuid.UUID
 	UserID    uuid.UUID
@@ -90,6 +111,8 @@ type User struct {
 	UserAgent       sql.NullString
 	CreatedAt       sql.NullTime
 	UpdatedAt       sql.NullTime
+	DepartmentID    uuid.NullUUID
+	DesignationID   uuid.NullUUID
 }
 
 type UserLoginHistory struct {

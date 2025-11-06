@@ -1,0 +1,93 @@
+syntax = "proto3";
+
+package organizations;
+
+option go_package = "api/organizationpb;organizationpb";
+
+import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+
+// Organization entity
+message Organization {
+  string org_id = 1;
+  string tenant_id = 2;
+  string name = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp updated_at = 5;
+}
+
+// ========== Requests ==========
+
+message CreateOrganizationRequest {
+  string tenant_id = 1;
+  string name = 2;
+}
+
+message GetOrganizationRequest {
+  string org_id = 1;
+}
+
+message UpdateOrganizationRequest {
+  string org_id = 1;
+  string name = 2;
+}
+
+message DeleteOrganizationRequest {
+  string org_id = 1;
+}
+
+message ListOrganizationsByTenantRequest {
+  string tenant_id = 1;
+}
+
+// ========== Responses ==========
+
+message OrganizationResponse {
+  Organization organization = 1;
+}
+
+message ListOrganizationsResponse {
+  repeated Organization organizations = 1;
+  int32 total_count = 2;
+}
+
+message DeleteOrganizationResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// ========== Service ==========
+
+service OrganizationService {
+  rpc CreateOrganization(CreateOrganizationRequest) returns (OrganizationResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/organizations"
+      body: "*"
+    };
+  }
+  
+  rpc GetOrganization(GetOrganizationRequest) returns (OrganizationResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/organizations/{org_id}"
+    };
+  }
+  
+  rpc UpdateOrganization(UpdateOrganizationRequest) returns (OrganizationResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/organizations/{org_id}"
+      body: "*"
+    };
+  }
+  
+  rpc DeleteOrganization(DeleteOrganizationRequest) returns (DeleteOrganizationResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/organizations/{org_id}"
+    };
+  }
+  
+  rpc ListOrganizationsByTenant(ListOrganizationsByTenantRequest) returns (ListOrganizationsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/tenants/{tenant_id}/organizations"
+    };
+  }
+}
