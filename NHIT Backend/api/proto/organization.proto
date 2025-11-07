@@ -2,53 +2,132 @@ syntax = "proto3";
 
 package organizations;
 
-option go_package = "api/organizationpb;organizationpb";
+option go_package = "github.com/ShristiRnr/NHIT_Backend/api/pb/organizationpb";
 
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
 import "google/api/annotations.proto";
 
-// Organization entity
+// ====================
+// Organization Entity
+// ====================
 message Organization {
   string org_id = 1;
   string tenant_id = 2;
   string name = 3;
-  google.protobuf.Timestamp created_at = 4;
-  google.protobuf.Timestamp updated_at = 5;
+  string code = 4;                              // Unique organization code
+  string database_name = 5;                     // Database name for multi-tenancy
+  string description = 6;                       // Organization description
+  string logo = 7;                              // Logo file path/URL
+  bool is_active = 8;                           // Active status
+  string created_by = 9;                        // User ID who created this org
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
 }
 
-// ========== Requests ==========
-
+// ====================
+// Create Organization
+// ====================
 message CreateOrganizationRequest {
   string tenant_id = 1;
   string name = 2;
+  string code = 3;                              // Unique code for the organization
+  string description = 4;                       // Optional description
+  string logo = 5;                              // Optional logo path/URL
+  string created_by = 6;                        // User ID creating the organization
 }
 
+// ====================
+// Get Organization
+// ====================
 message GetOrganizationRequest {
   string org_id = 1;
 }
 
+// ====================
+// Update Organization
+// ====================
 message UpdateOrganizationRequest {
   string org_id = 1;
   string name = 2;
+  string code = 3;
+  string description = 4;
+  string logo = 5;
+  bool is_active = 6;
 }
 
+// ====================
+// Delete Organization
+// ====================
 message DeleteOrganizationRequest {
   string org_id = 1;
 }
 
+// ====================
+// List Organizations
+// ====================
 message ListOrganizationsByTenantRequest {
   string tenant_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
 }
 
-// ========== Responses ==========
+message ListAccessibleOrganizationsRequest {
+  string user_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
 
+// ====================
+// Toggle Organization Status
+// ====================
+message ToggleOrganizationStatusRequest {
+  string org_id = 1;
+  string user_id = 2;                           // User performing the action
+}
+
+// ====================
+// Check Organization Code
+// ====================
+message CheckOrganizationCodeRequest {
+  string code = 1;
+  string exclude_org_id = 2;                    // Optional: exclude org ID for updates
+}
+
+message CheckOrganizationCodeResponse {
+  bool is_available = 1;
+  string message = 2;
+}
+
+// ====================
+// Get Organization by Code
+// ====================
+message GetOrganizationByCodeRequest {
+  string code = 1;
+}
+
+// ====================
+// Pagination
+// ====================
+message PaginationMetadata {
+  int32 current_page = 1;
+  int32 page_size = 2;
+  int32 total_items = 3;
+  int32 total_pages = 4;
+}
+
+// ====================
+// Responses
+// ====================
 message OrganizationResponse {
   Organization organization = 1;
+  string message = 2;
 }
 
 message ListOrganizationsResponse {
   repeated Organization organizations = 1;
   int32 total_count = 2;
+  PaginationMetadata pagination = 3;
 }
 
 message DeleteOrganizationResponse {
@@ -56,9 +135,17 @@ message DeleteOrganizationResponse {
   string message = 2;
 }
 
-// ========== Service ==========
+message ToggleOrganizationStatusResponse {
+  bool success = 1;
+  string message = 2;
+  Organization organization = 3;
+}
 
+// ====================
+// Organization Service
+// ====================
 service OrganizationService {
+  // Create a new organization
   rpc CreateOrganization(CreateOrganizationRequest) returns (OrganizationResponse) {
     option (google.api.http) = {
       post: "/api/v1/organizations"
@@ -66,12 +153,21 @@ service OrganizationService {
     };
   }
   
+  // Get organization by ID
   rpc GetOrganization(GetOrganizationRequest) returns (OrganizationResponse) {
     option (google.api.http) = {
       get: "/api/v1/organizations/{org_id}"
     };
   }
   
+  // Get organization by code
+  rpc GetOrganizationByCode(GetOrganizationByCodeRequest) returns (OrganizationResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/organizations/code/{code}"
+    };
+  }
+  
+  // Update organization
   rpc UpdateOrganization(UpdateOrganizationRequest) returns (OrganizationResponse) {
     option (google.api.http) = {
       put: "/api/v1/organizations/{org_id}"
@@ -79,15 +175,40 @@ service OrganizationService {
     };
   }
   
+  // Delete organization
   rpc DeleteOrganization(DeleteOrganizationRequest) returns (DeleteOrganizationResponse) {
     option (google.api.http) = {
       delete: "/api/v1/organizations/{org_id}"
     };
   }
   
+  // List organizations by tenant
   rpc ListOrganizationsByTenant(ListOrganizationsByTenantRequest) returns (ListOrganizationsResponse) {
     option (google.api.http) = {
       get: "/api/v1/tenants/{tenant_id}/organizations"
+    };
+  }
+  
+  // List organizations accessible by a user
+  rpc ListAccessibleOrganizations(ListAccessibleOrganizationsRequest) returns (ListOrganizationsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/users/{user_id}/organizations"
+    };
+  }
+  
+  // Toggle organization active status
+  rpc ToggleOrganizationStatus(ToggleOrganizationStatusRequest) returns (ToggleOrganizationStatusResponse) {
+    option (google.api.http) = {
+      patch: "/api/v1/organizations/{org_id}/toggle-status"
+      body: "*"
+    };
+  }
+  
+  // Check if organization code is available
+  rpc CheckOrganizationCode(CheckOrganizationCodeRequest) returns (CheckOrganizationCodeResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/organizations/check-code"
+      body: "*"
     };
   }
 }

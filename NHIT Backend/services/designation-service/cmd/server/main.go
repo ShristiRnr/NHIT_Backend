@@ -1,7 +1,7 @@
 package main
 
 import (
-	"database/sql"
+	"context"
 	"fmt"
 	"log"
 	"net"
@@ -9,37 +9,38 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/ShristiRnr/NHIT_Backend/internal/adapters/database/db"
+	"github.com/jackc/pgx/v5/pgxpool"
 	designationpb "github.com/ShristiRnr/NHIT_Backend/api/pb/designationpb"
 	grpcHandler "github.com/ShristiRnr/NHIT_Backend/services/designation-service/internal/adapters/grpc"
 	"github.com/ShristiRnr/NHIT_Backend/services/designation-service/internal/adapters/repository"
+	"github.com/ShristiRnr/NHIT_Backend/services/designation-service/internal/adapters/repository/sqlc/generated"
 	"github.com/ShristiRnr/NHIT_Backend/services/designation-service/internal/core/services"
-	_ "github.com/lib/pq"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
 func main() {
 	// Configuration
-	dbURL := getEnv("DATABASE_URL", "postgres://postgres:shristi@localhost:5432/nhit?sslmode=disable")
+	dbURL := getEnv("DATABASE_URL", "postgres://postgres:shristi@localhost:5432/nhit_db?sslmode=disable")
 	port := getEnv("PORT", "50055")
 
-	log.Printf("🚀 Starting designation-service on port %s", port)
+	log.Printf("🚀 Starting Designation Service on port %s", port)
 
-	// Connect to database
-	database, err := sql.Open("postgres", dbURL)
+	// Connect to database using pgxpool
+	ctx := context.Background()
+	pool, err := pgxpool.New(ctx, dbURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
-	defer database.Close()
+	defer pool.Close()
 
-	if err := database.Ping(); err != nil {
+	if err := pool.Ping(ctx); err != nil {
 		log.Fatalf("Failed to ping database: %v", err)
 	}
-	log.Println("✅ Connected to database")
+	log.Println("✅ Database connection established")
 
-	// Initialize database queries
-	queries := db.New(database)
+	// Initialize SQLC queries with local SQLC
+	queries := sqlc.New(pool)
 
 	// Initialize repository
 	designationRepo := repository.NewDesignationRepository(queries)

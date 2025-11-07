@@ -2,26 +2,26 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/ShristiRnr/NHIT_Backend/internal/adapters/database/db"
+	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/ShristiRnr/NHIT_Backend/services/user-service/internal/adapters/repository/sqlc/generated"
 	"github.com/ShristiRnr/NHIT_Backend/services/user-service/internal/core/domain"
 	"github.com/ShristiRnr/NHIT_Backend/services/user-service/internal/core/ports"
 )
 
 type userRepository struct {
-	queries *db.Queries
+	queries *sqlc.Queries
 }
 
 // NewUserRepository creates a new user repository
-func NewUserRepository(queries *db.Queries) ports.UserRepository {
+func NewUserRepository(queries *sqlc.Queries) ports.UserRepository {
 	return &userRepository{queries: queries}
 }
 
 func (r *userRepository) Create(ctx context.Context, user *domain.User) (*domain.User, error) {
-	params := db.CreateUserParams{
+	params := sqlc.CreateUserParams{
 		TenantID: user.TenantID,
 		Name:     user.Name,
 		Email:    user.Email,
@@ -33,7 +33,7 @@ func (r *userRepository) Create(ctx context.Context, user *domain.User) (*domain
 		return nil, err
 	}
 
-	return toDomainUser(&dbUser), nil
+	return toDomainUser(dbUser), nil
 }
 
 func (r *userRepository) GetByID(ctx context.Context, userID uuid.UUID) (*domain.User, error) {
@@ -42,11 +42,11 @@ func (r *userRepository) GetByID(ctx context.Context, userID uuid.UUID) (*domain
 		return nil, err
 	}
 
-	return toDomainUser(&dbUser), nil
+	return toDomainUser(dbUser), nil
 }
 
 func (r *userRepository) GetByEmail(ctx context.Context, tenantID uuid.UUID, email string) (*domain.User, error) {
-	params := db.GetUserByEmailAndTenantParams{
+	params := sqlc.GetUserByEmailAndTenantParams{
 		TenantID: tenantID,
 		Email:    email,
 	}
@@ -56,11 +56,11 @@ func (r *userRepository) GetByEmail(ctx context.Context, tenantID uuid.UUID, ema
 		return nil, err
 	}
 
-	return toDomainUser(&dbUser), nil
+	return toDomainUser(dbUser), nil
 }
 
 func (r *userRepository) Update(ctx context.Context, user *domain.User) (*domain.User, error) {
-	params := db.UpdateUserParams{
+	params := sqlc.UpdateUserParams{
 		UserID:   user.UserID,
 		Name:     user.Name,
 		Email:    user.Email,
@@ -72,7 +72,7 @@ func (r *userRepository) Update(ctx context.Context, user *domain.User) (*domain
 		return nil, err
 	}
 
-	return toDomainUser(&dbUser), nil
+	return toDomainUser(dbUser), nil
 }
 
 func (r *userRepository) Delete(ctx context.Context, userID uuid.UUID) error {
@@ -80,7 +80,7 @@ func (r *userRepository) Delete(ctx context.Context, userID uuid.UUID) error {
 }
 
 func (r *userRepository) ListByTenant(ctx context.Context, tenantID uuid.UUID, limit, offset int32) ([]*domain.User, error) {
-	params := db.ListUsersByTenantParams{
+	params := sqlc.ListUsersByTenantParams{
 		TenantID: tenantID,
 		Limit:    limit,
 		Offset:   offset,
@@ -93,40 +93,40 @@ func (r *userRepository) ListByTenant(ctx context.Context, tenantID uuid.UUID, l
 
 	users := make([]*domain.User, len(dbUsers))
 	for i, dbUser := range dbUsers {
-		users[i] = toDomainUser(&dbUser)
+		users[i] = toDomainUser(dbUser)
 	}
 
 	return users, nil
 }
 
 // Helper functions to convert between db and domain models
-func toDomainUser(dbUser *db.User) *domain.User {
+func toDomainUser(dbUser *sqlc.User) *domain.User {
 	return &domain.User{
 		UserID:          dbUser.UserID,
 		TenantID:        dbUser.TenantID,
 		Name:            dbUser.Name,
 		Email:           dbUser.Email,
 		Password:        dbUser.Password,
-		EmailVerifiedAt: fromNullTime(dbUser.EmailVerifiedAt),
-		LastLoginAt:     fromNullTime(dbUser.LastLoginAt),
-		LastLogoutAt:    fromNullTime(dbUser.LastLogoutAt),
-		LastLoginIP:     dbUser.LastLoginIp.String,
-		UserAgent:       dbUser.UserAgent.String,
+		EmailVerifiedAt: fromPgTimestamptz(dbUser.EmailVerifiedAt),
+		LastLoginAt:     fromPgTimestamptz(dbUser.LastLoginAt),
+		LastLogoutAt:    fromPgTimestamptz(dbUser.LastLogoutAt),
+		LastLoginIP:     fromStringPtr(dbUser.LastLoginIp),
+		UserAgent:       fromStringPtr(dbUser.UserAgent),
 		CreatedAt:       dbUser.CreatedAt.Time,
 		UpdatedAt:       dbUser.UpdatedAt.Time,
 	}
 }
 
-func toNullTime(t *time.Time) sql.NullTime {
-	if t == nil {
-		return sql.NullTime{Valid: false}
-	}
-	return sql.NullTime{Time: *t, Valid: true}
-}
-
-func fromNullTime(nt sql.NullTime) *time.Time {
-	if !nt.Valid {
+func fromPgTimestamptz(ts pgtype.Timestamptz) *time.Time {
+	if !ts.Valid {
 		return nil
 	}
-	return &nt.Time
+	return &ts.Time
+}
+
+func fromStringPtr(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }

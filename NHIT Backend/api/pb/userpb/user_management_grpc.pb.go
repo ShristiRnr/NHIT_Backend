@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v6.32.0
-// source: api/proto/user_management.proto
+// source: user_management.proto
 
 package userpb
 
@@ -20,31 +20,24 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	UserManagement_CreateTenant_FullMethodName            = "/UserManagement/CreateTenant"
-	UserManagement_GetTenant_FullMethodName               = "/UserManagement/GetTenant"
-	UserManagement_CreateOrganization_FullMethodName      = "/UserManagement/CreateOrganization"
-	UserManagement_ListOrganizations_FullMethodName       = "/UserManagement/ListOrganizations"
-	UserManagement_GetOrganization_FullMethodName         = "/UserManagement/GetOrganization"
-	UserManagement_UpdateOrganization_FullMethodName      = "/UserManagement/UpdateOrganization"
-	UserManagement_DeleteOrganization_FullMethodName      = "/UserManagement/DeleteOrganization"
-	UserManagement_CreateRole_FullMethodName              = "/UserManagement/CreateRole"
-	UserManagement_ListRoles_FullMethodName               = "/UserManagement/ListRoles"
-	UserManagement_GetRole_FullMethodName                 = "/UserManagement/GetRole"
-	UserManagement_UpdateRole_FullMethodName              = "/UserManagement/UpdateRole"
-	UserManagement_DeleteRole_FullMethodName              = "/UserManagement/DeleteRole"
-	UserManagement_CreateUser_FullMethodName              = "/UserManagement/CreateUser"
-	UserManagement_GetUser_FullMethodName                 = "/UserManagement/GetUser"
-	UserManagement_ListUsers_FullMethodName               = "/UserManagement/ListUsers"
-	UserManagement_UpdateUser_FullMethodName              = "/UserManagement/UpdateUser"
-	UserManagement_DeleteUser_FullMethodName              = "/UserManagement/DeleteUser"
-	UserManagement_AssignRolesToUser_FullMethodName       = "/UserManagement/AssignRolesToUser"
-	UserManagement_ListRolesOfUser_FullMethodName         = "/UserManagement/ListRolesOfUser"
-	UserManagement_AddUserToOrganization_FullMethodName   = "/UserManagement/AddUserToOrganization"
-	UserManagement_ListUsersByOrganization_FullMethodName = "/UserManagement/ListUsersByOrganization"
-	UserManagement_CreateUserLoginHistory_FullMethodName  = "/UserManagement/CreateUserLoginHistory"
-	UserManagement_ListUserLoginHistories_FullMethodName  = "/UserManagement/ListUserLoginHistories"
-	UserManagement_ListUsersPaginated_FullMethodName      = "/UserManagement/ListUsersPaginated"
-	UserManagement_CountUsersByTenant_FullMethodName      = "/UserManagement/CountUsersByTenant"
+	UserManagement_CreateTenant_FullMethodName           = "/UserManagement/CreateTenant"
+	UserManagement_GetTenant_FullMethodName              = "/UserManagement/GetTenant"
+	UserManagement_CreateRole_FullMethodName             = "/UserManagement/CreateRole"
+	UserManagement_ListRoles_FullMethodName              = "/UserManagement/ListRoles"
+	UserManagement_GetRole_FullMethodName                = "/UserManagement/GetRole"
+	UserManagement_UpdateRole_FullMethodName             = "/UserManagement/UpdateRole"
+	UserManagement_DeleteRole_FullMethodName             = "/UserManagement/DeleteRole"
+	UserManagement_CreateUser_FullMethodName             = "/UserManagement/CreateUser"
+	UserManagement_GetUser_FullMethodName                = "/UserManagement/GetUser"
+	UserManagement_ListUsers_FullMethodName              = "/UserManagement/ListUsers"
+	UserManagement_UpdateUser_FullMethodName             = "/UserManagement/UpdateUser"
+	UserManagement_DeleteUser_FullMethodName             = "/UserManagement/DeleteUser"
+	UserManagement_AssignRolesToUser_FullMethodName      = "/UserManagement/AssignRolesToUser"
+	UserManagement_ListRolesOfUser_FullMethodName        = "/UserManagement/ListRolesOfUser"
+	UserManagement_CreateUserLoginHistory_FullMethodName = "/UserManagement/CreateUserLoginHistory"
+	UserManagement_ListUserLoginHistories_FullMethodName = "/UserManagement/ListUserLoginHistories"
+	UserManagement_ListUsersPaginated_FullMethodName     = "/UserManagement/ListUsersPaginated"
+	UserManagement_CountUsersByTenant_FullMethodName     = "/UserManagement/CountUsersByTenant"
 )
 
 // UserManagementClient is the client API for UserManagement service.
@@ -58,12 +51,6 @@ type UserManagementClient interface {
 	// Tenant / Super Admin
 	CreateTenant(ctx context.Context, in *CreateTenantRequest, opts ...grpc.CallOption) (*TenantResponse, error)
 	GetTenant(ctx context.Context, in *GetTenantRequest, opts ...grpc.CallOption) (*TenantResponse, error)
-	// Organization Management
-	CreateOrganization(ctx context.Context, in *CreateOrganizationRequest, opts ...grpc.CallOption) (*OrganizationResponse, error)
-	ListOrganizations(ctx context.Context, in *ListOrganizationsRequest, opts ...grpc.CallOption) (*ListOrganizationsResponse, error)
-	GetOrganization(ctx context.Context, in *GetOrganizationRequest, opts ...grpc.CallOption) (*GetOrganizationResponse, error)
-	UpdateOrganization(ctx context.Context, in *UpdateOrganizationRequest, opts ...grpc.CallOption) (*UpdateOrganizationResponse, error)
-	DeleteOrganization(ctx context.Context, in *DeleteOrganizationRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// Role Management
 	CreateRole(ctx context.Context, in *CreateRoleRequest, opts ...grpc.CallOption) (*RoleResponse, error)
 	ListRoles(ctx context.Context, in *ListRolesRequest, opts ...grpc.CallOption) (*ListRolesResponse, error)
@@ -81,9 +68,6 @@ type UserManagementClient interface {
 	// Assign or Update Roles
 	AssignRolesToUser(ctx context.Context, in *AssignRolesRequest, opts ...grpc.CallOption) (*UserResponse, error)
 	ListRolesOfUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*ListRolesResponse, error)
-	// Organization-specific User Management
-	AddUserToOrganization(ctx context.Context, in *AddUserToOrgRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	ListUsersByOrganization(ctx context.Context, in *ListUsersByOrgRequest, opts ...grpc.CallOption) (*ListUsersByOrgResponse, error)
 	// User Login History
 	CreateUserLoginHistory(ctx context.Context, in *CreateUserLoginHistoryRequest, opts ...grpc.CallOption) (*UserLoginHistoryResponse, error)
 	ListUserLoginHistories(ctx context.Context, in *ListUserLoginHistoriesRequest, opts ...grpc.CallOption) (*ListUserLoginHistoriesResponse, error)
@@ -114,56 +98,6 @@ func (c *userManagementClient) GetTenant(ctx context.Context, in *GetTenantReque
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(TenantResponse)
 	err := c.cc.Invoke(ctx, UserManagement_GetTenant_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *userManagementClient) CreateOrganization(ctx context.Context, in *CreateOrganizationRequest, opts ...grpc.CallOption) (*OrganizationResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(OrganizationResponse)
-	err := c.cc.Invoke(ctx, UserManagement_CreateOrganization_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *userManagementClient) ListOrganizations(ctx context.Context, in *ListOrganizationsRequest, opts ...grpc.CallOption) (*ListOrganizationsResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListOrganizationsResponse)
-	err := c.cc.Invoke(ctx, UserManagement_ListOrganizations_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *userManagementClient) GetOrganization(ctx context.Context, in *GetOrganizationRequest, opts ...grpc.CallOption) (*GetOrganizationResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetOrganizationResponse)
-	err := c.cc.Invoke(ctx, UserManagement_GetOrganization_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *userManagementClient) UpdateOrganization(ctx context.Context, in *UpdateOrganizationRequest, opts ...grpc.CallOption) (*UpdateOrganizationResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(UpdateOrganizationResponse)
-	err := c.cc.Invoke(ctx, UserManagement_UpdateOrganization_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *userManagementClient) DeleteOrganization(ctx context.Context, in *DeleteOrganizationRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, UserManagement_DeleteOrganization_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -290,26 +224,6 @@ func (c *userManagementClient) ListRolesOfUser(ctx context.Context, in *GetUserR
 	return out, nil
 }
 
-func (c *userManagementClient) AddUserToOrganization(ctx context.Context, in *AddUserToOrgRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, UserManagement_AddUserToOrganization_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *userManagementClient) ListUsersByOrganization(ctx context.Context, in *ListUsersByOrgRequest, opts ...grpc.CallOption) (*ListUsersByOrgResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListUsersByOrgResponse)
-	err := c.cc.Invoke(ctx, UserManagement_ListUsersByOrganization_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *userManagementClient) CreateUserLoginHistory(ctx context.Context, in *CreateUserLoginHistoryRequest, opts ...grpc.CallOption) (*UserLoginHistoryResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(UserLoginHistoryResponse)
@@ -361,12 +275,6 @@ type UserManagementServer interface {
 	// Tenant / Super Admin
 	CreateTenant(context.Context, *CreateTenantRequest) (*TenantResponse, error)
 	GetTenant(context.Context, *GetTenantRequest) (*TenantResponse, error)
-	// Organization Management
-	CreateOrganization(context.Context, *CreateOrganizationRequest) (*OrganizationResponse, error)
-	ListOrganizations(context.Context, *ListOrganizationsRequest) (*ListOrganizationsResponse, error)
-	GetOrganization(context.Context, *GetOrganizationRequest) (*GetOrganizationResponse, error)
-	UpdateOrganization(context.Context, *UpdateOrganizationRequest) (*UpdateOrganizationResponse, error)
-	DeleteOrganization(context.Context, *DeleteOrganizationRequest) (*emptypb.Empty, error)
 	// Role Management
 	CreateRole(context.Context, *CreateRoleRequest) (*RoleResponse, error)
 	ListRoles(context.Context, *ListRolesRequest) (*ListRolesResponse, error)
@@ -384,9 +292,6 @@ type UserManagementServer interface {
 	// Assign or Update Roles
 	AssignRolesToUser(context.Context, *AssignRolesRequest) (*UserResponse, error)
 	ListRolesOfUser(context.Context, *GetUserRequest) (*ListRolesResponse, error)
-	// Organization-specific User Management
-	AddUserToOrganization(context.Context, *AddUserToOrgRequest) (*emptypb.Empty, error)
-	ListUsersByOrganization(context.Context, *ListUsersByOrgRequest) (*ListUsersByOrgResponse, error)
 	// User Login History
 	CreateUserLoginHistory(context.Context, *CreateUserLoginHistoryRequest) (*UserLoginHistoryResponse, error)
 	ListUserLoginHistories(context.Context, *ListUserLoginHistoriesRequest) (*ListUserLoginHistoriesResponse, error)
@@ -408,21 +313,6 @@ func (UnimplementedUserManagementServer) CreateTenant(context.Context, *CreateTe
 }
 func (UnimplementedUserManagementServer) GetTenant(context.Context, *GetTenantRequest) (*TenantResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetTenant not implemented")
-}
-func (UnimplementedUserManagementServer) CreateOrganization(context.Context, *CreateOrganizationRequest) (*OrganizationResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateOrganization not implemented")
-}
-func (UnimplementedUserManagementServer) ListOrganizations(context.Context, *ListOrganizationsRequest) (*ListOrganizationsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListOrganizations not implemented")
-}
-func (UnimplementedUserManagementServer) GetOrganization(context.Context, *GetOrganizationRequest) (*GetOrganizationResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetOrganization not implemented")
-}
-func (UnimplementedUserManagementServer) UpdateOrganization(context.Context, *UpdateOrganizationRequest) (*UpdateOrganizationResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateOrganization not implemented")
-}
-func (UnimplementedUserManagementServer) DeleteOrganization(context.Context, *DeleteOrganizationRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteOrganization not implemented")
 }
 func (UnimplementedUserManagementServer) CreateRole(context.Context, *CreateRoleRequest) (*RoleResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateRole not implemented")
@@ -459,12 +349,6 @@ func (UnimplementedUserManagementServer) AssignRolesToUser(context.Context, *Ass
 }
 func (UnimplementedUserManagementServer) ListRolesOfUser(context.Context, *GetUserRequest) (*ListRolesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListRolesOfUser not implemented")
-}
-func (UnimplementedUserManagementServer) AddUserToOrganization(context.Context, *AddUserToOrgRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddUserToOrganization not implemented")
-}
-func (UnimplementedUserManagementServer) ListUsersByOrganization(context.Context, *ListUsersByOrgRequest) (*ListUsersByOrgResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListUsersByOrganization not implemented")
 }
 func (UnimplementedUserManagementServer) CreateUserLoginHistory(context.Context, *CreateUserLoginHistoryRequest) (*UserLoginHistoryResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateUserLoginHistory not implemented")
@@ -531,96 +415,6 @@ func _UserManagement_GetTenant_Handler(srv interface{}, ctx context.Context, dec
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(UserManagementServer).GetTenant(ctx, req.(*GetTenantRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _UserManagement_CreateOrganization_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateOrganizationRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(UserManagementServer).CreateOrganization(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: UserManagement_CreateOrganization_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserManagementServer).CreateOrganization(ctx, req.(*CreateOrganizationRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _UserManagement_ListOrganizations_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListOrganizationsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(UserManagementServer).ListOrganizations(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: UserManagement_ListOrganizations_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserManagementServer).ListOrganizations(ctx, req.(*ListOrganizationsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _UserManagement_GetOrganization_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetOrganizationRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(UserManagementServer).GetOrganization(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: UserManagement_GetOrganization_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserManagementServer).GetOrganization(ctx, req.(*GetOrganizationRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _UserManagement_UpdateOrganization_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateOrganizationRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(UserManagementServer).UpdateOrganization(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: UserManagement_UpdateOrganization_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserManagementServer).UpdateOrganization(ctx, req.(*UpdateOrganizationRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _UserManagement_DeleteOrganization_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteOrganizationRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(UserManagementServer).DeleteOrganization(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: UserManagement_DeleteOrganization_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserManagementServer).DeleteOrganization(ctx, req.(*DeleteOrganizationRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -841,42 +635,6 @@ func _UserManagement_ListRolesOfUser_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
-func _UserManagement_AddUserToOrganization_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddUserToOrgRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(UserManagementServer).AddUserToOrganization(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: UserManagement_AddUserToOrganization_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserManagementServer).AddUserToOrganization(ctx, req.(*AddUserToOrgRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _UserManagement_ListUsersByOrganization_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListUsersByOrgRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(UserManagementServer).ListUsersByOrganization(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: UserManagement_ListUsersByOrganization_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserManagementServer).ListUsersByOrganization(ctx, req.(*ListUsersByOrgRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _UserManagement_CreateUserLoginHistory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateUserLoginHistoryRequest)
 	if err := dec(in); err != nil {
@@ -965,26 +723,6 @@ var UserManagement_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _UserManagement_GetTenant_Handler,
 		},
 		{
-			MethodName: "CreateOrganization",
-			Handler:    _UserManagement_CreateOrganization_Handler,
-		},
-		{
-			MethodName: "ListOrganizations",
-			Handler:    _UserManagement_ListOrganizations_Handler,
-		},
-		{
-			MethodName: "GetOrganization",
-			Handler:    _UserManagement_GetOrganization_Handler,
-		},
-		{
-			MethodName: "UpdateOrganization",
-			Handler:    _UserManagement_UpdateOrganization_Handler,
-		},
-		{
-			MethodName: "DeleteOrganization",
-			Handler:    _UserManagement_DeleteOrganization_Handler,
-		},
-		{
 			MethodName: "CreateRole",
 			Handler:    _UserManagement_CreateRole_Handler,
 		},
@@ -1033,14 +771,6 @@ var UserManagement_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _UserManagement_ListRolesOfUser_Handler,
 		},
 		{
-			MethodName: "AddUserToOrganization",
-			Handler:    _UserManagement_AddUserToOrganization_Handler,
-		},
-		{
-			MethodName: "ListUsersByOrganization",
-			Handler:    _UserManagement_ListUsersByOrganization_Handler,
-		},
-		{
 			MethodName: "CreateUserLoginHistory",
 			Handler:    _UserManagement_CreateUserLoginHistory_Handler,
 		},
@@ -1058,5 +788,5 @@ var UserManagement_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "api/proto/user_management.proto",
+	Metadata: "user_management.proto",
 }

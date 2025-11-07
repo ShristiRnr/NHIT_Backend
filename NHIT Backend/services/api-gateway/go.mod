@@ -5,7 +5,9 @@ go 1.24.2
 require (
 	github.com/ShristiRnr/NHIT_Backend/api/pb/departmentpb v0.0.0
 	github.com/ShristiRnr/NHIT_Backend/api/pb/designationpb v0.0.0
+	github.com/ShristiRnr/NHIT_Backend/api/pb/organizationpb v0.0.0
 	github.com/ShristiRnr/NHIT_Backend/api/pb/userpb v0.0.0
+	github.com/ShristiRnr/NHIT_Backend/api/pb/vendorpb v0.0.0
 	github.com/ShristiRnr/NHIT_Backend/api/proto v0.0.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.3
 	google.golang.org/grpc v1.76.0
@@ -18,6 +20,10 @@ replace github.com/ShristiRnr/NHIT_Backend/api/pb/userpb => ../../api/pb/userpb
 replace github.com/ShristiRnr/NHIT_Backend/api/pb/departmentpb => ../../api/pb/departmentpb
 
 replace github.com/ShristiRnr/NHIT_Backend/api/pb/designationpb => ../../api/pb/designationpb
+
+replace github.com/ShristiRnr/NHIT_Backend/api/pb/organizationpb => ../../api/pb/organizationpb
+
+replace github.com/ShristiRnr/NHIT_Backend/api/pb/vendorpb => ../../api/pb/vendorpb
 
 require (
 	golang.org/x/net v0.42.0 // indirect

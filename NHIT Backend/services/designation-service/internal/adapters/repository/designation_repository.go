@@ -2,21 +2,21 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
-	"github.com/ShristiRnr/NHIT_Backend/internal/adapters/database/db"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/ShristiRnr/NHIT_Backend/services/designation-service/internal/adapters/repository/sqlc/generated"
 	"github.com/ShristiRnr/NHIT_Backend/services/designation-service/internal/core/domain"
 	"github.com/ShristiRnr/NHIT_Backend/services/designation-service/internal/core/ports"
-	"github.com/google/uuid"
 )
 
 type designationRepository struct {
-	queries *db.Queries
+	queries *sqlc.Queries
 }
 
 // NewDesignationRepository creates a new designation repository
-func NewDesignationRepository(queries *db.Queries) ports.DesignationRepository {
+func NewDesignationRepository(queries *sqlc.Queries) ports.DesignationRepository {
 	return &designationRepository{
 		queries: queries,
 	}
@@ -29,17 +29,17 @@ func (r *designationRepository) Create(ctx context.Context, designation *domain.
 		parentID = uuid.NullUUID{UUID: *designation.ParentID, Valid: true}
 	}
 
-	_, err := r.queries.CreateDesignation(ctx, db.CreateDesignationParams{
+	_, err := r.queries.CreateDesignation(ctx, sqlc.CreateDesignationParams{
 		ID:          designation.ID,
 		Name:        designation.Name,
 		Description: designation.Description,
 		Slug:        designation.Slug,
-		IsActive:    sql.NullBool{Bool: designation.IsActive, Valid: true},
+		IsActive:    &designation.IsActive,
 		ParentID:    parentID,
-		Level:       sql.NullInt32{Int32: designation.Level, Valid: true},
-		UserCount:   sql.NullInt32{Int32: designation.UserCount, Valid: true},
-		CreatedAt:   sql.NullTime{Time: designation.CreatedAt, Valid: true},
-		UpdatedAt:   sql.NullTime{Time: designation.UpdatedAt, Valid: true},
+		Level:       &designation.Level,
+		UserCount:   &designation.UserCount,
+		CreatedAt:   pgtype.Timestamptz{Time: designation.CreatedAt, Valid: true},
+		UpdatedAt:   pgtype.Timestamptz{Time: designation.UpdatedAt, Valid: true},
 	})
 
 	return err
@@ -82,15 +82,15 @@ func (r *designationRepository) Update(ctx context.Context, designation *domain.
 		parentID = uuid.NullUUID{UUID: *designation.ParentID, Valid: true}
 	}
 
-	_, err := r.queries.UpdateDesignation(ctx, db.UpdateDesignationParams{
+	_, err := r.queries.UpdateDesignation(ctx, sqlc.UpdateDesignationParams{
 		ID:          designation.ID,
 		Name:        designation.Name,
 		Description: designation.Description,
 		Slug:        designation.Slug,
-		IsActive:    sql.NullBool{Bool: designation.IsActive, Valid: true},
+		IsActive:    &designation.IsActive,
 		ParentID:    parentID,
-		Level:       sql.NullInt32{Int32: designation.Level, Valid: true},
-		UpdatedAt:   sql.NullTime{Time: designation.UpdatedAt, Valid: true},
+		Level:       &designation.Level,
+		UpdatedAt:   pgtype.Timestamptz{Time: designation.UpdatedAt, Valid: true},
 	})
 
 	return err
@@ -105,15 +105,15 @@ func (r *designationRepository) Delete(ctx context.Context, id uuid.UUID) error 
 func (r *designationRepository) List(ctx context.Context, page, pageSize int32, activeOnly bool, parentID *uuid.UUID, search string) ([]*domain.Designation, error) {
 	offset := (page - 1) * pageSize
 
-	var parentUUID uuid.UUID
+	var parentUUID pgtype.UUID
 	if parentID != nil {
-		parentUUID = *parentID
+		parentUUID = pgtype.UUID{Bytes: *parentID, Valid: true}
 	} else {
 		// Use zero UUID to indicate root level
-		parentUUID = uuid.Nil
+		parentUUID = pgtype.UUID{Bytes: uuid.Nil, Valid: true}
 	}
 
-	dbDesignations, err := r.queries.ListDesignations(ctx, db.ListDesignationsParams{
+	dbDesignations, err := r.queries.ListDesignations(ctx, sqlc.ListDesignationsParams{
 		Column1: activeOnly,
 		Column2: parentUUID,
 		Column3: search,
@@ -135,14 +135,14 @@ func (r *designationRepository) List(ctx context.Context, page, pageSize int32, 
 
 // Count returns the total count of designations with filters
 func (r *designationRepository) Count(ctx context.Context, activeOnly bool, parentID *uuid.UUID, search string) (int64, error) {
-	var parentUUID uuid.UUID
+	var parentUUID pgtype.UUID
 	if parentID != nil {
-		parentUUID = *parentID
+		parentUUID = pgtype.UUID{Bytes: *parentID, Valid: true}
 	} else {
-		parentUUID = uuid.Nil
+		parentUUID = pgtype.UUID{Bytes: uuid.Nil, Valid: true}
 	}
 
-	count, err := r.queries.CountDesignations(ctx, db.CountDesignationsParams{
+	count, err := r.queries.CountDesignations(ctx, sqlc.CountDesignationsParams{
 		Column1: activeOnly,
 		Column2: parentUUID,
 		Column3: search,
@@ -153,12 +153,12 @@ func (r *designationRepository) Count(ctx context.Context, activeOnly bool, pare
 
 // Exists checks if a designation with the given name exists (case-insensitive)
 func (r *designationRepository) Exists(ctx context.Context, name string, excludeID *uuid.UUID) (bool, error) {
-	var excludeUUID uuid.UUID
+	var excludeUUID pgtype.UUID
 	if excludeID != nil {
-		excludeUUID = *excludeID
+		excludeUUID = pgtype.UUID{Bytes: *excludeID, Valid: true}
 	}
 
-	exists, err := r.queries.CheckDesignationExists(ctx, db.CheckDesignationExistsParams{
+	exists, err := r.queries.CheckDesignationExists(ctx, sqlc.CheckDesignationExistsParams{
 		Lower:   name,
 		Column2: excludeUUID,
 	})
@@ -168,12 +168,12 @@ func (r *designationRepository) Exists(ctx context.Context, name string, exclude
 
 // SlugExists checks if a designation with the given slug exists
 func (r *designationRepository) SlugExists(ctx context.Context, slug string, excludeID *uuid.UUID) (bool, error) {
-	var excludeUUID uuid.UUID
+	var excludeUUID pgtype.UUID
 	if excludeID != nil {
-		excludeUUID = *excludeID
+		excludeUUID = pgtype.UUID{Bytes: *excludeID, Valid: true}
 	}
 
-	exists, err := r.queries.CheckSlugExists(ctx, db.CheckSlugExistsParams{
+	exists, err := r.queries.CheckSlugExists(ctx, sqlc.CheckSlugExistsParams{
 		Slug:    slug,
 		Column2: excludeUUID,
 	})
@@ -199,24 +199,19 @@ func (r *designationRepository) GetChildren(ctx context.Context, parentID uuid.U
 
 // GetUsersCount returns the count of users assigned to a designation
 func (r *designationRepository) GetUsersCount(ctx context.Context, designationID uuid.UUID) (int32, error) {
-	count, err := r.queries.GetDesignationUsersCount(ctx, uuid.NullUUID{
-		UUID:  designationID,
-		Valid: true,
-	})
-
-	if err != nil {
-		return 0, err
-	}
-
-	return int32(count), nil
+	// TODO: Add GetDesignationUsersCount query to SQLC
+	// This requires a join with the users table which is in a different service
+	// For now, return 0
+	return 0, nil
 }
 
 // UpdateUserCount updates the cached user count for a designation
 func (r *designationRepository) UpdateUserCount(ctx context.Context, designationID uuid.UUID, count int32) error {
-	return r.queries.UpdateDesignationUserCount(ctx, db.UpdateDesignationUserCountParams{
+	now := time.Now()
+	return r.queries.UpdateDesignationUserCount(ctx, sqlc.UpdateDesignationUserCountParams{
 		ID:        designationID,
-		UserCount: sql.NullInt32{Int32: count, Valid: true},
-		UpdatedAt: sql.NullTime{Time: time.Now(), Valid: true},
+		UserCount: &count,
+		UpdatedAt: pgtype.Timestamptz{Time: now, Valid: true},
 	})
 }
 
@@ -226,7 +221,10 @@ func (r *designationRepository) GetLevel(ctx context.Context, designationID uuid
 	if err != nil {
 		return 0, err
 	}
-	return level.Int32, nil
+	if level == nil {
+		return 0, nil
+	}
+	return *level, nil
 }
 
 // CalculateLevel calculates the level based on parent hierarchy
@@ -248,10 +246,25 @@ func (r *designationRepository) CalculateLevel(ctx context.Context, parentID *uu
 }
 
 // toDomainDesignation converts a database designation to a domain designation
-func toDomainDesignation(dbDesignation db.Designation) *domain.Designation {
+func toDomainDesignation(dbDesignation *sqlc.Designation) *domain.Designation {
 	var parentID *uuid.UUID
 	if dbDesignation.ParentID.Valid {
 		parentID = &dbDesignation.ParentID.UUID
+	}
+
+	var isActive bool
+	if dbDesignation.IsActive != nil {
+		isActive = *dbDesignation.IsActive
+	}
+
+	var level int32
+	if dbDesignation.Level != nil {
+		level = *dbDesignation.Level
+	}
+
+	var userCount int32
+	if dbDesignation.UserCount != nil {
+		userCount = *dbDesignation.UserCount
 	}
 
 	return &domain.Designation{
@@ -259,11 +272,12 @@ func toDomainDesignation(dbDesignation db.Designation) *domain.Designation {
 		Name:        dbDesignation.Name,
 		Description: dbDesignation.Description,
 		Slug:        dbDesignation.Slug,
-		IsActive:    dbDesignation.IsActive.Bool,
+		IsActive:    isActive,
 		ParentID:    parentID,
-		Level:       dbDesignation.Level.Int32,
-		UserCount:   dbDesignation.UserCount.Int32,
+		Level:       level,
+		UserCount:   userCount,
 		CreatedAt:   dbDesignation.CreatedAt.Time,
 		UpdatedAt:   dbDesignation.UpdatedAt.Time,
 	}
 }
+

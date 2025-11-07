@@ -4,22 +4,22 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/ShristiRnr/NHIT_Backend/internal/adapters/database/db"
+	"github.com/ShristiRnr/NHIT_Backend/services/user-service/internal/adapters/repository/sqlc/generated"
 	"github.com/ShristiRnr/NHIT_Backend/services/user-service/internal/core/domain"
 	"github.com/ShristiRnr/NHIT_Backend/services/user-service/internal/core/ports"
 )
 
 type userRoleRepository struct {
-	queries *db.Queries
+	queries *sqlc.Queries
 }
 
 // NewUserRoleRepository creates a new user role repository
-func NewUserRoleRepository(queries *db.Queries) ports.UserRoleRepository {
+func NewUserRoleRepository(queries *sqlc.Queries) ports.UserRoleRepository {
 	return &userRoleRepository{queries: queries}
 }
 
 func (r *userRoleRepository) AssignRole(ctx context.Context, userID, roleID uuid.UUID) error {
-	params := db.AssignRoleToUserParams{
+	params := sqlc.AssignRoleToUserParams{
 		UserID: userID,
 		RoleID: roleID,
 	}
@@ -27,23 +27,24 @@ func (r *userRoleRepository) AssignRole(ctx context.Context, userID, roleID uuid
 }
 
 func (r *userRoleRepository) RemoveRole(ctx context.Context, userID, roleID uuid.UUID) error {
-	// This would need a new SQL query - for now return nil
-	// TODO: Add RemoveRoleFromUser query to sqlc
-	return nil
+	params := sqlc.RemoveRoleFromUserParams{
+		UserID: userID,
+		RoleID: roleID,
+	}
+	return r.queries.RemoveRoleFromUser(ctx, params)
 }
 
 func (r *userRoleRepository) ListRolesByUser(ctx context.Context, userID uuid.UUID) ([]*domain.Role, error) {
-	dbRoles, err := r.queries.ListRolesForUser(ctx, userID)
+	roleIDs, err := r.queries.ListRolesForUser(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	roles := make([]*domain.Role, len(dbRoles))
-	for i, dbRole := range dbRoles {
+	roles := make([]*domain.Role, len(roleIDs))
+	for i, roleID := range roleIDs {
 		roles[i] = &domain.Role{
-			RoleID: dbRole.RoleID,
-			Name:   dbRole.Name,
-			// Permissions field removed from query - can be fetched separately if needed
+			RoleID: roleID,
+			// Name and other fields would need to be fetched from role service
 		}
 	}
 
