@@ -6,6 +6,7 @@ WORKDIR /app
 # Copy go mod files
 COPY go.mod go.sum ./
 COPY services/designation-service/go.mod services/designation-service/go.sum ./services/designation-service/
+COPY api/pb/designationpb/go.mod ./api/pb/designationpb/
 
 # Download dependencies
 RUN cd services/designation-service && go mod download
