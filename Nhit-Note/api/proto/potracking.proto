@@ -1,0 +1,181 @@
+syntax = "proto3";
+
+package potracking;
+
+option go_package = "nhit/services/potracking;potracking";
+
+// ---------- IMPORTS ----------
+import "google/protobuf/empty.proto";
+import "google/api/annotations.proto";
+
+// ---------- SERVICE ----------
+service POTrackingService {
+  // Get or create PO tracking record (behaves like getOrCreatePOTracking)
+  rpc GetOrCreatePOTracking (GetOrCreatePOTrackingRequest) returns (POTrackingResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/po-tracking"
+      body: "*"
+    };
+  }
+
+  // Get PO details by order number (getPOByOrderNumber)
+  rpc GetPOByOrderNumber (GetPORequest) returns (POTrackingResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/po-tracking/{order_no}"
+    };
+  }
+
+  // Calculate expenditure values for a green note (calculateExpenditures)
+  rpc CalculateExpenditures (CalculateExpendituresRequest) returns (CalculateExpendituresResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/po-tracking/{order_no}/expenditures"
+      body: "*"
+    };
+  }
+
+  // Update PO utilization after green note creation/update (updatePOUtilization)
+  rpc UpdatePOUtilization (UpdatePOUtilizationRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/api/v1/po-tracking/{po_tracking_id}/update-utilization"
+      body: "*"
+    };
+  }
+
+  // Validate if PO has sufficient budget (validatePOBudget)
+  rpc ValidatePOBudget (ValidatePOBudgetRequest) returns (ValidatePOBudgetResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/po-tracking/validate"
+      body: "*"
+    };
+  }
+
+  // Get PO utilization summary (getPOSummary)
+  rpc GetPOSummary (GetPORequest) returns (GetPOSummaryResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/po-tracking/{order_no}/summary"
+    };
+  }
+
+  // Recalculate all PO tracking records (recalculateAllPOTracking)
+  rpc RecalculateAllPOTracking (google.protobuf.Empty) returns (RecalculateAllResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/po-tracking/recalculate"
+      body: "*"
+    };
+  }
+}
+
+// ---------- REQUEST MESSAGES ----------
+
+message GetOrCreatePOTrackingRequest {
+  // Provide the PO data to find or create the record
+  string order_no = 1;
+  int64 vendor_id = 2;
+  int64 supplier_id = 3;
+  string order_date = 4; // ISO-8601 string recommended, e.g. "2025-11-13"
+  double total_amount = 5;
+  string brief_of_goods_services = 6;
+}
+
+message GetPORequest {
+  string order_no = 1;
+}
+
+message CalculateExpendituresRequest {
+  string order_no = 1;
+  double invoice_value = 2;
+}
+
+message UpdatePOUtilizationRequest {
+  int64 po_tracking_id = 1;
+  // optional: include green note id if needed
+  int64 green_note_id = 2;
+}
+
+message ValidatePOBudgetRequest {
+  string order_no = 1;
+  double invoice_value = 2;
+  int64 exclude_green_note_id = 3; // optional, used when updating an existing green note
+}
+
+// ---------- RESPONSE MESSAGES ----------
+
+message POTrackingResponse {
+  POTracking po_tracking = 1;
+}
+
+message CalculateExpendituresResponse {
+  // Matches calculateExpenditures() return array in PHP
+  string actual_expenditure = 1;    // formatted string e.g. "1000.00"
+  string budget_expenditure = 2;    // formatted string e.g. "500.00"
+  string expenditure_over_budget = 3; // "Yes" / "No"
+  string remaining_budget = 4;      // formatted string
+  double utilization_percentage = 5;
+}
+
+message ValidatePOBudgetResponse {
+  bool valid = 1;
+  string message = 2;
+  POTracking po_tracking = 3;
+  double current_utilization = 4;
+  double remaining_budget = 5;
+}
+
+message GetPOSummaryResponse {
+  bool exists = 1;
+  string message = 2;
+  // present when exists == true:
+  string order_no = 3;
+  double order_value = 4;
+  double total_utilized = 5;
+  double remaining_budget = 6;
+  double utilization_percentage = 7;
+  int32 green_notes_count = 8;
+  string status = 9;
+  string vendor = 10;
+  string supplier = 11;
+}
+
+message RecalculateAllResponse {
+  int32 records_updated = 1;
+}
+
+// ---------- DATA STRUCTURES ----------
+
+message POTracking {
+  int64 id = 1;
+  string order_no = 2;
+  int64 vendor_id = 3;
+  int64 supplier_id = 4;
+  string order_date = 5; // ISO-8601
+  double order_value = 6;
+  double total_utilized = 7;
+  double remaining_budget = 8;
+  int32 green_notes_count = 9;
+  string description = 10;
+  string status = 11;
+  double utilization_percentage = 12;
+  VendorInfo vendor = 13;
+  SupplierInfo supplier = 14;
+  repeated GreenNoteInfo green_notes = 15;
+}
+
+message VendorInfo {
+  int64 id = 1;
+  string vendor_name = 2;
+  string project = 3;
+}
+
+message SupplierInfo {
+  int64 id = 1;
+  string supplier_name = 2;
+  string vendor_name = 3;
+}
+
+message GreenNoteInfo {
+  int64 id = 1;
+  string note_no = 2;
+  double invoice_value = 3;
+  string status = 4;
+  string created_at = 5;
+}

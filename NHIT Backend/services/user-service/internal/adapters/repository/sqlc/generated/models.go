@@ -9,6 +9,39 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+// Catalog of allowed permission keys used by roles
+type Permission struct {
+	PermissionID       pgtype.UUID `db:"permission_id" json:"permission_id"`
+	Name               string      `db:"name" json:"name"`
+	Description        string      `db:"description" json:"description"`
+	Module             *string     `db:"module" json:"module"`
+	Action             *string     `db:"action" json:"action"`
+	IsSystemPermission bool        `db:"is_system_permission" json:"is_system_permission"`
+}
+
+// Stores dynamic roles (name + permissions) per tenant/organization
+type Role struct {
+	RoleID       uuid.UUID          `db:"role_id" json:"role_id"`
+	TenantID     uuid.UUID          `db:"tenant_id" json:"tenant_id"`
+	ParentOrgID  uuid.NullUUID      `db:"parent_org_id" json:"parent_org_id"`
+	Name         string             `db:"name" json:"name"`
+	Description  string             `db:"description" json:"description"`
+	Permissions  []string           `db:"permissions" json:"permissions"`
+	IsSystemRole bool               `db:"is_system_role" json:"is_system_role"`
+	CreatedBy    string             `db:"created_by" json:"created_by"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+}
+
+type Tenant struct {
+	TenantID  pgtype.UUID        `db:"tenant_id" json:"tenant_id"`
+	Name      string             `db:"name" json:"name"`
+	Email     string             `db:"email" json:"email"`
+	Password  string             `db:"password" json:"password"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+}
+
 // Stores user information
 type User struct {
 	// Unique identifier for the user

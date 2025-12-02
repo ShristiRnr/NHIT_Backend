@@ -1,0 +1,337 @@
+syntax = "proto3";
+
+package paymentnote;
+
+option go_package = "nhit/services/paymentnote;paymentnote";
+
+import "google/protobuf/empty.proto";
+import "google/api/annotations.proto";
+import "common.proto";
+
+// ---------- PAYMENT NOTE SERVICE ----------
+service PaymentNoteService {
+  // Mirrors PaymentNoteController@index
+  rpc ListPaymentNotes (ListPaymentNotesRequest) returns (ListPaymentNotesResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/payment-notes"
+    };
+  }
+
+  // Dedicated drafts listing (PaymentNoteController@drafts)
+  rpc ListDraftPaymentNotes (ListDraftPaymentNotesRequest) returns (ListPaymentNotesResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/payment-notes/drafts"
+    };
+  }
+
+  // Mirrors PaymentNoteController@show
+  rpc GetPaymentNote (GetPaymentNoteRequest) returns (PaymentNoteResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/payment-notes/{id}"
+    };
+  }
+
+  // Mirrors PaymentNoteController@store
+  rpc CreatePaymentNote (CreatePaymentNoteRequest) returns (PaymentNoteResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/payment-notes"
+      body: "*"
+    };
+  }
+
+  // Mirrors PaymentNoteController@update (status/full update)
+  rpc UpdatePaymentNote (UpdatePaymentNoteRequest) returns (PaymentNoteResponse) {
+    option (google.api.http) = {
+      patch: "/api/v1/payment-notes/{id}"
+      body: "*"
+    };
+  }
+
+  // Mirrors PaymentNoteController@destroy
+  rpc DeletePaymentNote (DeletePaymentNoteRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/api/v1/payment-notes/{id}"
+    };
+  }
+
+  // Auto-create draft payment note on green note approval (PaymentNoteService@createDraftOnApproval)
+  rpc CreateDraftFromGreenNote (CreateDraftFromGreenNoteRequest) returns (PaymentNoteResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/payment-notes/draft"
+      body: "*"
+    };
+  }
+
+  // Convert draft into active payment note (PaymentNoteController@convertDraftToActive)
+  rpc ConvertDraftToActive (ConvertDraftToActiveRequest) returns (PaymentNoteResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/payment-notes/{id}/convert"
+      body: "*"
+    };
+  }
+
+  // Delete a draft payment note (PaymentNoteController@deleteDraft)
+  rpc DeleteDraftPaymentNote (DeleteDraftPaymentNoteRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/api/v1/payment-notes/{id}/draft"
+    };
+  }
+
+  // Put payment note on hold (PaymentNoteController@putOnHold)
+  rpc PutPaymentNoteOnHold (PutPaymentNoteOnHoldRequest) returns (PaymentNoteResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/payment-notes/{id}/hold"
+      body: "*"
+    };
+  }
+
+  // Remove payment note from hold (PaymentNoteController@removeFromHold)
+  rpc RemovePaymentNoteFromHold (RemovePaymentNoteFromHoldRequest) returns (PaymentNoteResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/payment-notes/{id}/unhold"
+      body: "*"
+    };
+  }
+
+  // Update UTR information and trigger mail (PaymentNoteController@updateUtr)
+  rpc UpdatePaymentNoteUtr (UpdatePaymentNoteUtrRequest) returns (PaymentNoteResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/payment-notes/{id}/utr"
+      body: "*"
+    };
+  }
+
+  // Generate next payment note order number (PaymentNoteController@generatePaymentNoteOrderNumber)
+  rpc GeneratePaymentNoteOrderNumber (google.protobuf.Empty) returns (GeneratePaymentNoteOrderNumberResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/payment-notes/order-number"
+    };
+  }
+
+  // Download payment note PDF (PaymentNoteController@downloadGreenNotePdf)
+  rpc DownloadPaymentNotePdf (DownloadPaymentNotePdfRequest) returns (DownloadPaymentNotePdfResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/payment-notes/{id}/pdf"
+    };
+  }
+
+  // Super admin creation helper (PaymentNoteController@storeForSuperAdmin)
+  rpc CreatePaymentNoteForSuperAdmin (CreatePaymentNoteForSuperAdminRequest) returns (PaymentNoteResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/payment-notes/superadmin"
+      body: "*"
+    };
+  }
+
+  // Simple gRPC health/test endpoint for automated tests
+  rpc TestPaymentNoteAPI (google.protobuf.Empty) returns (TestPaymentNoteAPIResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/payment-notes/test"
+    };
+  }
+}
+
+// ---------- REQUEST MESSAGES ----------
+message ListPaymentNotesRequest {
+  string status = 1;                  // Optional status filter (default "S")
+  bool include_all = 2;               // Mirrors status=all behaviour
+  int64 auth_user_id = 3;             // Authenticated user id for scoping
+  repeated string user_roles = 4;     // Role names attached to auth user
+  bool only_assigned = 5;             // Restrict to approver assignments
+  bool drafts_only = 6;               // Return only draft notes when true
+  string search = 7;                  // Free-text search keyword
+  string sort_by = 8;                 // Column for sorting
+  string sort_direction = 9;          // asc/desc
+  int32 page = 10;                    // Pagination page number
+  int32 per_page = 11;                // Pagination page size
+}
+
+message ListDraftPaymentNotesRequest {
+  int64 auth_user_id = 1;
+  repeated string user_roles = 2;
+}
+
+message GetPaymentNoteRequest {
+  int64 id = 1;
+}
+
+message CreatePaymentNoteRequest {
+  PaymentNotePayload note = 1;
+}
+
+message UpdatePaymentNoteRequest {
+  int64 id = 1;
+  PaymentNotePayload note = 2;
+  bool status_only_edit = 3;          // Mirrors status-only update flow
+}
+
+message DeletePaymentNoteRequest {
+  int64 id = 1;
+}
+
+message CreateDraftFromGreenNoteRequest {
+  int64 green_note_id = 1;
+  int64 approver_id = 2;              // User who triggered creation
+}
+
+message ConvertDraftToActiveRequest {
+  int64 id = 1;
+  int64 user_id = 2;                  // User performing conversion
+}
+
+message DeleteDraftPaymentNoteRequest {
+  int64 id = 1;
+  int64 requester_id = 2;             // Used to validate permissions
+}
+
+message PutPaymentNoteOnHoldRequest {
+  int64 id = 1;
+  string hold_reason = 2;
+  int64 user_id = 3;
+}
+
+message RemovePaymentNoteFromHoldRequest {
+  int64 id = 1;
+  string new_status = 2;              // Next status after removal (P, D, S)
+  int64 user_id = 3;
+}
+
+message UpdatePaymentNoteUtrRequest {
+  int64 id = 1;
+  string utr_no = 2;
+  string utr_date = 3;                // ISO-8601 date string
+  bool notify_vendor = 4;
+}
+
+message DownloadPaymentNotePdfRequest {
+  int64 id = 1;
+}
+
+message CreatePaymentNoteForSuperAdminRequest {
+  int64 green_note_id = 1;
+  string subject = 2;
+  string recommendation_of_payment = 3;
+  bool create_as_draft = 4;
+  int64 actor_id = 5;
+}
+
+// ---------- SHARED INPUT STRUCTURES ----------
+message PaymentNotePayload {
+  int64 user_id = 1;
+  int64 green_note_id = 2;
+  int64 reimbursement_note_id = 3;
+  double net_payable_round_off = 4;
+  string subject = 5;
+  string note_no = 6;
+  string recommendation_of_payment = 7;
+  repeated PaymentParticular add_particulars = 8;
+  repeated PaymentParticular less_particulars = 9;
+  string status = 10;                 // D, P, A, R, S, PD, etc.
+  bool is_draft = 11;
+  bool auto_created = 12;
+  int64 created_by = 13;
+  string hold_reason = 14;
+  string hold_date = 15;
+  int64 hold_by = 16;
+  string utr_no = 17;
+  string utr_date = 18;
+  bool send_notifications = 19;
+}
+
+message PaymentParticular {
+  string particular = 1;
+  double amount = 2;
+}
+
+// ---------- RESPONSE MESSAGES ----------
+message ListPaymentNotesResponse {
+  repeated PaymentNoteSummary notes = 1;
+  common.Pagination pagination = 2;
+}
+
+message PaymentNoteResponse {
+  PaymentNote note = 1;
+}
+
+message GeneratePaymentNoteOrderNumberResponse {
+  string order_number = 1;
+  string financial_year = 2;
+  string prefix = 3;
+}
+
+message DownloadPaymentNotePdfResponse {
+  bytes file_content = 1;
+  string filename = 2;
+  string content_type = 3;
+}
+
+message TestPaymentNoteAPIResponse {
+  string status = 1;    // e.g. "ok"
+  string message = 2;   // Human readable diagnostic
+  int64 timestamp = 3;  // Unix epoch seconds
+}
+
+// ---------- DATA STRUCTURES ----------
+message PaymentNoteSummary {
+  int64 id = 1;
+  string note_no = 2;
+  string status = 3;
+  double net_payable_round_off = 4;
+  bool is_draft = 5;
+  string created_at = 6;
+  string updated_at = 7;
+  common.PaymentGreenNoteReference green_note = 8;
+  common.PaymentReimbursementNoteReference reimbursement_note = 9;
+  common.RelatedUser owner = 10;
+}
+
+message PaymentNote {
+  int64 id = 1;
+  int64 user_id = 2;
+  int64 green_note_id = 3;
+  int64 reimbursement_note_id = 4;
+  string note_no = 5;
+  string subject = 6;
+  string recommendation_of_payment = 7;
+  double net_payable_round_off = 8;
+  repeated PaymentParticular add_particulars = 9;
+  repeated PaymentParticular less_particulars = 10;
+  string status = 11;
+  bool is_draft = 12;
+  bool auto_created = 13;
+  int64 created_by = 14;
+  common.HoldDetails hold = 15;
+  string utr_no = 16;
+  string utr_date = 17;
+  repeated PaymentApprovalLog approval_logs = 18;
+  repeated PaymentNoteComment comments = 19;
+  common.PaymentGreenNoteReference green_note = 20;
+  common.PaymentReimbursementNoteReference reimbursement_note = 21;
+  common.RelatedUser owner = 22;
+  common.RelatedUser created_by_user = 23;
+  string created_at = 24;
+  string updated_at = 25;
+}
+
+message PaymentApprovalLog {
+  int64 id = 1;
+  string status = 2;
+  string comments = 3;
+  common.RelatedUser reviewer = 4;
+  string created_at = 5;
+  repeated common.PaymentApprovalPriority priorities = 6;
+}
+
+message PaymentApprovalPriority {
+  int64 id = 1;
+  int32 approver_level = 2;
+  common.RelatedUser reviewer = 3;
+}
+
+message PaymentNoteComment {
+  int64 id = 1;
+  string comment = 2;
+  string status = 3;
+  common.RelatedUser user = 4;
+  string created_at = 5;
+}

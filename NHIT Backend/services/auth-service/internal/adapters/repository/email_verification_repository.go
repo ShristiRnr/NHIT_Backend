@@ -19,19 +19,23 @@ func NewEmailVerificationRepository(db *sql.DB) *emailVerificationRepository {
 }
 
 func (r *emailVerificationRepository) Create(ctx context.Context, userID uuid.UUID, expiresAt time.Time) (*domain.EmailVerificationToken, error) {
+	// First, delete any existing verification token for this user
+	deleteQuery := `DELETE FROM email_verification_tokens WHERE user_id = $1`
+	_, err := r.db.ExecContext(ctx, deleteQuery, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to delete existing verification token: %w", err)
+	}
+
+	// Now insert the new token
 	token := uuid.New()
 	query := `
 		INSERT INTO email_verification_tokens (token, user_id, expires_at, created_at)
 		VALUES ($1, $2, $3, $4)
-		ON CONFLICT (user_id) DO UPDATE SET
-			token = EXCLUDED.token,
-			expires_at = EXCLUDED.expires_at,
-			created_at = EXCLUDED.created_at
 		RETURNING token, user_id, expires_at, created_at
 	`
 
 	verification := &domain.EmailVerificationToken{}
-	err := r.db.QueryRowContext(
+	err = r.db.QueryRowContext(
 		ctx,
 		query,
 		token,

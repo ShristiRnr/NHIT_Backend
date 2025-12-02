@@ -25,10 +25,14 @@ type RefreshToken struct {
 
 // PasswordReset represents a password reset request
 type PasswordReset struct {
-	Token     uuid.UUID
+	ID        uuid.UUID // Primary ID for the record
+	Token     uuid.UUID // For link-based resets
+	OTP       string    // For OTP-based resets
 	UserID    uuid.UUID
 	ExpiresAt time.Time
 	CreatedAt time.Time
+	Used      bool   // Whether this reset token/OTP has been used
+	ResetType string // "token" or "otp"
 }
 
 // EmailVerificationToken represents an email verification token
@@ -49,19 +53,20 @@ type LoginRequest struct {
 
 // LoginResponse represents a successful login
 type LoginResponse struct {
-	Token              string
-	RefreshToken       string
-	UserID             uuid.UUID
-	Email              string
-	Name               string
-	Roles              []string
-	Permissions        []string
-	LastLoginAt        time.Time
-	LastLoginIP        string
-	TenantID           uuid.UUID
-	OrgID              *uuid.UUID
-	TokenExpiresAt     int64
-	RefreshExpiresAt   int64
+	Token            string
+	RefreshToken     string
+	UserID           uuid.UUID
+	Email            string
+	Name             string
+	Roles            []string
+	Permissions      []string
+	LastLoginAt      time.Time
+	LastLoginIP      string
+	TenantID         uuid.UUID
+	OrgID            *uuid.UUID
+	TokenExpiresAt   int64
+	RefreshExpiresAt int64
+	SessionID        uuid.UUID // Added for tracking specific session
 }
 
 // TokenValidation represents a validated token

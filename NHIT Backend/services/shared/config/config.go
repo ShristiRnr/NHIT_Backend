@@ -25,8 +25,8 @@ type Config struct {
 func LoadConfig(serviceName string) *Config {
 	return &Config{
 		ServiceName:        serviceName,
-		ServerPort:         getEnv("SERVER_PORT", "8080"),
-		DatabaseURL:        getEnv("DB_URL", "postgres://postgres:shristi@localhost:5432/nhit?sslmode=disable"),
+		ServerPort:         getEnv("SERVER_PORT", "8082"),
+		DatabaseURL:        getEnv("DB_URL", "postgres://postgres:shristi@localhost:5433/nhit_db?sslmode=disable"),
 		JWTSecret:          getEnv("JWT_SECRET", "supersecretkey"),
 		JWTExpiry:          getEnvAsDuration("JWT_EXPIRY", 15*time.Minute),
 		RefreshTokenExpiry: getEnvAsDuration("REFRESH_TOKEN_EXPIRY", 7*24*time.Hour),

@@ -13,17 +13,15 @@ type Designation struct {
 	ID          uuid.UUID
 	Name        string
 	Description string
-	Slug        string
-	IsActive    bool
-	ParentID    *uuid.UUID // Nullable for hierarchical structure
-	Level       int32      // Hierarchy level (0 = top level)
-	UserCount   int32      // Cached count of users with this designation
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
 
 // NewDesignation creates a new designation with validation
-func NewDesignation(name, description string, isActive bool, parentID *uuid.UUID) (*Designation, error) {
+func NewDesignation(name, description string) (*Designation, error) {
+	name = strings.TrimSpace(name)
+	description = strings.TrimSpace(description)
+
 	// Validate name
 	if err := ValidateDesignationName(name); err != nil {
 		return nil, err
@@ -33,29 +31,23 @@ func NewDesignation(name, description string, isActive bool, parentID *uuid.UUID
 	if err := ValidateDesignationDescription(description); err != nil {
 		return nil, err
 	}
-
-	// Generate slug from name
-	slug := GenerateSlug(name)
 
 	now := time.Now()
-	designation := &Designation{
+
+	return &Designation{
 		ID:          uuid.New(),
-		Name:        strings.TrimSpace(name),
-		Description: strings.TrimSpace(description),
-		Slug:        slug,
-		IsActive:    isActive,
-		ParentID:    parentID,
-		Level:       0, // Will be calculated based on parent
-		UserCount:   0,
+		Name:        name,
+		Description: description,
 		CreatedAt:   now,
 		UpdatedAt:   now,
-	}
-
-	return designation, nil
+	}, nil
 }
 
-// Update updates the designation fields with validation
-func (d *Designation) Update(name, description string, isActive bool, parentID *uuid.UUID) error {
+// Update updates existing designation with validation
+func (d *Designation) Update(name, description string) error {
+	name = strings.TrimSpace(name)
+	description = strings.TrimSpace(description)
+
 	// Validate name
 	if err := ValidateDesignationName(name); err != nil {
 		return err
@@ -66,58 +58,16 @@ func (d *Designation) Update(name, description string, isActive bool, parentID *
 		return err
 	}
 
-	// Prevent circular reference (designation cannot be its own parent)
-	if parentID != nil && *parentID == d.ID {
-		return ErrCircularReference
-	}
-
-	// Update fields
-	d.Name = strings.TrimSpace(name)
-	d.Description = strings.TrimSpace(description)
-	d.Slug = GenerateSlug(name)
-	d.IsActive = isActive
-	d.ParentID = parentID
+	// Apply updates
+	d.Name = name
+	d.Description = description
 	d.UpdatedAt = time.Now()
 
 	return nil
-}
-
-// Activate sets the designation as active
-func (d *Designation) Activate() {
-	d.IsActive = true
-	d.UpdatedAt = time.Now()
-}
-
-// Deactivate sets the designation as inactive
-func (d *Designation) Deactivate() {
-	d.IsActive = false
-	d.UpdatedAt = time.Now()
-}
-
-// CanBeDeleted checks if the designation can be deleted
-func (d *Designation) CanBeDeleted() error {
-	if d.UserCount > 0 {
-		return ErrDesignationHasUsers
-	}
-	return nil
-}
-
-// UpdateUserCount updates the cached user count
-func (d *Designation) UpdateUserCount(count int32) {
-	d.UserCount = count
-	d.UpdatedAt = time.Now()
-}
-
-// SetLevel sets the hierarchy level
-func (d *Designation) SetLevel(level int32) {
-	d.Level = level
-	d.UpdatedAt = time.Now()
 }
 
 // ValidateDesignationName validates the designation name
 func ValidateDesignationName(name string) error {
-	name = strings.TrimSpace(name)
-
 	if name == "" {
 		return ErrDesignationNameRequired
 	}
@@ -130,12 +80,12 @@ func ValidateDesignationName(name string) error {
 		return ErrDesignationNameTooLong
 	}
 
-	// Check if name contains only valid characters (letters, numbers, spaces, hyphens, underscores)
+	// Check allowed characters
 	if !isValidDesignationName(name) {
 		return ErrDesignationNameInvalidChars
 	}
 
-	// Check for reserved names
+	// Reserved names not allowed
 	if isReservedName(name) {
 		return ErrDesignationNameReserved
 	}
@@ -145,8 +95,6 @@ func ValidateDesignationName(name string) error {
 
 // ValidateDesignationDescription validates the designation description
 func ValidateDesignationDescription(description string) error {
-	description = strings.TrimSpace(description)
-
 	if description == "" {
 		return ErrDesignationDescriptionRequired
 	}
@@ -162,59 +110,37 @@ func ValidateDesignationDescription(description string) error {
 	return nil
 }
 
-// isValidDesignationName checks if the name contains only valid characters
+// isValidDesignationName checks allowed characters
 func isValidDesignationName(name string) bool {
 	for _, r := range name {
-		if !unicode.IsLetter(r) && !unicode.IsNumber(r) && r != ' ' && r != '-' && r != '_' && r != '/' && r != '&' && r != '.' {
+		if !unicode.IsLetter(r) &&
+			!unicode.IsNumber(r) &&
+			r != ' ' &&
+			r != '-' &&
+			r != '_' &&
+			r != '/' &&
+			r != '&' &&
+			r != '.' {
 			return false
 		}
 	}
 	return true
 }
 
-// isReservedName checks if the name is reserved
+// isReservedName checks if name is reserved
 func isReservedName(name string) bool {
 	reserved := []string{
 		"admin", "administrator", "root", "system", "superuser",
 		"null", "undefined", "none", "default",
 	}
 
-	lowerName := strings.ToLower(strings.TrimSpace(name))
+	lowerName := strings.ToLower(name)
 	for _, r := range reserved {
 		if lowerName == r {
 			return true
 		}
 	}
 	return false
-}
-
-// GenerateSlug generates a URL-friendly slug from the name
-func GenerateSlug(name string) string {
-	// Convert to lowercase
-	slug := strings.ToLower(name)
-
-	// Replace spaces and special characters with hyphens
-	slug = strings.Map(func(r rune) rune {
-		if unicode.IsLetter(r) || unicode.IsNumber(r) {
-			return r
-		}
-		return '-'
-	}, slug)
-
-	// Remove consecutive hyphens
-	for strings.Contains(slug, "--") {
-		slug = strings.ReplaceAll(slug, "--", "-")
-	}
-
-	// Trim hyphens from start and end
-	slug = strings.Trim(slug, "-")
-
-	// Limit length
-	if len(slug) > 100 {
-		slug = slug[:100]
-	}
-
-	return slug
 }
 
 // NormalizeDesignationName normalizes the name for comparison

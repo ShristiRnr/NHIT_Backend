@@ -6,15 +6,18 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/ShristiRnr/NHIT_Backend/services/auth-service/internal/core/ports"
+	"github.com/google/uuid"
 )
 
 type userRepository struct {
 	db *sql.DB
 }
 
-func NewUserRepository(db *sql.DB) *userRepository {
+// Ensure userRepository implements ports.UserRepository at compile time
+var _ ports.UserRepository = (*userRepository)(nil)
+
+func NewUserRepository(db *sql.DB) ports.UserRepository {
 	return &userRepository{db: db}
 }
 
@@ -27,6 +30,72 @@ func (r *userRepository) GetByEmail(ctx context.Context, tenantID uuid.UUID, ema
 
 	user := &ports.UserData{}
 	err := r.db.QueryRowContext(ctx, query, tenantID, email).Scan(
+		&user.UserID,
+		&user.TenantID,
+		&user.Email,
+		&user.Name,
+		&user.Password,
+		&user.EmailVerifiedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("user not found")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	return user, nil
+}
+
+// Create creates a new user
+func (r *userRepository) Create(ctx context.Context, user *ports.UserData) (*ports.UserData, error) {
+	query := `
+		INSERT INTO users (user_id, tenant_id, email, name, password, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		RETURNING user_id, tenant_id, email, name, password, email_verified_at, created_at, updated_at
+	`
+
+	now := time.Now()
+	createdUser := &ports.UserData{}
+
+	err := r.db.QueryRowContext(ctx, query,
+		user.UserID,
+		user.TenantID,
+		user.Email,
+		user.Name,
+		user.Password,
+		now,
+		now,
+	).Scan(
+		&createdUser.UserID,
+		&createdUser.TenantID,
+		&createdUser.Email,
+		&createdUser.Name,
+		&createdUser.Password,
+		&createdUser.EmailVerifiedAt,
+		&createdUser.CreatedAt,
+		&createdUser.UpdatedAt,
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to create user: %w", err)
+	}
+
+	return createdUser, nil
+}
+
+// GetByEmailGlobal gets user by email across all tenants - for tenant-agnostic login
+func (r *userRepository) GetByEmailGlobal(ctx context.Context, email string) (*ports.UserData, error) {
+	query := `
+		SELECT user_id, tenant_id, email, name, password, email_verified_at
+		FROM users
+		WHERE email = $1
+		LIMIT 1
+	`
+
+	user := &ports.UserData{}
+	err := r.db.QueryRowContext(ctx, query, email).Scan(
 		&user.UserID,
 		&user.TenantID,
 		&user.Email,
@@ -106,4 +175,51 @@ func (r *userRepository) VerifyEmail(ctx context.Context, userID uuid.UUID) erro
 	}
 
 	return nil
+}
+
+func (r *userRepository) Delete(ctx context.Context, userID uuid.UUID) error {
+	query := `DELETE FROM users WHERE user_id = $1`
+
+	result, err := r.db.ExecContext(ctx, query, userID)
+	if err != nil {
+		return fmt.Errorf("failed to delete user: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rows == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
+}
+
+func (r *userRepository) GetByID(ctx context.Context, userID uuid.UUID) (*ports.UserData, error) {
+	query := `
+		SELECT user_id, tenant_id, email, name, password, email_verified_at
+		FROM users
+		WHERE user_id = $1
+	`
+
+	user := &ports.UserData{}
+	err := r.db.QueryRowContext(ctx, query, userID).Scan(
+		&user.UserID,
+		&user.TenantID,
+		&user.Email,
+		&user.Name,
+		&user.Password,
+		&user.EmailVerifiedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("user not found")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user by ID: %w", err)
+	}
+
+	return user, nil
 }

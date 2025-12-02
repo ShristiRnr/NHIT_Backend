@@ -15,6 +15,13 @@ WHERE user_id = $1;
 SELECT role_id FROM user_roles
 WHERE user_id = $1;
 
+-- name: ListDetailedRolesForUser :many
+SELECT r.*
+FROM user_roles ur
+JOIN roles r ON r.role_id = ur.role_id
+WHERE ur.user_id = $1
+ORDER BY r.created_at DESC;
+
 -- name: ListUsersForRole :many
 SELECT user_id FROM user_roles
 WHERE role_id = $1;

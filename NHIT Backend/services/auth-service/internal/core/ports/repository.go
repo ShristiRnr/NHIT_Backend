@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/ShristiRnr/NHIT_Backend/services/auth-service/internal/core/domain"
+	"github.com/google/uuid"
 )
 
 // SessionRepository defines the interface for session operations
@@ -13,6 +13,7 @@ type SessionRepository interface {
 	Create(ctx context.Context, session *domain.Session) (*domain.Session, error)
 	GetByID(ctx context.Context, sessionID uuid.UUID) (*domain.Session, error)
 	GetByToken(ctx context.Context, token string) (*domain.Session, error)
+	GetByUserID(ctx context.Context, userID uuid.UUID) ([]*domain.Session, error)
 	Delete(ctx context.Context, sessionID uuid.UUID) error
 }
 
@@ -25,9 +26,14 @@ type RefreshTokenRepository interface {
 
 // PasswordResetRepository defines the interface for password reset operations
 type PasswordResetRepository interface {
+	// Token-based reset methods
 	Create(ctx context.Context, userID uuid.UUID, token uuid.UUID, expiresAt time.Time) (*domain.PasswordReset, error)
 	GetByToken(ctx context.Context, token uuid.UUID) (*domain.PasswordReset, error)
 	Delete(ctx context.Context, token uuid.UUID) error
+
+	// OTP-based reset methods
+	CreateWithOTP(ctx context.Context, userID uuid.UUID, otp string, expiresAt time.Time) (*domain.PasswordReset, error)
+	GetByUserIDAndOTP(ctx context.Context, userID uuid.UUID, otp string) (*domain.PasswordReset, error)
 }
 
 // EmailVerificationRepository defines the interface for email verification operations
@@ -37,12 +43,20 @@ type EmailVerificationRepository interface {
 	Delete(ctx context.Context, userID uuid.UUID) error
 }
 
-// UserRepository defines user-related operations needed by auth service
+// UserRepository defines the interface for user data access
 type UserRepository interface {
+	// Create creates a new user
+	Create(ctx context.Context, user *UserData) (*UserData, error)
+	// GetByEmail gets user by email (tenant-specific)
 	GetByEmail(ctx context.Context, tenantID uuid.UUID, email string) (*UserData, error)
+
+	// GetByEmailGlobal gets user by email across all tenants
+	GetByEmailGlobal(ctx context.Context, email string) (*UserData, error)
+	GetByID(ctx context.Context, userID uuid.UUID) (*UserData, error)
 	UpdatePassword(ctx context.Context, userID uuid.UUID, hashedPassword string) error
 	UpdateLastLogin(ctx context.Context, userID uuid.UUID, ipAddress, userAgent string) error
 	VerifyEmail(ctx context.Context, userID uuid.UUID) error
+	Delete(ctx context.Context, userID uuid.UUID) error
 }
 
 // UserData represents user data needed for authentication
@@ -53,4 +67,6 @@ type UserData struct {
 	Name            string
 	Password        string
 	EmailVerifiedAt *time.Time
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }

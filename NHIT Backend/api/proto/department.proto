@@ -2,12 +2,14 @@ syntax = "proto3";
 
 package departments;
 
-option go_package = "api/departmentpb;departmentpb";
+option go_package = "github.com/ShristiRnr/NHIT_Backend/api/pb/departmentpb;departmentpb";
 
 import "google/protobuf/timestamp.proto";
 import "google/api/annotations.proto";
 
-// Department entity
+// =====================
+// Department Entity
+// =====================
 message Department {
   string id = 1;
   string name = 2;
@@ -16,8 +18,9 @@ message Department {
   google.protobuf.Timestamp updated_at = 5;
 }
 
-// ========== Requests ==========
-
+// =====================
+// Requests
+// =====================
 message CreateDepartmentRequest {
   string name = 1;
   string description = 2;
@@ -38,19 +41,32 @@ message DeleteDepartmentRequest {
 }
 
 message ListDepartmentsRequest {
-  int32 page = 1;        // optional for pagination
-  int32 page_size = 2;   // optional for pagination
+  int32 page = 1;
+  int32 page_size = 2;
 }
 
-// ========== Responses ==========
+// =====================
+// Pagination Metadata
+// =====================
+message PaginationMetadata {
+  int32 current_page = 1;
+  int32 page_size = 2;
+  int32 total_items = 3;
+  int32 total_pages = 4;
+}
 
+// =====================
+// Responses
+// =====================
 message DepartmentResponse {
   Department department = 1;
+  string message = 2;
 }
 
 message ListDepartmentsResponse {
   repeated Department departments = 1;
-  int32 total_count = 2; // useful for pagination
+  int32 total_count = 2;
+  PaginationMetadata pagination = 3;
 }
 
 message DeleteDepartmentResponse {
@@ -58,35 +74,37 @@ message DeleteDepartmentResponse {
   string message = 2;
 }
 
-// ========== Service ==========
-
+// =====================
+// Service Definition
+// =====================
 service DepartmentService {
+
   rpc CreateDepartment(CreateDepartmentRequest) returns (DepartmentResponse) {
     option (google.api.http) = {
       post: "/api/v1/departments"
       body: "*"
     };
   }
-  
+
   rpc GetDepartment(GetDepartmentRequest) returns (DepartmentResponse) {
     option (google.api.http) = {
       get: "/api/v1/departments/{id}"
     };
   }
-  
+
   rpc UpdateDepartment(UpdateDepartmentRequest) returns (DepartmentResponse) {
     option (google.api.http) = {
       put: "/api/v1/departments/{id}"
       body: "*"
     };
   }
-  
+
   rpc DeleteDepartment(DeleteDepartmentRequest) returns (DeleteDepartmentResponse) {
     option (google.api.http) = {
       delete: "/api/v1/departments/{id}"
     };
   }
-  
+
   rpc ListDepartments(ListDepartmentsRequest) returns (ListDepartmentsResponse) {
     option (google.api.http) = {
       get: "/api/v1/departments"

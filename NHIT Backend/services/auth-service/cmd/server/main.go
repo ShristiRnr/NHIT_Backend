@@ -7,15 +7,20 @@ import (
 	"os"
 	"time"
 
-	authpb "github.com/ShristiRnr/NHIT_Backend/api/proto"
+	authpb "github.com/ShristiRnr/NHIT_Backend/api/pb/authpb"
+	organizationpb "github.com/ShristiRnr/NHIT_Backend/api/pb/organizationpb"
+	userpb "github.com/ShristiRnr/NHIT_Backend/api/pb/userpb"
 	"github.com/ShristiRnr/NHIT_Backend/services/auth-service/internal/adapters/grpc"
+	"github.com/ShristiRnr/NHIT_Backend/services/auth-service/internal/adapters/notifier"
+	"github.com/ShristiRnr/NHIT_Backend/services/auth-service/internal/adapters/organization"
 	"github.com/ShristiRnr/NHIT_Backend/services/auth-service/internal/adapters/repository"
 	"github.com/ShristiRnr/NHIT_Backend/services/auth-service/internal/core/services"
 	"github.com/ShristiRnr/NHIT_Backend/services/auth-service/internal/middleware"
 	"github.com/ShristiRnr/NHIT_Backend/services/auth-service/internal/utils"
-	
+
 	_ "github.com/lib/pq"
 	grpcMiddleware "google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
@@ -25,12 +30,12 @@ func main() {
 	if serverPort == "" {
 		serverPort = "50052"
 	}
-	
+
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" {
-		databaseURL = "postgres://postgres:shristi@localhost:5432/nhit?sslmode=disable"
+		databaseURL = "postgres://postgres:shristi@localhost:5433/nhit_db?sslmode=disable"
 	}
-	
+
 	log.Printf("🚀 Starting %s on port %s", serviceName, serverPort)
 
 	// Connect to database
@@ -39,12 +44,43 @@ func main() {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 	defer conn.Close()
-	
+
 	// Test connection
 	if err := conn.Ping(); err != nil {
 		log.Fatalf("Failed to ping database: %v", err)
 	}
 	log.Println("✅ Database connected")
+
+	// Connect to User Service
+	userServiceAddr := os.Getenv("USER_SERVICE_ADDR")
+	if userServiceAddr == "" {
+		userServiceAddr = "localhost:50051" // Default User Service address
+	}
+
+	userConn, err := grpcMiddleware.Dial(userServiceAddr, grpcMiddleware.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("Failed to connect to User Service: %v", err)
+	}
+	defer userConn.Close()
+
+	userServiceClient := userpb.NewUserManagementClient(userConn)
+	log.Printf("✅ Connected to User Service at %s", userServiceAddr)
+
+	// Connect to Organization Service
+	orgServiceAddr := os.Getenv("ORGANIZATION_SERVICE_ADDR")
+	if orgServiceAddr == "" {
+		orgServiceAddr = "localhost:8082" // Default Organization Service address
+	}
+
+	orgConn, err := grpcMiddleware.Dial(orgServiceAddr, grpcMiddleware.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("Failed to connect to Organization Service: %v", err)
+	}
+	defer orgConn.Close()
+
+	orgServiceClient := organizationpb.NewOrganizationServiceClient(orgConn)
+	orgClientAdapter := organization.NewOrganizationClient(orgServiceClient)
+	log.Printf("✅ Connected to Organization Service at %s", orgServiceAddr)
 
 	// Initialize repositories
 	sessionRepo := repository.NewSessionRepository(conn)
@@ -59,16 +95,24 @@ func main() {
 		jwtSecret = "your-secret-key-change-in-production" // Default for development
 		log.Println("⚠️  Warning: Using default JWT secret. Set JWT_SECRET environment variable in production!")
 	}
-	
-	accessTokenDuration := 15 * time.Minute  // 15 minutes
+
+	accessTokenDuration := 2 * time.Hour       // 2 hours as requested
 	refreshTokenDuration := 7 * 24 * time.Hour // 7 days
-	
+
 	jwtManager := utils.NewJWTManager(jwtSecret, accessTokenDuration, refreshTokenDuration)
 
 	// Initialize email service (mock for now)
 	emailService := utils.NewMockEmailService()
 
-	// Initialize auth service
+	// Initialize notification client
+	notificationServiceURL := os.Getenv("NOTIFICATION_SERVICE_URL")
+	if notificationServiceURL == "" {
+		notificationServiceURL = "http://localhost:50060"
+	}
+	notificationClient := notifier.NewRealNotificationClient(notificationServiceURL)
+	log.Printf("✅ Initialized notification client with URL: %s", notificationServiceURL)
+
+	// Initialize auth service with User Service client
 	authService := services.NewAuthService(
 		userRepo,
 		sessionRepo,
@@ -77,6 +121,10 @@ func main() {
 		emailVerificationRepo,
 		jwtManager,
 		emailService,
+		nil,                // TODO: inject Kafka publisher implementation
+		notificationClient, // Pass notification client
+		userServiceClient,  // Pass User Service gRPC client
+		orgClientAdapter,   // Pass Organization Service client
 	)
 
 	// Initialize auth interceptor (middleware)
@@ -89,7 +137,7 @@ func main() {
 	)
 
 	// Initialize and register auth handler
-	authHandler := grpc.NewAuthHandler(authService)
+	authHandler := grpc.NewAuthHandler(authService, orgClientAdapter)
 	authpb.RegisterAuthServiceServer(grpcServer, authHandler)
 
 	// Start listening

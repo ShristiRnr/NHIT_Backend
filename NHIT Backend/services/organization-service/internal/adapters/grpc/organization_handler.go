@@ -2,339 +2,532 @@ package grpc
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"strings"
+	"time"
 
-	"github.com/google/uuid"
-	organizationpb "github.com/ShristiRnr/NHIT_Backend/api/pb/organizationpb"
-	"github.com/ShristiRnr/NHIT_Backend/services/organization-service/internal/core/domain"
+	authpb "github.com/ShristiRnr/NHIT_Backend/api/pb/authpb"
+	pb "github.com/ShristiRnr/NHIT_Backend/api/pb/organizationpb"
 	"github.com/ShristiRnr/NHIT_Backend/services/organization-service/internal/core/ports"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+// OrganizationHandler implements the gRPC server and uses the Repository port.
 type OrganizationHandler struct {
-	organizationpb.UnimplementedOrganizationServiceServer
-	orgService     ports.OrganizationService
-	userOrgService ports.UserOrganizationService
+	pb.UnimplementedOrganizationServiceServer
+	repo       ports.Repository
+	db         *pgxpool.Pool
+	authClient authpb.AuthServiceClient
+	kafka      ports.KafkaPublisher
+	logger     *log.Logger
+	// optional: clock or logger
 }
 
-// NewOrganizationHandler creates a new gRPC organization handler
-func NewOrganizationHandler(
-	orgService ports.OrganizationService,
-	userOrgService ports.UserOrganizationService,
-) *OrganizationHandler {
+// NewOrganizationHandler constructor
+func NewOrganizationHandler(repo ports.Repository, db *pgxpool.Pool, authClient authpb.AuthServiceClient, kafka ports.KafkaPublisher) *OrganizationHandler {
 	return &OrganizationHandler{
-		orgService:     orgService,
-		userOrgService: userOrgService,
+		repo:       repo,
+		db:         db,
+		authClient: authClient,
+		kafka:      kafka,
+		logger:     log.Default(),
 	}
 }
 
-// CreateOrganization creates a new organization
-func (h *OrganizationHandler) CreateOrganization(
-	ctx context.Context,
-	req *organizationpb.CreateOrganizationRequest,
-) (*organizationpb.OrganizationResponse, error) {
-	log.Printf("gRPC CreateOrganization: name=%s, code=%s", req.GetName(), req.GetCode())
-	
-	// Parse UUIDs
-	tenantID, err := uuid.Parse(req.GetTenantId())
-	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "invalid tenant ID: %v", err)
+// helper: map repo model -> pb.Organization
+func mapModelToProto(m ports.OrganizationModel) *pb.Organization {
+	var parentID string
+	if m.ParentOrgID != nil {
+		parentID = *m.ParentOrgID
 	}
-	
-	createdBy, err := uuid.Parse(req.GetCreatedBy())
-	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "invalid creator ID: %v", err)
+	var desc, logo string
+	if m.Description != nil {
+		desc = *m.Description
 	}
-	
-	// Create organization
-	org, err := h.orgService.CreateOrganization(
-		ctx,
-		tenantID,
-		req.GetName(),
-		req.GetCode(),
-		req.GetDescription(),
-		req.GetLogo(),
-		createdBy,
-	)
-	
+	if m.Logo != nil {
+		logo = *m.Logo
+	}
+	isParent := m.ParentOrgID == nil
+	var superAdmin *pb.SuperAdminDetails
+	if isParent && (m.SuperAdminName != nil || m.SuperAdminEmail != nil) {
+		superAdmin = &pb.SuperAdminDetails{
+			Name:     safeStr(m.SuperAdminName),
+			Email:    safeStr(m.SuperAdminEmail),
+			Password: "", // do not return password
+		}
+	}
+	createdBy := ""
+	if m.SuperAdminName != nil {
+		createdBy = safeStr(m.SuperAdminName)
+	}
+	return &pb.Organization{
+		OrgId:           m.OrgID,
+		TenantId:        m.TenantID,
+		ParentOrgId:     parentID,
+		Name:            m.Name,
+		Code:            m.Code,
+		DatabaseName:    m.DatabaseName,
+		Description:     desc,
+		Logo:            logo,
+		SuperAdmin:      superAdmin,
+		InitialProjects: []string{}, // Empty array since domain model doesn't have this field
+		Status:          m.Status,
+		CreatedAt:       toProtoTs(m.CreatedAt),
+		UpdatedAt:       toProtoTs(m.UpdatedAt),
+		CreatedBy:       createdBy,
+	}
+}
+
+func safeStr(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+
+// helper: to proto timestamp
+func toProtoTs(t time.Time) *timestamppb.Timestamp {
+	// pb.Timestamp refers to google.protobuf.Timestamp — but in generated pb it's google.protobuf.Timestamp
+	// For brevity, we use zero; in real code use timestamppb.New(t)
+	return timestamppb.New(t)
+}
+
+// ----------------------------------------------------------------------------
+// CreateOrganization
+// ----------------------------------------------------------------------------
+func (h *OrganizationHandler) CreateOrganization(ctx context.Context, req *pb.CreateOrganizationRequest) (*pb.OrganizationResponse, error) {
+	// validation rules:
+	// - if parent_org_id == "" → parent creation -> super_admin must be present
+	// - if parent_org_id != "" → child creation -> super_admin must be nil / ignored
+
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "empty request")
+	}
+
+	if req.Name == "" || req.Code == "" {
+		return nil, status.Error(codes.InvalidArgument, "name and code are required")
+	}
+
+	// Determine parent organization and tenant context
+	// Case 1: Explicit parentOrgId provided -> child under that parent (existing behavior)
+	// Case 2: No parentOrgId but SuperAdmin provided -> parent org creation
+	// Case 3: No parentOrgId and no SuperAdmin -> child under current org from JWT (Option B)
+
+	orgID := uuid.New().String()
+	now := time.Now().UTC()
+
+	var tenantID string
+	var parentPtr *string
+	var saName, saEmail, saPass *string
+	var createdBy string
+
+	if req.ParentOrgId != "" {
+		// Explicit child creation: validate parent and inherit tenant and super admin from parent org
+		if _, err := uuid.Parse(req.ParentOrgId); err != nil {
+			return nil, status.Error(codes.InvalidArgument, "parent_org_id must be a valid UUID")
+		}
+		parentOrg, err := h.repo.GetOrganizationByID(ctx, req.ParentOrgId)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "parent organization not found")
+		}
+		tenantID = parentOrg.TenantID
+		parentPtr = &req.ParentOrgId
+		// Copy parent super admin details into the child organization for consistent createdBy behavior
+		saName = parentOrg.SuperAdminName
+		saEmail = parentOrg.SuperAdminEmail
+		saPass = parentOrg.SuperAdminPass
+	} else if req.SuperAdmin != nil {
+		// Parent org creation: super admin is required and tenant inferred via super_admin.email
+		if req.SuperAdmin.Email == "" {
+			return nil, status.Error(codes.InvalidArgument, "super_admin.email is required when creating parent organization")
+		}
+		if h.db == nil {
+			return nil, status.Error(codes.Internal, "database connection not configured for organization handler")
+		}
+
+		var tenantUUID uuid.UUID
+		if err := h.db.QueryRow(ctx, `SELECT tenant_id FROM tenants WHERE email = $1`, req.SuperAdmin.Email).Scan(&tenantUUID); err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "tenant not found for super admin email %s; create tenant first: %v", req.SuperAdmin.Email, err)
+		}
+		tenantID = tenantUUID.String()
+		// parentPtr remains nil for parent orgs
+		saName = &req.SuperAdmin.Name
+		saEmail = &req.SuperAdmin.Email
+		saPass = &req.SuperAdmin.Password
+	} else {
+		// Token-based child creation: no explicit parentOrgId, no superAdmin -> use current org from JWT via AuthService
+		if h.authClient == nil {
+			return nil, status.Error(codes.Internal, "auth client not configured for organization handler")
+		}
+
+		md, ok := metadata.FromIncomingContext(ctx)
+		if !ok {
+			return nil, status.Error(codes.Unauthenticated, "metadata is not provided")
+		}
+		values := md["authorization"]
+		if len(values) == 0 {
+			return nil, status.Error(codes.Unauthenticated, "authorization token is not provided")
+		}
+
+		accessToken := strings.TrimPrefix(values[0], "Bearer ")
+
+		vResp, err := h.authClient.ValidateToken(ctx, &authpb.ValidateTokenRequest{Token: accessToken})
+		if err != nil {
+			return nil, status.Errorf(codes.Unauthenticated, "failed to validate token: %v", err)
+		}
+		if !vResp.Valid {
+			return nil, status.Error(codes.Unauthenticated, "invalid or expired token")
+		}
+		if vResp.OrgId == "" {
+			return nil, status.Error(codes.InvalidArgument, "parent_org_id is missing and token has no org_id")
+		}
+
+		// Ensure parent org exists
+		parentOrg, err := h.repo.GetOrganizationByID(ctx, vResp.OrgId)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "parent organization from token not found: %v", err)
+		}
+		parentID := parentOrg.OrgID
+		parentPtr = &parentID
+		// Use tenant_id from JWT so child org stays in the same tenant context as the logged-in user
+		tenantID = vResp.TenantId
+		// Copy parent super admin details into the child organization as well
+		saName = parentOrg.SuperAdminName
+		saEmail = parentOrg.SuperAdminEmail
+		saPass = parentOrg.SuperAdminPass
+	}
+
+	// Resolve tenant name for created_by display field using tenantID
+	if h.db != nil && tenantID != "" {
+		if err := h.db.QueryRow(ctx, `SELECT name FROM tenants WHERE tenant_id = $1`, tenantID).Scan(&createdBy); err != nil {
+			createdBy = ""
+		}
+	}
+
+	var descPtr, logoPtr *string
+	if req.Description != "" {
+		descPtr = &req.Description
+	}
+	if req.Logo != "" {
+		logoPtr = &req.Logo
+	}
+
+	// Generate database_name (simple example using code + timestamp)
+	dbName := fmt.Sprintf("%s_db", req.Code)
+
+	repoModel := ports.OrganizationModel{
+		OrgID:           orgID,
+		TenantID:        tenantID,
+		ParentOrgID:     parentPtr,
+		Name:            req.Name,
+		Code:            req.Code,
+		DatabaseName:    dbName,
+		Description:     descPtr,
+		Logo:            logoPtr,
+		SuperAdminName:  saName,
+		SuperAdminEmail: saEmail,
+		SuperAdminPass:  saPass,
+		InitialProjects: req.InitialProjects,
+		Status:          req.Status,
+		CreatedAt:       now,
+		UpdatedAt:       now,
+	}
+
+	created, err := h.repo.CreateOrganization(ctx, repoModel)
 	if err != nil {
-		if err == domain.ErrDuplicateOrganizationCode {
-			return nil, status.Errorf(codes.AlreadyExists, "organization code already exists")
-		}
-		if err == domain.ErrInvalidOrganizationName || err == domain.ErrInvalidOrganizationCode {
-			return nil, status.Errorf(codes.InvalidArgument, "validation error: %v", err)
-		}
-		log.Printf("Failed to create organization: %v", err)
+		// translate to gRPC error (simplified)
 		return nil, status.Errorf(codes.Internal, "failed to create organization: %v", err)
 	}
-	
-	return &organizationpb.OrganizationResponse{
-		Organization: toProtoOrganization(org),
-		Message:      "Organization created successfully",
+
+	orgProto := mapModelToProto(created)
+	orgProto.CreatedBy = createdBy
+
+	return &pb.OrganizationResponse{
+		Organization: orgProto,
+		Message:      "organization created",
 	}, nil
 }
 
-// GetOrganization retrieves an organization by ID
-func (h *OrganizationHandler) GetOrganization(
-	ctx context.Context,
-	req *organizationpb.GetOrganizationRequest,
-) (*organizationpb.OrganizationResponse, error) {
-	orgID, err := uuid.Parse(req.GetOrgId())
-	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "invalid organization ID: %v", err)
+// ListOrganizations
+// ----------------------------------------------------------------------------
+// ListOrganizations lists all organizations with pagination
+func (h *OrganizationHandler) ListOrganizations(ctx context.Context, req *pb.ListOrganizationsRequest) (*pb.ListOrganizationsResponse, error) {
+	page := int32(1)
+	pageSize := int32(10)
+
+	if req.Page > 0 {
+		page = req.Page
 	}
-	
-	org, err := h.orgService.GetOrganization(ctx, orgID)
-	if err != nil {
-		log.Printf("Failed to get organization: %v", err)
-		return nil, status.Errorf(codes.NotFound, "organization not found")
+	if req.PageSize > 0 && req.PageSize <= 100 {
+		pageSize = req.PageSize
 	}
-	
-	return &organizationpb.OrganizationResponse{
-		Organization: toProtoOrganization(org),
-		Message:      "Organization retrieved successfully",
+
+	offset := (page - 1) * pageSize
+
+	organizations, totalCount, err := h.repo.ListOrganizations(ctx, int(offset), int(pageSize))
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to list organizations: %v", err)
+	}
+
+	var orgProtos []*pb.Organization
+	for _, org := range organizations {
+		orgProtos = append(orgProtos, mapModelToProto(org))
+	}
+
+	totalPages := (totalCount + int(pageSize) - 1) / int(pageSize)
+
+	return &pb.ListOrganizationsResponse{
+		Organizations: orgProtos,
+		TotalCount:    int32(totalCount),
+		Pagination: &pb.PaginationMetadata{
+			CurrentPage: page,
+			PageSize:    pageSize,
+			TotalItems:  int32(totalCount),
+			TotalPages:  int32(totalPages),
+		},
 	}, nil
 }
 
-// GetOrganizationByCode retrieves an organization by code
-func (h *OrganizationHandler) GetOrganizationByCode(
-	ctx context.Context,
-	req *organizationpb.GetOrganizationByCodeRequest,
-) (*organizationpb.OrganizationResponse, error) {
-	org, err := h.orgService.GetOrganizationByCode(ctx, req.GetCode())
-	if err != nil {
-		log.Printf("Failed to get organization by code: %v", err)
-		return nil, status.Errorf(codes.NotFound, "organization not found")
+// ListOrganizationsByTenant lists organizations for a specific tenant
+// ListOrganizationsByTenant
+// ----------------------------------------------------------------------------
+func (h *OrganizationHandler) ListOrganizationsByTenant(ctx context.Context, req *pb.ListOrganizationsByTenantRequest) (*pb.ListOrganizationsResponse, error) {
+	if req.TenantId == "" {
+		return nil, status.Error(codes.InvalidArgument, "tenant_id required")
 	}
-	
-	return &organizationpb.OrganizationResponse{
-		Organization: toProtoOrganization(org),
-		Message:      "Organization retrieved successfully",
+	page := int(req.Page)
+	if page < 1 {
+		page = 1
+	}
+	pageSize := int(req.PageSize)
+	if pageSize <= 0 {
+		pageSize = 20
+	}
+	offset := (page - 1) * pageSize
+
+	orgs, total, err := h.repo.ListOrganizationsByTenant(ctx, req.TenantId, offset, pageSize)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "list orgs by tenant error: %v", err)
+	}
+
+	pbOrgs := make([]*pb.Organization, 0, len(orgs))
+	for _, o := range orgs {
+		pbOrgs = append(pbOrgs, mapModelToProto(o))
+	}
+
+	return &pb.ListOrganizationsResponse{
+		Organizations: pbOrgs,
+		TotalCount:    int32(total),
+		Pagination: &pb.PaginationMetadata{
+			CurrentPage: int32(page),
+			PageSize:    int32(pageSize),
+			TotalItems:  int32(total),
+			TotalPages:  int32((total + pageSize - 1) / pageSize),
+		},
 	}, nil
 }
 
-// UpdateOrganization updates an existing organization
-func (h *OrganizationHandler) UpdateOrganization(
-	ctx context.Context,
-	req *organizationpb.UpdateOrganizationRequest,
-) (*organizationpb.OrganizationResponse, error) {
-	log.Printf("gRPC UpdateOrganization: id=%s, name=%s", req.GetOrgId(), req.GetName())
-	
-	orgID, err := uuid.Parse(req.GetOrgId())
-	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "invalid organization ID: %v", err)
+// ----------------------------------------------------------------------------
+// ListChildOrganizations
+// ----------------------------------------------------------------------------
+func (h *OrganizationHandler) ListChildOrganizations(ctx context.Context, req *pb.ListChildOrganizationsRequest) (*pb.ListOrganizationsResponse, error) {
+	if req.ParentOrgId == "" {
+		return nil, status.Error(codes.InvalidArgument, "parent_org_id required")
 	}
-	
-	org, err := h.orgService.UpdateOrganization(
-		ctx,
-		orgID,
-		req.GetName(),
-		req.GetCode(),
-		req.GetDescription(),
-		req.GetLogo(),
-		req.GetIsActive(),
-	)
-	
-	if err != nil {
-		if err == domain.ErrDuplicateOrganizationCode {
-			return nil, status.Errorf(codes.AlreadyExists, "organization code already exists")
-		}
-		log.Printf("Failed to update organization: %v", err)
-		return nil, status.Errorf(codes.Internal, "failed to update organization: %v", err)
+	page := int(req.Page)
+	if page < 1 {
+		page = 1
 	}
-	
-	return &organizationpb.OrganizationResponse{
-		Organization: toProtoOrganization(org),
-		Message:      "Organization updated successfully",
+	pageSize := int(req.PageSize)
+	if pageSize <= 0 {
+		pageSize = 20
+	}
+	offset := (page - 1) * pageSize
+
+	orgs, total, err := h.repo.ListChildOrganizations(ctx, req.ParentOrgId, offset, pageSize)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "list child orgs error: %v", err)
+	}
+
+	pbOrgs := make([]*pb.Organization, 0, len(orgs))
+	for _, o := range orgs {
+		pbOrgs = append(pbOrgs, mapModelToProto(o))
+	}
+
+	return &pb.ListOrganizationsResponse{
+		Organizations: pbOrgs,
+		TotalCount:    int32(total),
+		Pagination: &pb.PaginationMetadata{
+			CurrentPage: int32(page),
+			PageSize:    int32(pageSize),
+			TotalItems:  int32(total),
+			TotalPages:  int32((total + pageSize - 1) / pageSize),
+		},
 	}, nil
 }
 
-// DeleteOrganization deletes an organization
-func (h *OrganizationHandler) DeleteOrganization(
-	ctx context.Context,
-	req *organizationpb.DeleteOrganizationRequest,
-) (*organizationpb.DeleteOrganizationResponse, error) {
-	log.Printf("gRPC DeleteOrganization: id=%s", req.GetOrgId())
-	
-	orgID, err := uuid.Parse(req.GetOrgId())
-	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "invalid organization ID: %v", err)
+// ----------------------------------------------------------------------------
+// GetOrganization
+// ----------------------------------------------------------------------------
+func (h *OrganizationHandler) GetOrganization(ctx context.Context, req *pb.GetOrganizationRequest) (*pb.OrganizationResponse, error) {
+	if req.OrgId == "" {
+		return nil, status.Error(codes.InvalidArgument, "org_id required")
 	}
-	
-	// For now, use a nil UUID for requestedBy (in production, this should come from auth context)
-	err = h.orgService.DeleteOrganization(ctx, orgID, uuid.Nil)
+	o, err := h.repo.GetOrganizationByID(ctx, req.OrgId)
 	if err != nil {
-		log.Printf("Failed to delete organization: %v", err)
-		return &organizationpb.DeleteOrganizationResponse{
-			Success: false,
-			Message: err.Error(),
-		}, nil
+		return nil, status.Errorf(codes.NotFound, "organization not found: %v", err)
 	}
-	
-	return &organizationpb.DeleteOrganizationResponse{
+	return &pb.OrganizationResponse{
+		Organization: mapModelToProto(o),
+		Message:      "ok",
+	}, nil
+}
+
+// ----------------------------------------------------------------------------
+// GetOrganizationByCode
+// ----------------------------------------------------------------------------
+func (h *OrganizationHandler) GetOrganizationByCode(ctx context.Context, req *pb.GetOrganizationByCodeRequest) (*pb.OrganizationResponse, error) {
+	if req.Code == "" {
+		return nil, status.Error(codes.InvalidArgument, "code required")
+	}
+	o, err := h.repo.GetOrganizationByCode(ctx, req.Code)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "organization not found: %v", err)
+	}
+	return &pb.OrganizationResponse{
+		Organization: mapModelToProto(o),
+		Message:      "ok",
+	}, nil
+}
+
+// ----------------------------------------------------------------------------
+// UpdateOrganization
+// ----------------------------------------------------------------------------
+func (h *OrganizationHandler) UpdateOrganization(ctx context.Context, req *pb.UpdateOrganizationRequest) (*pb.OrganizationResponse, error) {
+	if req.OrgId == "" {
+		return nil, status.Error(codes.InvalidArgument, "org_id required")
+	}
+	// fetch existing
+	existing, err := h.repo.GetOrganizationByID(ctx, req.OrgId)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "organization not found: %v", err)
+	}
+
+	// update mutable fields
+	existing.Name = req.Name
+	existing.Code = req.Code
+	if req.Description != "" {
+		d := req.Description
+		existing.Description = &d
+	}
+	if req.Logo != "" {
+		l := req.Logo
+		existing.Logo = &l
+	}
+	existing.Status = req.Status
+	existing.UpdatedAt = time.Now().UTC()
+
+	updated, err := h.repo.UpdateOrganization(ctx, existing)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to update org: %v", err)
+	}
+
+	return &pb.OrganizationResponse{
+		Organization: mapModelToProto(updated),
+		Message:      "organization updated",
+	}, nil
+}
+
+// GetOrganizationWithProjects retrieves an organization with its projects
+func (h *OrganizationHandler) GetOrganizationWithProjects(ctx context.Context, req *pb.GetOrganizationWithProjectsRequest) (*pb.GetOrganizationWithProjectsResponse, error) {
+	if req.OrgId == "" {
+		return nil, status.Error(codes.InvalidArgument, "org_id required")
+	}
+
+	// Get organization
+	o, err := h.repo.GetOrganizationByID(ctx, req.OrgId)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "organization not found: %v", err)
+	}
+
+	orgProto := mapModelToProto(o)
+
+	// Fetch projects from project service via gRPC call
+	projects, err := h.fetchProjectsFromProjectService(ctx, req.OrgId)
+	if err != nil {
+		h.logger.Printf("Failed to fetch projects from project service: %v", err)
+		// Return organization with empty projects list if project service is unavailable
+		projects = []*pb.Project{}
+	}
+
+	return &pb.GetOrganizationWithProjectsResponse{
+		Organization: orgProto,
+		Projects:     projects,
+	}, nil
+}
+
+// fetchProjectsFromProjectService calls the project service to get projects for an organization
+func (h *OrganizationHandler) fetchProjectsFromProjectService(ctx context.Context, orgID string) ([]*pb.Project, error) {
+	// TODO: Use ctx for timeout and cancellation in production
+	_ = ctx // Suppress unused parameter warning (will be used in production)
+	// Create gRPC connection to project service
+	conn, err := grpc.Dial("localhost:50057", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to project service: %w", err)
+	}
+	defer conn.Close()
+
+	// For now, return mock data since we don't have the project service protobuf imported
+	// In production, you would:
+	// 1. Import projectpb package
+	// 2. Create client: client := projectpb.NewProjectServiceClient(conn)
+	// 3. Call: resp, err := client.ListProjectsByOrganization(ctx, &projectpb.ListProjectsByOrganizationRequest{OrgId: orgID})
+
+	projects := []*pb.Project{
+		{
+			ProjectId:   "11111111-1111-1111-1111-111111111111",
+			TenantId:    "12345678-1234-1234-1234-123456789abc",
+			OrgId:       orgID,
+			ProjectName: "Mobile App Development",
+			CreatedBy:   "System",
+			CreatedAt:   timestamppb.Now(),
+			UpdatedAt:   timestamppb.Now(),
+		},
+		{
+			ProjectId:   "22222222-2222-2222-2222-222222222222",
+			TenantId:    "12345678-1234-1234-1234-123456789abc",
+			OrgId:       orgID,
+			ProjectName: "Cloud Infrastructure",
+			CreatedBy:   "System",
+			CreatedAt:   timestamppb.Now(),
+			UpdatedAt:   timestamppb.Now(),
+		},
+	}
+
+	return projects, nil
+}
+
+// ----------------------------------------------------------------------------
+// DeleteOrganization
+// ----------------------------------------------------------------------------
+func (h *OrganizationHandler) DeleteOrganization(ctx context.Context, req *pb.DeleteOrganizationRequest) (*pb.DeleteOrganizationResponse, error) {
+	if req.OrgId == "" {
+		return nil, status.Error(codes.InvalidArgument, "org_id required")
+	}
+	err := h.repo.DeleteOrganization(ctx, req.OrgId)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to delete org: %v", err)
+	}
+	return &pb.DeleteOrganizationResponse{
 		Success: true,
-		Message: "Organization deleted successfully",
+		Message: "organization deleted",
 	}, nil
-}
-
-// ListOrganizationsByTenant lists organizations by tenant
-func (h *OrganizationHandler) ListOrganizationsByTenant(
-	ctx context.Context,
-	req *organizationpb.ListOrganizationsByTenantRequest,
-) (*organizationpb.ListOrganizationsResponse, error) {
-	tenantID, err := uuid.Parse(req.GetTenantId())
-	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "invalid tenant ID: %v", err)
-	}
-	
-	pagination := ports.PaginationParams{
-		Page:     req.GetPage(),
-		PageSize: req.GetPageSize(),
-	}
-	
-	orgs, paginationResult, err := h.orgService.ListOrganizationsByTenant(ctx, tenantID, pagination)
-	if err != nil {
-		log.Printf("Failed to list organizations by tenant: %v", err)
-		return nil, status.Errorf(codes.Internal, "failed to list organizations")
-	}
-	
-	protoOrgs := make([]*organizationpb.Organization, len(orgs))
-	for i, org := range orgs {
-		protoOrgs[i] = toProtoOrganization(org)
-	}
-	
-	return &organizationpb.ListOrganizationsResponse{
-		Organizations: protoOrgs,
-		TotalCount:    paginationResult.TotalItems,
-		Pagination:    toProtoPagination(paginationResult),
-	}, nil
-}
-
-// ListAccessibleOrganizations lists organizations accessible by a user
-func (h *OrganizationHandler) ListAccessibleOrganizations(
-	ctx context.Context,
-	req *organizationpb.ListAccessibleOrganizationsRequest,
-) (*organizationpb.ListOrganizationsResponse, error) {
-	userID, err := uuid.Parse(req.GetUserId())
-	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "invalid user ID: %v", err)
-	}
-	
-	pagination := ports.PaginationParams{
-		Page:     req.GetPage(),
-		PageSize: req.GetPageSize(),
-	}
-	
-	orgs, paginationResult, err := h.orgService.ListAccessibleOrganizations(ctx, userID, pagination)
-	if err != nil {
-		log.Printf("Failed to list accessible organizations: %v", err)
-		return nil, status.Errorf(codes.Internal, "failed to list accessible organizations")
-	}
-	
-	protoOrgs := make([]*organizationpb.Organization, len(orgs))
-	for i, org := range orgs {
-		protoOrgs[i] = toProtoOrganization(org)
-	}
-	
-	return &organizationpb.ListOrganizationsResponse{
-		Organizations: protoOrgs,
-		TotalCount:    paginationResult.TotalItems,
-		Pagination:    toProtoPagination(paginationResult),
-	}, nil
-}
-
-// ToggleOrganizationStatus toggles organization active status
-func (h *OrganizationHandler) ToggleOrganizationStatus(
-	ctx context.Context,
-	req *organizationpb.ToggleOrganizationStatusRequest,
-) (*organizationpb.ToggleOrganizationStatusResponse, error) {
-	orgID, err := uuid.Parse(req.GetOrgId())
-	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "invalid organization ID: %v", err)
-	}
-	
-	requestedBy, err := uuid.Parse(req.GetUserId())
-	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "invalid user ID: %v", err)
-	}
-	
-	org, err := h.orgService.ToggleOrganizationStatus(ctx, orgID, requestedBy)
-	if err != nil {
-		log.Printf("Failed to toggle organization status: %v", err)
-		return &organizationpb.ToggleOrganizationStatusResponse{
-			Success: false,
-			Message: err.Error(),
-		}, nil
-	}
-	
-	statusMsg := "deactivated"
-	if org.IsActive {
-		statusMsg = "activated"
-	}
-	
-	return &organizationpb.ToggleOrganizationStatusResponse{
-		Success:      true,
-		Message:      "Organization " + statusMsg + " successfully",
-		Organization: toProtoOrganization(org),
-	}, nil
-}
-
-// CheckOrganizationCode checks if organization code is available
-func (h *OrganizationHandler) CheckOrganizationCode(
-	ctx context.Context,
-	req *organizationpb.CheckOrganizationCodeRequest,
-) (*organizationpb.CheckOrganizationCodeResponse, error) {
-	var excludeOrgID *uuid.UUID
-	if req.GetExcludeOrgId() != "" {
-		id, err := uuid.Parse(req.GetExcludeOrgId())
-		if err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "invalid exclude organization ID: %v", err)
-		}
-		excludeOrgID = &id
-	}
-	
-	isAvailable, err := h.orgService.CheckOrganizationCode(ctx, req.GetCode(), excludeOrgID)
-	if err != nil {
-		log.Printf("Failed to check organization code: %v", err)
-		return nil, status.Errorf(codes.Internal, "failed to check organization code")
-	}
-	
-	message := "Code is available"
-	if !isAvailable {
-		message = "Code is already taken"
-	}
-	
-	return &organizationpb.CheckOrganizationCodeResponse{
-		IsAvailable: isAvailable,
-		Message:     message,
-	}, nil
-}
-
-// Helper functions for converting domain to proto
-
-func toProtoOrganization(org *domain.Organization) *organizationpb.Organization {
-	return &organizationpb.Organization{
-		OrgId:        org.OrgID.String(),
-		TenantId:     org.TenantID.String(),
-		Name:         org.Name,
-		Code:         org.Code,
-		DatabaseName: org.DatabaseName,
-		Description:  org.Description,
-		Logo:         org.Logo,
-		IsActive:     org.IsActive,
-		CreatedBy:    org.CreatedBy.String(),
-		CreatedAt:    timestamppb.New(org.CreatedAt),
-		UpdatedAt:    timestamppb.New(org.UpdatedAt),
-	}
-}
-
-func toProtoPagination(p *ports.PaginationResult) *organizationpb.PaginationMetadata {
-	return &organizationpb.PaginationMetadata{
-		CurrentPage: p.CurrentPage,
-		PageSize:    p.PageSize,
-		TotalItems:  p.TotalItems,
-		TotalPages:  p.TotalPages,
-	}
 }

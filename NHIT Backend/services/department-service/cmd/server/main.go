@@ -24,7 +24,7 @@ func main() {
 	
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" {
-		databaseURL = "postgres://postgres:shristi@localhost:5432/nhit_db?sslmode=disable"
+		databaseURL = "postgres://postgres:shristi@localhost:5433/nhit_db?sslmode=disable"
 	}
 
 	log.Printf("🚀 Starting Department Service on port %s", port)

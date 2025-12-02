@@ -148,3 +148,14 @@ func ExtractTokenFromBearer(bearerToken string) (string, error) {
 	}
 	return bearerToken[7:], nil
 }
+
+// GenerateToken is a wrapper for GenerateAccessToken for backward compatibility
+func (m *JWTManager) GenerateToken(userID uuid.UUID, email, name string, tenantID uuid.UUID, orgID *uuid.UUID, roles, permissions []string) (string, error) {
+	orgIDStr := ""
+	if orgID != nil {
+		orgIDStr = orgID.String()
+	}
+	
+	token, _, err := m.GenerateAccessToken(userID.String(), email, name, tenantID.String(), orgIDStr, roles, permissions)
+	return token, err
+}

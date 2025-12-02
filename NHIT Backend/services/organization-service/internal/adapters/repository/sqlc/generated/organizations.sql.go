@@ -12,28 +12,30 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const checkOrganizationCodeExists = `-- name: CheckOrganizationCodeExists :one
-SELECT EXISTS(
-    SELECT 1 FROM organizations
-    WHERE code = $1 AND tenant_id = $2
-) AS exists
+const countChildOrganizations = `-- name: CountChildOrganizations :one
+SELECT COUNT(*) FROM organizations WHERE parent_org_id = $1
 `
 
-type CheckOrganizationCodeExistsParams struct {
-	Code     string    `db:"code" json:"code"`
-	TenantID uuid.UUID `db:"tenant_id" json:"tenant_id"`
+func (q *Queries) CountChildOrganizations(ctx context.Context, parentOrgID pgtype.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countChildOrganizations, parentOrgID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
-func (q *Queries) CheckOrganizationCodeExists(ctx context.Context, arg CheckOrganizationCodeExistsParams) (bool, error) {
-	row := q.db.QueryRow(ctx, checkOrganizationCodeExists, arg.Code, arg.TenantID)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
+const countOrganizations = `-- name: CountOrganizations :one
+SELECT COUNT(*) FROM organizations
+`
+
+func (q *Queries) CountOrganizations(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, countOrganizations)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
 const countOrganizationsByTenant = `-- name: CountOrganizationsByTenant :one
-SELECT COUNT(*) FROM organizations
-WHERE tenant_id = $1
+SELECT COUNT(*) FROM organizations WHERE tenant_id = $1
 `
 
 func (q *Queries) CountOrganizationsByTenant(ctx context.Context, tenantID uuid.UUID) (int64, error) {
@@ -45,52 +47,66 @@ func (q *Queries) CountOrganizationsByTenant(ctx context.Context, tenantID uuid.
 
 const createOrganization = `-- name: CreateOrganization :one
 INSERT INTO organizations (
-    org_id, tenant_id, name, code, database_name,
-    description, logo, is_active, created_by,
-    created_at, updated_at
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-RETURNING org_id, tenant_id, name, code, database_name, description, logo, is_active, created_by, created_at, updated_at
+    org_id, tenant_id, parent_org_id, name, code, database_name,
+    description, logo,
+    super_admin_name, super_admin_email, super_admin_password,
+    initial_projects, status
+) VALUES (
+    $1, $2, $3, $4, $5, $6,
+    $7, $8,
+    $9, $10, $11,
+    $12, $13
+)
+RETURNING org_id, tenant_id, parent_org_id, name, code, database_name, description, logo, super_admin_name, super_admin_email, super_admin_password, initial_projects, status, created_at, updated_at
 `
 
 type CreateOrganizationParams struct {
-	OrgID        uuid.UUID        `db:"org_id" json:"org_id"`
-	TenantID     uuid.UUID        `db:"tenant_id" json:"tenant_id"`
-	Name         string           `db:"name" json:"name"`
-	Code         string           `db:"code" json:"code"`
-	DatabaseName string           `db:"database_name" json:"database_name"`
-	Description  *string          `db:"description" json:"description"`
-	Logo         *string          `db:"logo" json:"logo"`
-	IsActive     bool             `db:"is_active" json:"is_active"`
-	CreatedBy    uuid.UUID        `db:"created_by" json:"created_by"`
-	CreatedAt    pgtype.Timestamp `db:"created_at" json:"created_at"`
-	UpdatedAt    pgtype.Timestamp `db:"updated_at" json:"updated_at"`
+	OrgID              uuid.UUID   `db:"org_id" json:"org_id"`
+	TenantID           uuid.UUID   `db:"tenant_id" json:"tenant_id"`
+	ParentOrgID        pgtype.UUID `db:"parent_org_id" json:"parent_org_id"`
+	Name               string      `db:"name" json:"name"`
+	Code               string      `db:"code" json:"code"`
+	DatabaseName       string      `db:"database_name" json:"database_name"`
+	Description        *string     `db:"description" json:"description"`
+	Logo               *string     `db:"logo" json:"logo"`
+	SuperAdminName     *string     `db:"super_admin_name" json:"super_admin_name"`
+	SuperAdminEmail    *string     `db:"super_admin_email" json:"super_admin_email"`
+	SuperAdminPassword *string     `db:"super_admin_password" json:"super_admin_password"`
+	InitialProjects    []string    `db:"initial_projects" json:"initial_projects"`
+	Status             int16       `db:"status" json:"status"`
 }
 
 func (q *Queries) CreateOrganization(ctx context.Context, arg CreateOrganizationParams) (*Organization, error) {
 	row := q.db.QueryRow(ctx, createOrganization,
 		arg.OrgID,
 		arg.TenantID,
+		arg.ParentOrgID,
 		arg.Name,
 		arg.Code,
 		arg.DatabaseName,
 		arg.Description,
 		arg.Logo,
-		arg.IsActive,
-		arg.CreatedBy,
-		arg.CreatedAt,
-		arg.UpdatedAt,
+		arg.SuperAdminName,
+		arg.SuperAdminEmail,
+		arg.SuperAdminPassword,
+		arg.InitialProjects,
+		arg.Status,
 	)
 	var i Organization
 	err := row.Scan(
 		&i.OrgID,
 		&i.TenantID,
+		&i.ParentOrgID,
 		&i.Name,
 		&i.Code,
 		&i.DatabaseName,
 		&i.Description,
 		&i.Logo,
-		&i.IsActive,
-		&i.CreatedBy,
+		&i.SuperAdminName,
+		&i.SuperAdminEmail,
+		&i.SuperAdminPassword,
+		&i.InitialProjects,
+		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -98,43 +114,35 @@ func (q *Queries) CreateOrganization(ctx context.Context, arg CreateOrganization
 }
 
 const deleteOrganization = `-- name: DeleteOrganization :exec
-DELETE FROM organizations
-WHERE org_id = $1 AND tenant_id = $2
+DELETE FROM organizations WHERE org_id = $1
 `
 
-type DeleteOrganizationParams struct {
-	OrgID    uuid.UUID `db:"org_id" json:"org_id"`
-	TenantID uuid.UUID `db:"tenant_id" json:"tenant_id"`
-}
-
-func (q *Queries) DeleteOrganization(ctx context.Context, arg DeleteOrganizationParams) error {
-	_, err := q.db.Exec(ctx, deleteOrganization, arg.OrgID, arg.TenantID)
+func (q *Queries) DeleteOrganization(ctx context.Context, orgID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteOrganization, orgID)
 	return err
 }
 
 const getOrganizationByCode = `-- name: GetOrganizationByCode :one
-SELECT org_id, tenant_id, name, code, database_name, description, logo, is_active, created_by, created_at, updated_at FROM organizations
-WHERE code = $1 AND tenant_id = $2
+SELECT org_id, tenant_id, parent_org_id, name, code, database_name, description, logo, super_admin_name, super_admin_email, super_admin_password, initial_projects, status, created_at, updated_at FROM organizations WHERE code = $1
 `
 
-type GetOrganizationByCodeParams struct {
-	Code     string    `db:"code" json:"code"`
-	TenantID uuid.UUID `db:"tenant_id" json:"tenant_id"`
-}
-
-func (q *Queries) GetOrganizationByCode(ctx context.Context, arg GetOrganizationByCodeParams) (*Organization, error) {
-	row := q.db.QueryRow(ctx, getOrganizationByCode, arg.Code, arg.TenantID)
+func (q *Queries) GetOrganizationByCode(ctx context.Context, code string) (*Organization, error) {
+	row := q.db.QueryRow(ctx, getOrganizationByCode, code)
 	var i Organization
 	err := row.Scan(
 		&i.OrgID,
 		&i.TenantID,
+		&i.ParentOrgID,
 		&i.Name,
 		&i.Code,
 		&i.DatabaseName,
 		&i.Description,
 		&i.Logo,
-		&i.IsActive,
-		&i.CreatedBy,
+		&i.SuperAdminName,
+		&i.SuperAdminEmail,
+		&i.SuperAdminPassword,
+		&i.InitialProjects,
+		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -142,49 +150,44 @@ func (q *Queries) GetOrganizationByCode(ctx context.Context, arg GetOrganization
 }
 
 const getOrganizationByID = `-- name: GetOrganizationByID :one
-SELECT org_id, tenant_id, name, code, database_name, description, logo, is_active, created_by, created_at, updated_at FROM organizations
-WHERE org_id = $1 AND tenant_id = $2
+SELECT org_id, tenant_id, parent_org_id, name, code, database_name, description, logo, super_admin_name, super_admin_email, super_admin_password, initial_projects, status, created_at, updated_at FROM organizations WHERE org_id = $1
 `
 
-type GetOrganizationByIDParams struct {
-	OrgID    uuid.UUID `db:"org_id" json:"org_id"`
-	TenantID uuid.UUID `db:"tenant_id" json:"tenant_id"`
-}
-
-func (q *Queries) GetOrganizationByID(ctx context.Context, arg GetOrganizationByIDParams) (*Organization, error) {
-	row := q.db.QueryRow(ctx, getOrganizationByID, arg.OrgID, arg.TenantID)
+func (q *Queries) GetOrganizationByID(ctx context.Context, orgID uuid.UUID) (*Organization, error) {
+	row := q.db.QueryRow(ctx, getOrganizationByID, orgID)
 	var i Organization
 	err := row.Scan(
 		&i.OrgID,
 		&i.TenantID,
+		&i.ParentOrgID,
 		&i.Name,
 		&i.Code,
 		&i.DatabaseName,
 		&i.Description,
 		&i.Logo,
-		&i.IsActive,
-		&i.CreatedBy,
+		&i.SuperAdminName,
+		&i.SuperAdminEmail,
+		&i.SuperAdminPassword,
+		&i.InitialProjects,
+		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
 	return &i, err
 }
 
-const listOrganizationsByTenant = `-- name: ListOrganizationsByTenant :many
-SELECT org_id, tenant_id, name, code, database_name, description, logo, is_active, created_by, created_at, updated_at FROM organizations
-WHERE tenant_id = $1
-ORDER BY created_at DESC
-LIMIT $2 OFFSET $3
+const listChildOrganizations = `-- name: ListChildOrganizations :many
+SELECT org_id, tenant_id, parent_org_id, name, code, database_name, description, logo, super_admin_name, super_admin_email, super_admin_password, initial_projects, status, created_at, updated_at FROM organizations WHERE parent_org_id = $1 ORDER BY created_at DESC OFFSET $2 LIMIT $3
 `
 
-type ListOrganizationsByTenantParams struct {
-	TenantID uuid.UUID `db:"tenant_id" json:"tenant_id"`
-	Limit    int32     `db:"limit" json:"limit"`
-	Offset   int32     `db:"offset" json:"offset"`
+type ListChildOrganizationsParams struct {
+	ParentOrgID pgtype.UUID `db:"parent_org_id" json:"parent_org_id"`
+	Offset      int32       `db:"offset" json:"offset"`
+	Limit       int32       `db:"limit" json:"limit"`
 }
 
-func (q *Queries) ListOrganizationsByTenant(ctx context.Context, arg ListOrganizationsByTenantParams) ([]*Organization, error) {
-	rows, err := q.db.Query(ctx, listOrganizationsByTenant, arg.TenantID, arg.Limit, arg.Offset)
+func (q *Queries) ListChildOrganizations(ctx context.Context, arg ListChildOrganizationsParams) ([]*Organization, error) {
+	rows, err := q.db.Query(ctx, listChildOrganizations, arg.ParentOrgID, arg.Offset, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -195,13 +198,17 @@ func (q *Queries) ListOrganizationsByTenant(ctx context.Context, arg ListOrganiz
 		if err := rows.Scan(
 			&i.OrgID,
 			&i.TenantID,
+			&i.ParentOrgID,
 			&i.Name,
 			&i.Code,
 			&i.DatabaseName,
 			&i.Description,
 			&i.Logo,
-			&i.IsActive,
-			&i.CreatedBy,
+			&i.SuperAdminName,
+			&i.SuperAdminEmail,
+			&i.SuperAdminPassword,
+			&i.InitialProjects,
+			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -215,81 +222,142 @@ func (q *Queries) ListOrganizationsByTenant(ctx context.Context, arg ListOrganiz
 	return items, nil
 }
 
-const toggleOrganizationStatus = `-- name: ToggleOrganizationStatus :one
-UPDATE organizations
-SET is_active = NOT is_active,
-    updated_at = CURRENT_TIMESTAMP
-WHERE org_id = $1 AND tenant_id = $2
-RETURNING org_id, tenant_id, name, code, database_name, description, logo, is_active, created_by, created_at, updated_at
+const listOrganizations = `-- name: ListOrganizations :many
+SELECT org_id, tenant_id, parent_org_id, name, code, database_name, description, logo, super_admin_name, super_admin_email, super_admin_password, initial_projects, status, created_at, updated_at FROM organizations ORDER BY created_at DESC OFFSET $1 LIMIT $2
 `
 
-type ToggleOrganizationStatusParams struct {
-	OrgID    uuid.UUID `db:"org_id" json:"org_id"`
-	TenantID uuid.UUID `db:"tenant_id" json:"tenant_id"`
+type ListOrganizationsParams struct {
+	Offset int32 `db:"offset" json:"offset"`
+	Limit  int32 `db:"limit" json:"limit"`
 }
 
-func (q *Queries) ToggleOrganizationStatus(ctx context.Context, arg ToggleOrganizationStatusParams) (*Organization, error) {
-	row := q.db.QueryRow(ctx, toggleOrganizationStatus, arg.OrgID, arg.TenantID)
-	var i Organization
-	err := row.Scan(
-		&i.OrgID,
-		&i.TenantID,
-		&i.Name,
-		&i.Code,
-		&i.DatabaseName,
-		&i.Description,
-		&i.Logo,
-		&i.IsActive,
-		&i.CreatedBy,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return &i, err
+func (q *Queries) ListOrganizations(ctx context.Context, arg ListOrganizationsParams) ([]*Organization, error) {
+	rows, err := q.db.Query(ctx, listOrganizations, arg.Offset, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []*Organization{}
+	for rows.Next() {
+		var i Organization
+		if err := rows.Scan(
+			&i.OrgID,
+			&i.TenantID,
+			&i.ParentOrgID,
+			&i.Name,
+			&i.Code,
+			&i.DatabaseName,
+			&i.Description,
+			&i.Logo,
+			&i.SuperAdminName,
+			&i.SuperAdminEmail,
+			&i.SuperAdminPassword,
+			&i.InitialProjects,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listOrganizationsByTenant = `-- name: ListOrganizationsByTenant :many
+SELECT org_id, tenant_id, parent_org_id, name, code, database_name, description, logo, super_admin_name, super_admin_email, super_admin_password, initial_projects, status, created_at, updated_at FROM organizations WHERE tenant_id = $1 ORDER BY created_at DESC OFFSET $2 LIMIT $3
+`
+
+type ListOrganizationsByTenantParams struct {
+	TenantID uuid.UUID `db:"tenant_id" json:"tenant_id"`
+	Offset   int32     `db:"offset" json:"offset"`
+	Limit    int32     `db:"limit" json:"limit"`
+}
+
+func (q *Queries) ListOrganizationsByTenant(ctx context.Context, arg ListOrganizationsByTenantParams) ([]*Organization, error) {
+	rows, err := q.db.Query(ctx, listOrganizationsByTenant, arg.TenantID, arg.Offset, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []*Organization{}
+	for rows.Next() {
+		var i Organization
+		if err := rows.Scan(
+			&i.OrgID,
+			&i.TenantID,
+			&i.ParentOrgID,
+			&i.Name,
+			&i.Code,
+			&i.DatabaseName,
+			&i.Description,
+			&i.Logo,
+			&i.SuperAdminName,
+			&i.SuperAdminEmail,
+			&i.SuperAdminPassword,
+			&i.InitialProjects,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const updateOrganization = `-- name: UpdateOrganization :one
-UPDATE organizations
-SET 
-    name = CASE WHEN $1::text IS NOT NULL THEN $1 ELSE name END,
-    description = CASE WHEN $2::text IS NOT NULL THEN $2 ELSE description END,
-    logo = CASE WHEN $3::text IS NOT NULL THEN $3 ELSE logo END,
-    is_active = CASE WHEN $4::boolean IS NOT NULL THEN $4 ELSE is_active END,
-    updated_at = $5
-WHERE org_id = $6 AND tenant_id = $7
-RETURNING org_id, tenant_id, name, code, database_name, description, logo, is_active, created_by, created_at, updated_at
+UPDATE organizations SET
+    name = $2,
+    code = $3,
+    description = $4,
+    logo = $5,
+    status = $6,
+    updated_at = NOW()
+WHERE org_id = $1
+RETURNING org_id, tenant_id, parent_org_id, name, code, database_name, description, logo, super_admin_name, super_admin_email, super_admin_password, initial_projects, status, created_at, updated_at
 `
 
 type UpdateOrganizationParams struct {
-	Name        string           `db:"name" json:"name"`
-	Description string           `db:"description" json:"description"`
-	Logo        string           `db:"logo" json:"logo"`
-	IsActive    bool             `db:"is_active" json:"is_active"`
-	UpdatedAt   pgtype.Timestamp `db:"updated_at" json:"updated_at"`
-	OrgID       uuid.UUID        `db:"org_id" json:"org_id"`
-	TenantID    uuid.UUID        `db:"tenant_id" json:"tenant_id"`
+	OrgID       uuid.UUID `db:"org_id" json:"org_id"`
+	Name        string    `db:"name" json:"name"`
+	Code        string    `db:"code" json:"code"`
+	Description *string   `db:"description" json:"description"`
+	Logo        *string   `db:"logo" json:"logo"`
+	Status      int16     `db:"status" json:"status"`
 }
 
 func (q *Queries) UpdateOrganization(ctx context.Context, arg UpdateOrganizationParams) (*Organization, error) {
 	row := q.db.QueryRow(ctx, updateOrganization,
+		arg.OrgID,
 		arg.Name,
+		arg.Code,
 		arg.Description,
 		arg.Logo,
-		arg.IsActive,
-		arg.UpdatedAt,
-		arg.OrgID,
-		arg.TenantID,
+		arg.Status,
 	)
 	var i Organization
 	err := row.Scan(
 		&i.OrgID,
 		&i.TenantID,
+		&i.ParentOrgID,
 		&i.Name,
 		&i.Code,
 		&i.DatabaseName,
 		&i.Description,
 		&i.Logo,
-		&i.IsActive,
-		&i.CreatedBy,
+		&i.SuperAdminName,
+		&i.SuperAdminEmail,
+		&i.SuperAdminPassword,
+		&i.InitialProjects,
+		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

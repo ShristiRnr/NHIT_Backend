@@ -4,13 +4,15 @@ import (
 	"log"
 	"net"
 
+	authpb "github.com/ShristiRnr/NHIT_Backend/api/pb/authpb"
 	organizationpb "github.com/ShristiRnr/NHIT_Backend/api/pb/organizationpb"
 	grpcHandler "github.com/ShristiRnr/NHIT_Backend/services/organization-service/internal/adapters/grpc"
+	"github.com/ShristiRnr/NHIT_Backend/services/organization-service/internal/adapters/kafka"
 	"github.com/ShristiRnr/NHIT_Backend/services/organization-service/internal/adapters/repository"
-	"github.com/ShristiRnr/NHIT_Backend/services/organization-service/internal/core/services"
 	"github.com/ShristiRnr/NHIT_Backend/services/shared/config"
 	"github.com/ShristiRnr/NHIT_Backend/services/shared/database"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
 )
 
@@ -29,22 +31,38 @@ func main() {
 
 	// Initialize repositories (Adapters Layer)
 	orgRepo := repository.NewOrganizationRepository(conn)
-	userOrgRepo := repository.NewUserOrganizationRepository(conn)
 	log.Println("✅ Repositories initialized")
 
-	// Initialize services (Domain/Core Layer)
-	orgService := services.NewOrganizationService(orgRepo, userOrgRepo)
-	userOrgService := services.NewUserOrganizationService(orgRepo, userOrgRepo)
-	log.Println("✅ Business services initialized")
+	// Connect to Auth Service for token validation
+	authConn, err := grpc.Dial(cfg.AuthServiceURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("❌ Failed to connect to auth service at %s: %v", cfg.AuthServiceURL, err)
+	}
+	defer authConn.Close()
+	authClient := authpb.NewAuthServiceClient(authConn)
+	log.Println("✅ Connected to Auth Service", cfg.AuthServiceURL)
 
-	// Initialize gRPC handlers (Adapters Layer)
-	orgHandler := grpcHandler.NewOrganizationHandler(orgService, userOrgService)
+	// Initialize Kafka publisher (real implementation)
+	kafkaBrokers := []string{"localhost:9092"}
+	kafkaTopic := "organization.events"
+
+	kafkaPublisher, err := kafka.NewRealKafkaPublisher(kafkaBrokers, kafkaTopic, nil)
+	if err != nil {
+		log.Printf("⚠️ Failed to initialize real Kafka publisher, falling back to mock: %v", err)
+		kafkaPublisher = kafka.NewMockKafkaPublisher(nil)
+	} else {
+		log.Println("✅ Real Kafka publisher initialized")
+	}
+	defer kafkaPublisher.Close()
+
+	// Initialize gRPC handlers (Adapters Layer) and pass DB pool, auth client, and kafka publisher
+	orgHandler := grpcHandler.NewOrganizationHandler(orgRepo, conn, authClient, kafkaPublisher)
 	log.Println("✅ gRPC handlers initialized")
 
 	// Create gRPC server with options
 	grpcServer := grpc.NewServer(
-		grpc.MaxRecvMsgSize(10 * 1024 * 1024), // 10MB
-		grpc.MaxSendMsgSize(10 * 1024 * 1024), // 10MB
+		grpc.MaxRecvMsgSize(10*1024*1024), // 10MB
+		grpc.MaxSendMsgSize(10*1024*1024), // 10MB
 	)
 
 	// Register organization service
@@ -68,7 +86,7 @@ func main() {
 	log.Println("- Ports Layer: Interfaces for services and repositories")
 	log.Println("- Adapters Layer: gRPC handlers and PostgreSQL repositories")
 	log.Println("=====================================")
-	
+
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf("❌ Failed to serve: %v", err)
 	}

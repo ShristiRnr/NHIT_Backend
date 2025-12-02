@@ -51,6 +51,45 @@ func (q *Queries) CountUsersForRole(ctx context.Context, roleID uuid.UUID) (int6
 	return count, err
 }
 
+const listDetailedRolesForUser = `-- name: ListDetailedRolesForUser :many
+SELECT r.role_id, r.tenant_id, r.parent_org_id, r.name, r.description, r.permissions, r.is_system_role, r.created_by, r.created_at, r.updated_at
+FROM user_roles ur
+JOIN roles r ON r.role_id = ur.role_id
+WHERE ur.user_id = $1
+ORDER BY r.created_at DESC
+`
+
+func (q *Queries) ListDetailedRolesForUser(ctx context.Context, userID uuid.UUID) ([]*Role, error) {
+	rows, err := q.db.Query(ctx, listDetailedRolesForUser, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []*Role{}
+	for rows.Next() {
+		var i Role
+		if err := rows.Scan(
+			&i.RoleID,
+			&i.TenantID,
+			&i.ParentOrgID,
+			&i.Name,
+			&i.Description,
+			&i.Permissions,
+			&i.IsSystemRole,
+			&i.CreatedBy,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listRolesForUser = `-- name: ListRolesForUser :many
 SELECT role_id FROM user_roles
 WHERE user_id = $1

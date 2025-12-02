@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package project;
+
+option go_package = "github.com/ShristiRnr/NHIT_Backend/api/pb/projectpb";
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+// Project Service
+service ProjectService {
+  // Get project by ID (projects are created via organization events)
+  rpc GetProject(GetProjectRequest) returns (GetProjectResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/projects/{project_id}"
+    };
+  }
+
+  // List projects by organization
+  rpc ListProjectsByOrganization(ListProjectsByOrganizationRequest) returns (ListProjectsByOrganizationResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/organizations/{org_id}/projects"
+    };
+  }
+}
+
+// Messages
+message Project {
+  string project_id = 1;
+  string tenant_id = 2;
+  string org_id = 3;
+  string project_name = 5;
+  string created_by = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+// Request/Response Messages
+message GetProjectRequest {
+  string project_id = 1;
+}
+
+message GetProjectResponse {
+  Project project = 1;
+}
+
+message ListProjectsByOrganizationRequest {
+  string org_id = 1;
+}
+
+message ListProjectsByOrganizationResponse {
+  repeated Project projects = 1;
+}
+

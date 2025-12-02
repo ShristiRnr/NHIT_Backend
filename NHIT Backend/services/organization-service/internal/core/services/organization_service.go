@@ -5,329 +5,426 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
+	"time"
 
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
+
 	"github.com/ShristiRnr/NHIT_Backend/services/organization-service/internal/core/domain"
 	"github.com/ShristiRnr/NHIT_Backend/services/organization-service/internal/core/ports"
 )
 
-var (
-	// ErrOrganizationNotFound is returned when organization is not found
-	ErrOrganizationNotFound = errors.New("organization not found")
-	
-	// ErrUnauthorizedAccess is returned when user is not authorized to perform an action
-	ErrUnauthorizedAccess = errors.New("unauthorized access to organization")
-	
-	// ErrOrganizationHasUsers is returned when trying to delete an organization with users
-	ErrOrganizationHasUsers = errors.New("cannot delete organization with existing users")
+// Service contains dependencies for organization business logic.
+type Service struct {
+	repo   ports.Repository
+	kafka  ports.KafkaPublisher
+	logger *log.Logger
+	// Optionally add metrics/tracing clients here.
+}
+
+// NewService creates a new organization service.
+func NewService(repo ports.Repository, kafka ports.KafkaPublisher, logger *log.Logger) *Service {
+	if logger == nil {
+		logger = log.Default()
+	}
+	return &Service{repo: repo, kafka: kafka, logger: logger}
+}
+
+// Constants and configuration used across service.
+const (
+	defaultPageSize = 20
+	maxPageSize     = 200
+	bcryptCost      = bcrypt.DefaultCost // can bump to 12 in prod if CPU allows
 )
 
-type organizationService struct {
-	orgRepo     ports.OrganizationRepository
-	userOrgRepo ports.UserOrganizationRepository
-}
+// ErrValidation is returned for user input validation errors.
+var ErrValidation = errors.New("validation error")
 
-// NewOrganizationService creates a new organization service instance
-func NewOrganizationService(
-	orgRepo ports.OrganizationRepository,
-	userOrgRepo ports.UserOrganizationRepository,
-) ports.OrganizationService {
-	return &organizationService{
-		orgRepo:     orgRepo,
-		userOrgRepo: userOrgRepo,
+// CreateOrganization implements production-grade business logic for creating an organization.
+// Rules implemented (per your grpc comments and extra safety):
+//   - name & code required
+//   - if ParentOrgID is empty => parent org creation -> super admin MUST be present
+//   - if ParentOrgID is present  => child org creation -> super admin MUST NOT be set (ignored if provided)
+//   - code must be unique
+//   - tenant id generated if empty
+//   - super admin password hashed before saving
+//   - db name generated if not provided
+func (s *Service) CreateOrganization(ctx context.Context, in ports.OrganizationModel) (ports.OrganizationModel, error) {
+	// basic validation
+	if strings.TrimSpace(in.Name) == "" || strings.TrimSpace(in.Code) == "" {
+		return ports.OrganizationModel{}, fmt.Errorf("%w: name and code required", ErrValidation)
 	}
-}
 
-// CreateOrganization creates a new organization with business validation
-func (s *organizationService) CreateOrganization(
-	ctx context.Context,
-	tenantID uuid.UUID,
-	name, code, description, logo string,
-	createdBy uuid.UUID,
-) (*domain.Organization, error) {
-	log.Printf("Creating organization: name=%s, code=%s, tenant=%s, creator=%s", 
-		name, code, tenantID.String(), createdBy.String())
-	
-	// Check if code already exists
-	exists, err := s.orgRepo.CodeExists(ctx, code, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to check code existence: %w", err)
-	}
-	
-	if exists {
-		return nil, domain.ErrDuplicateOrganizationCode
-	}
-	
-	// Create organization domain object with validation
-	org, err := domain.NewOrganization(tenantID, name, code, description, logo, createdBy)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create organization: %w", err)
-	}
-	
-	// Persist organization
-	createdOrg, err := s.orgRepo.Create(ctx, org)
-	if err != nil {
-		return nil, fmt.Errorf("failed to persist organization: %w", err)
-	}
-	
-	// Automatically add the creator to the organization (this would be done via UserOrganizationService in production)
-	log.Printf("Organization created successfully: id=%s, database=%s", 
-		createdOrg.OrgID.String(), createdOrg.DatabaseName)
-	
-	return createdOrg, nil
-}
+	// sanitize code, name
+	in.Code = strings.TrimSpace(in.Code)
+	in.Name = strings.TrimSpace(in.Name)
 
-// GetOrganization retrieves an organization by ID
-func (s *organizationService) GetOrganization(ctx context.Context, orgID uuid.UUID) (*domain.Organization, error) {
-	if orgID == uuid.Nil {
-		return nil, errors.New("organization ID cannot be empty")
+	// Ensure code uniqueness
+	existing, err := s.tryGetByCode(ctx, in.Code)
+	if err != nil && !errors.Is(err, ports.ErrNotFound) {
+		// unexpected repo error
+		s.logger.Printf("CreateOrganization: error checking code uniqueness: %v", err)
+		return ports.OrganizationModel{}, fmt.Errorf("failed to check code uniqueness: %w", err)
 	}
-	
-	org, err := s.orgRepo.GetByID(ctx, orgID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve organization: %w", err)
+	if existing != nil {
+		return ports.OrganizationModel{}, fmt.Errorf("%w: organization code already exists", ErrValidation)
 	}
-	
-	if org == nil {
-		return nil, ErrOrganizationNotFound
-	}
-	
-	return org, nil
-}
 
-// GetOrganizationByCode retrieves an organization by code
-func (s *organizationService) GetOrganizationByCode(ctx context.Context, code string) (*domain.Organization, error) {
-	if code == "" {
-		return nil, errors.New("organization code cannot be empty")
+	isParent := in.ParentOrgID == nil || strings.TrimSpace(*in.ParentOrgID) == ""
+	if isParent {
+		// Creating a root organization — must have super admin details
+		if in.SuperAdminName == nil || in.SuperAdminEmail == nil || in.SuperAdminPass == nil {
+			return ports.OrganizationModel{}, fmt.Errorf("%w: super admin required for parent organization", ErrValidation)
+		}
+	} else {
+		// Creating a child org — ensure parent exists and ignore super admin
+		parentID := strings.TrimSpace(*in.ParentOrgID)
+		if parentID == "" {
+			return ports.OrganizationModel{}, fmt.Errorf("%w: parent_org_id cannot be blank", ErrValidation)
+		}
+		if _, err := uuid.Parse(parentID); err != nil {
+			return ports.OrganizationModel{}, fmt.Errorf("%w: invalid parent_org_id: %v", ErrValidation, err)
+		}
+		// confirm parent exists
+		if _, err := s.repo.GetOrganizationByID(ctx, parentID); err != nil {
+			s.logger.Printf("CreateOrganization: parent not found: %v", err)
+			return ports.OrganizationModel{}, fmt.Errorf("%w: parent organization not found", ErrValidation)
+		}
+		// ignore any provided super admin for child
+		in.SuperAdminName = nil
+		in.SuperAdminEmail = nil
+		in.SuperAdminPass = nil
 	}
-	
-	org, err := s.orgRepo.GetByCode(ctx, code)
-	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve organization by code: %w", err)
-	}
-	
-	if org == nil {
-		return nil, ErrOrganizationNotFound
-	}
-	
-	return org, nil
-}
 
-// UpdateOrganization updates an existing organization
-func (s *organizationService) UpdateOrganization(
-	ctx context.Context,
-	orgID uuid.UUID,
-	name, code, description, logo string,
-	isActive bool,
-) (*domain.Organization, error) {
-	log.Printf("Updating organization: id=%s, name=%s, code=%s", orgID.String(), name, code)
-	
-	// Retrieve existing organization
-	org, err := s.GetOrganization(ctx, orgID)
-	if err != nil {
-		return nil, err
+	// set generated OrgID if not provided
+	if strings.TrimSpace(in.OrgID) == "" {
+		in.OrgID = uuid.New().String()
+	} else {
+		// validate provided OrgID
+		if _, err := uuid.Parse(in.OrgID); err != nil {
+			return ports.OrganizationModel{}, fmt.Errorf("%w: invalid org_id: %v", ErrValidation, err)
+		}
 	}
-	
-	// Check if code is being changed and if new code already exists
-	if org.Code != code {
-		exists, err := s.orgRepo.CodeExists(ctx, code, &orgID)
+
+	// set or generate TenantID
+	if strings.TrimSpace(in.TenantID) == "" {
+		in.TenantID = uuid.New().String()
+	} else {
+		if _, err := uuid.Parse(in.TenantID); err != nil {
+			return ports.OrganizationModel{}, fmt.Errorf("%w: invalid tenant_id: %v", ErrValidation, err)
+		}
+	}
+
+	// database name generation if not set
+	if strings.TrimSpace(in.DatabaseName) == "" {
+		in.DatabaseName = generateDatabaseName(in.Code)
+	}
+
+	// prepare timestamps
+	now := time.Now().UTC()
+	in.CreatedAt = now
+	in.UpdatedAt = now
+
+	// hash super admin password if present (only for parent creation)
+	if in.SuperAdminPass != nil && *in.SuperAdminPass != "" {
+		hashed, err := hashPassword(*in.SuperAdminPass)
 		if err != nil {
-			return nil, fmt.Errorf("failed to check code existence: %w", err)
+			s.logger.Printf("CreateOrganization: error hashing password: %v", err)
+			return ports.OrganizationModel{}, fmt.Errorf("failed to secure super admin credentials: %w", err)
 		}
-		
-		if exists {
-			return nil, domain.ErrDuplicateOrganizationCode
-		}
+		in.SuperAdminPass = &hashed
 	}
-	
-	// Update organization fields
-	if err := org.Update(name, code, description, logo, isActive); err != nil {
-		return nil, fmt.Errorf("failed to update organization: %w", err)
-	}
-	
-	// Persist updated organization
-	updatedOrg, err := s.orgRepo.Update(ctx, org)
+
+	// call repository to persist
+	created, err := s.repo.CreateOrganization(ctx, in)
 	if err != nil {
-		return nil, fmt.Errorf("failed to persist organization update: %w", err)
+		s.logger.Printf("CreateOrganization: repository error: %v", err)
+		return ports.OrganizationModel{}, fmt.Errorf("failed to create organization: %w", err)
 	}
-	
-	log.Printf("Organization updated successfully: id=%s", updatedOrg.OrgID.String())
-	
-	return updatedOrg, nil
+
+	// zero-out sensitive fields before returning (best practice)
+	if created.SuperAdminPass != nil {
+		empty := ""
+		created.SuperAdminPass = &empty
+	}
+
+	// Publish organization created event for project service to create initial projects
+	if s.kafka != nil && len(in.InitialProjects) > 0 {
+		createdBy := ""
+		if in.SuperAdminName != nil {
+			createdBy = *in.SuperAdminName
+		}
+
+		event := domain.NewOrganizationCreatedEvent(
+			in.TenantID,
+			in.OrgID,
+			in.Name,
+			createdBy,
+			in.InitialProjects,
+		)
+
+		if err := s.kafka.Publish(ctx, "organization.events", event); err != nil {
+			s.logger.Printf("CreateOrganization: failed to publish event: %v", err)
+			// Don't fail the operation if Kafka fails, just log it
+		}
+	}
+
+	return created, nil
 }
 
-// DeleteOrganization deletes an organization with business rules
-func (s *organizationService) DeleteOrganization(ctx context.Context, orgID, requestedBy uuid.UUID) error {
-	log.Printf("Deleting organization: id=%s, requested_by=%s", orgID.String(), requestedBy.String())
-	
-	// Retrieve organization
-	org, err := s.GetOrganization(ctx, orgID)
+// GetOrganizationByID retrieves a single organization by id.
+func (s *Service) GetOrganizationByID(ctx context.Context, orgID string) (ports.OrganizationModel, error) {
+	if strings.TrimSpace(orgID) == "" {
+		return ports.OrganizationModel{}, fmt.Errorf("%w: org_id required", ErrValidation)
+	}
+	if _, err := uuid.Parse(orgID); err != nil {
+		return ports.OrganizationModel{}, fmt.Errorf("%w: invalid org_id: %v", ErrValidation, err)
+	}
+
+	o, err := s.repo.GetOrganizationByID(ctx, orgID)
 	if err != nil {
-		return err
+		s.logger.Printf("GetOrganizationByID: repo error: %v", err)
+		return ports.OrganizationModel{}, err
 	}
-	
-	// Business rule: Check if organization has users
-	users, err := s.userOrgRepo.ListUsersByOrganization(ctx, orgID)
+	// hide password in result
+	if o.SuperAdminPass != nil {
+		empty := ""
+		o.SuperAdminPass = &empty
+	}
+	return o, nil
+}
+
+// GetOrganizationByCode returns an organization by code.
+func (s *Service) GetOrganizationByCode(ctx context.Context, code string) (ports.OrganizationModel, error) {
+	if strings.TrimSpace(code) == "" {
+		return ports.OrganizationModel{}, fmt.Errorf("%w: code required", ErrValidation)
+	}
+	o, err := s.repo.GetOrganizationByCode(ctx, code)
 	if err != nil {
-		return fmt.Errorf("failed to check organization users: %w", err)
+		s.logger.Printf("GetOrganizationByCode: repo error: %v", err)
+		return ports.OrganizationModel{}, err
 	}
-	
-	if len(users) > 0 {
-		return ErrOrganizationHasUsers
+	if o.SuperAdminPass != nil {
+		empty := ""
+		o.SuperAdminPass = &empty
 	}
-	
-	// Note: In production, you might want to add more business rules:
-	// - Only superadmin or creator can delete
-	// - Check if organization has data
-	// - Soft delete instead of hard delete
-	// - Delete associated database
-	
-	if err := s.orgRepo.Delete(ctx, orgID); err != nil {
+	return o, nil
+}
+
+// ListOrganizations provides pagination and sanitization.
+func (s *Service) ListOrganizations(ctx context.Context, page, pageSize int) ([]ports.OrganizationModel, int, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize <= 0 {
+		pageSize = defaultPageSize
+	}
+	if pageSize > maxPageSize {
+		pageSize = maxPageSize
+	}
+
+	offset := (page - 1) * pageSize
+	result, total, err := s.repo.ListOrganizations(ctx, offset, pageSize)
+	if err != nil {
+		s.logger.Printf("ListOrganizations: repo error: %v", err)
+		return nil, 0, fmt.Errorf("failed to list organizations: %w", err)
+	}
+	// redaction
+	for i := range result {
+		if result[i].SuperAdminPass != nil {
+			empty := ""
+			result[i].SuperAdminPass = &empty
+		}
+	}
+	return result, total, nil
+}
+
+// ListOrganizationsByTenant returns orgs for a tenant with pagination.
+func (s *Service) ListOrganizationsByTenant(ctx context.Context, tenantID string, page, pageSize int) ([]ports.OrganizationModel, int, error) {
+	if strings.TrimSpace(tenantID) == "" {
+		return nil, 0, fmt.Errorf("%w: tenant_id required", ErrValidation)
+	}
+	if _, err := uuid.Parse(tenantID); err != nil {
+		return nil, 0, fmt.Errorf("%w: invalid tenant_id: %v", ErrValidation, err)
+	}
+	if page < 1 {
+		page = 1
+	}
+	if pageSize <= 0 {
+		pageSize = defaultPageSize
+	}
+	if pageSize > maxPageSize {
+		pageSize = maxPageSize
+	}
+	offset := (page - 1) * pageSize
+
+	list, total, err := s.repo.ListOrganizationsByTenant(ctx, tenantID, offset, pageSize)
+	if err != nil {
+		s.logger.Printf("ListOrganizationsByTenant: repo error: %v", err)
+		return nil, 0, fmt.Errorf("failed to list organizations by tenant: %w", err)
+	}
+	for i := range list {
+		if list[i].SuperAdminPass != nil {
+			empty := ""
+			list[i].SuperAdminPass = &empty
+		}
+	}
+	return list, total, nil
+}
+
+// ListChildOrganizations returns children of a parent org.
+func (s *Service) ListChildOrganizations(ctx context.Context, parentOrgID string, page, pageSize int) ([]ports.OrganizationModel, int, error) {
+	if strings.TrimSpace(parentOrgID) == "" {
+		return nil, 0, fmt.Errorf("%w: parent_org_id required", ErrValidation)
+	}
+	if _, err := uuid.Parse(parentOrgID); err != nil {
+		return nil, 0, fmt.Errorf("%w: invalid parent_org_id: %v", ErrValidation, err)
+	}
+	if page < 1 {
+		page = 1
+	}
+	if pageSize <= 0 {
+		pageSize = defaultPageSize
+	}
+	if pageSize > maxPageSize {
+		pageSize = maxPageSize
+	}
+	offset := (page - 1) * pageSize
+
+	list, total, err := s.repo.ListChildOrganizations(ctx, parentOrgID, offset, pageSize)
+	if err != nil {
+		s.logger.Printf("ListChildOrganizations: repo error: %v", err)
+		return nil, 0, fmt.Errorf("failed to list child organizations: %w", err)
+	}
+	for i := range list {
+		if list[i].SuperAdminPass != nil {
+			empty := ""
+			list[i].SuperAdminPass = &empty
+		}
+	}
+	return list, total, nil
+}
+
+// UpdateOrganization updates mutable fields of an organization (name, code, description, logo, status).
+// It validates uniqueness when code changes.
+func (s *Service) UpdateOrganization(ctx context.Context, in ports.OrganizationModel) (ports.OrganizationModel, error) {
+	if strings.TrimSpace(in.OrgID) == "" {
+		return ports.OrganizationModel{}, fmt.Errorf("%w: org_id required", ErrValidation)
+	}
+	if _, err := uuid.Parse(in.OrgID); err != nil {
+		return ports.OrganizationModel{}, fmt.Errorf("%w: invalid org_id: %v", ErrValidation, err)
+	}
+
+	// Fetch existing
+	existing, err := s.repo.GetOrganizationByID(ctx, in.OrgID)
+	if err != nil {
+		s.logger.Printf("UpdateOrganization: repo GetOrganizationByID error: %v", err)
+		return ports.OrganizationModel{}, err
+	}
+
+	// If code changed, ensure unique
+	if in.Code != "" && in.Code != existing.Code {
+		existingWithCode, err := s.tryGetByCode(ctx, in.Code)
+		if err != nil && !errors.Is(err, ports.ErrNotFound) {
+			s.logger.Printf("UpdateOrganization: error checking code uniqueness: %v", err)
+			return ports.OrganizationModel{}, fmt.Errorf("failed to validate code uniqueness: %w", err)
+		}
+		if existingWithCode != nil {
+			return ports.OrganizationModel{}, fmt.Errorf("%w: organization code already exists", ErrValidation)
+		}
+		existing.Code = in.Code
+	}
+	// update mutable fields
+	if in.Name != "" {
+		existing.Name = in.Name
+	}
+	if in.Description != nil {
+		existing.Description = in.Description
+	}
+	if in.Logo != nil {
+		existing.Logo = in.Logo
+	}
+	// status must be explicitly set by caller
+	existing.Status = in.Status
+	existing.UpdatedAt = time.Now().UTC()
+
+	updated, err := s.repo.UpdateOrganization(ctx, existing)
+	if err != nil {
+		s.logger.Printf("UpdateOrganization: repo UpdateOrganization error: %v", err)
+		return ports.OrganizationModel{}, fmt.Errorf("failed to update organization: %w", err)
+	}
+
+	// redact sensitive fields
+	if updated.SuperAdminPass != nil {
+		empty := ""
+		updated.SuperAdminPass = &empty
+	}
+	return updated, nil
+}
+
+// DeleteOrganization implements deletion with validation.
+func (s *Service) DeleteOrganization(ctx context.Context, orgID string) error {
+	if strings.TrimSpace(orgID) == "" {
+		return fmt.Errorf("%w: org_id required", ErrValidation)
+	}
+	if _, err := uuid.Parse(orgID); err != nil {
+		return fmt.Errorf("%w: invalid org_id: %v", ErrValidation, err)
+	}
+	// Optionally: check for children or dependencies before deletion — business decision.
+	// Example: block deletion if child orgs exist
+	children, _, err := s.repo.ListChildOrganizations(ctx, orgID, 0, 1)
+	if err != nil {
+		s.logger.Printf("DeleteOrganization: error checking child orgs: %v", err)
+		return fmt.Errorf("failed to check children before delete: %w", err)
+	}
+	if len(children) > 0 {
+		return fmt.Errorf("%w: cannot delete organization with child organizations", ErrValidation)
+	}
+
+	if err := s.repo.DeleteOrganization(ctx, orgID); err != nil {
+		s.logger.Printf("DeleteOrganization: repository delete error: %v", err)
 		return fmt.Errorf("failed to delete organization: %w", err)
 	}
-	
-	log.Printf("Organization deleted successfully: id=%s", org.OrgID.String())
-	
 	return nil
 }
 
-// ListOrganizationsByTenant retrieves all organizations for a tenant
-func (s *organizationService) ListOrganizationsByTenant(
-	ctx context.Context,
-	tenantID uuid.UUID,
-	pagination ports.PaginationParams,
-) ([]*domain.Organization, *ports.PaginationResult, error) {
-	if tenantID == uuid.Nil {
-		return nil, nil, errors.New("tenant ID cannot be empty")
+// ------------------ helpers ------------------
+
+// hashPassword uses bcrypt to hash the given password.
+func hashPassword(plain string) (string, error) {
+	if plain == "" {
+		return "", nil
 	}
-	
-	// Set default pagination if not provided
-	if pagination.PageSize == 0 {
-		pagination.PageSize = 10
-	}
-	if pagination.Page == 0 {
-		pagination.Page = 1
-	}
-	
-	orgs, paginationResult, err := s.orgRepo.ListByTenant(ctx, tenantID, pagination)
+	bs, err := bcrypt.GenerateFromPassword([]byte(plain), bcryptCost)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to list organizations by tenant: %w", err)
+		return "", err
 	}
-	
-	return orgs, paginationResult, nil
+	return string(bs), nil
 }
 
-// ListAccessibleOrganizations retrieves all organizations accessible by a user
-func (s *organizationService) ListAccessibleOrganizations(
-	ctx context.Context,
-	userID uuid.UUID,
-	pagination ports.PaginationParams,
-) ([]*domain.Organization, *ports.PaginationResult, error) {
-	if userID == uuid.Nil {
-		return nil, nil, errors.New("user ID cannot be empty")
+// generateDatabaseName returns a safe db name based on code (lowercase + sanitized).
+func generateDatabaseName(code string) string {
+	clean := strings.ToLower(strings.TrimSpace(code))
+	clean = strings.ReplaceAll(clean, "-", "_")
+	clean = strings.ReplaceAll(clean, " ", "_")
+	if clean == "" {
+		clean = "orgdb"
 	}
-	
-	// Set default pagination if not provided
-	if pagination.PageSize == 0 {
-		pagination.PageSize = 10
-	}
-	if pagination.Page == 0 {
-		pagination.Page = 1
-	}
-	
-	orgs, paginationResult, err := s.orgRepo.ListAccessibleByUser(ctx, userID, pagination)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to list accessible organizations: %w", err)
-	}
-	
-	return orgs, paginationResult, nil
+	return fmt.Sprintf("%s_db", clean)
 }
 
-// ToggleOrganizationStatus toggles the active status of an organization
-func (s *organizationService) ToggleOrganizationStatus(
-	ctx context.Context,
-	orgID, requestedBy uuid.UUID,
-) (*domain.Organization, error) {
-	log.Printf("Toggling organization status: id=%s, requested_by=%s", 
-		orgID.String(), requestedBy.String())
-	
-	// Retrieve organization
-	org, err := s.GetOrganization(ctx, orgID)
+// tryGetByCode returns a pointer to OrganizationModel or (nil, ports.ErrNotFound).
+// It hides the concrete repo NotFound behavior to the service.
+func (s *Service) tryGetByCode(ctx context.Context, code string) (*ports.OrganizationModel, error) {
+	o, err := s.repo.GetOrganizationByCode(ctx, code)
 	if err != nil {
+		// If your repository returns a sentinel error for not found, use that.
+		// Otherwise, inspect as needed — here we assume ports.ErrNotFound is defined.
+		if errors.Is(err, ports.ErrNotFound) {
+			return nil, ports.ErrNotFound
+		}
 		return nil, err
 	}
-	
-	// Business rule: In production, you might want to check permissions here
-	// For example, only superadmin or creator can toggle status
-	
-	// Toggle status
-	org.ToggleStatus()
-	
-	// Persist updated organization
-	updatedOrg, err := s.orgRepo.Update(ctx, org)
-	if err != nil {
-		return nil, fmt.Errorf("failed to toggle organization status: %w", err)
-	}
-	
-	status := "deactivated"
-	if updatedOrg.IsActive {
-		status = "activated"
-	}
-	log.Printf("Organization %s successfully: id=%s", status, updatedOrg.OrgID.String())
-	
-	return updatedOrg, nil
-}
-
-// CheckOrganizationCode checks if an organization code is available
-func (s *organizationService) CheckOrganizationCode(
-	ctx context.Context,
-	code string,
-	excludeOrgID *uuid.UUID,
-) (bool, error) {
-	if code == "" {
-		return false, errors.New("organization code cannot be empty")
-	}
-	
-	exists, err := s.orgRepo.CodeExists(ctx, code, excludeOrgID)
-	if err != nil {
-		return false, fmt.Errorf("failed to check code availability: %w", err)
-	}
-	
-	return !exists, nil
-}
-
-// ValidateOrganizationAccess validates if a user can access an organization
-func (s *organizationService) ValidateOrganizationAccess(
-	ctx context.Context,
-	userID, orgID uuid.UUID,
-) error {
-	if userID == uuid.Nil {
-		return errors.New("user ID cannot be empty")
-	}
-	
-	if orgID == uuid.Nil {
-		return errors.New("organization ID cannot be empty")
-	}
-	
-	// Check if organization exists and is active
-	org, err := s.GetOrganization(ctx, orgID)
-	if err != nil {
-		return err
-	}
-	
-	if !org.CanBeAccessed() {
-		return domain.ErrOrganizationNotActive
-	}
-	
-	// Check if user has access to organization
-	hasAccess, err := s.userOrgRepo.UserHasAccessToOrganization(ctx, userID, orgID)
-	if err != nil {
-		return fmt.Errorf("failed to validate user access: %w", err)
-	}
-	
-	if !hasAccess {
-		return ErrUnauthorizedAccess
-	}
-	
-	return nil
+	return &o, nil
 }

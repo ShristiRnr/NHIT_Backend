@@ -11,16 +11,12 @@ import "google/api/annotations.proto";
 enum UserRole {
   USER_ROLE_UNSPECIFIED = 0;
   SUPER_ADMIN = 1;
-  ADMIN = 2;
 }
 
 enum SSOProvider {
   SSO_PROVIDER_UNSPECIFIED = 0;
   GOOGLE = 1;
   MICROSOFT = 2;
-  OKTA = 3;
-  KEYCLOAK = 4;
-  CUSTOM_OIDC = 5;
 }
 
 // Registration
@@ -53,6 +49,8 @@ message VerifyEmailResponse {
 // Password Reset (forgot/reset)
 message ForgotPasswordRequest {
   string email = 1;
+  string tenant_id =2;
+  optional string org_id =3;
 }
 
 message ForgotPasswordResponse {
@@ -60,12 +58,38 @@ message ForgotPasswordResponse {
 }
 
 message ResetPasswordByTokenRequest {
-  string token = 1;
+  string otp = 1;
   string new_password = 2;
+  string tenant_id = 3;
+  optional string org_id = 4;
 }
 
 message ResetPasswordByTokenResponse {
-  bool success = 1;
+  string message = 1;
+  bool success = 2;
+}
+
+// OTP-based password reset request
+message ForgotPasswordOTPRequest {
+  string email = 1;
+  string tenant_id = 2;
+}
+
+message ForgotPasswordOTPResponse {
+  string message = 1;
+  bool success = 2;
+}
+
+message VerifyOTPAndResetPasswordRequest {
+  string email = 1;
+  string tenant_id = 2;
+  string otp = 3;
+  string new_password = 4;
+}
+
+message VerifyOTPAndResetPasswordResponse {
+  string message = 1;
+  bool success = 2;
 }
 
 // Login / Logout
@@ -112,6 +136,23 @@ message RefreshTokenResponse {
   string refresh_token = 2;
   int64 token_expires_at = 3;
   int64 refresh_expires_at = 4;
+  string session_id = 5;
+}
+
+message ValidateTokenRequest {
+  string token = 1;
+}
+
+message ValidateTokenResponse {
+  bool valid = 1;
+  string user_id = 2;
+  string email = 3;
+  string name = 4;
+  string tenant_id = 5;
+  string org_id = 6;
+  repeated string roles = 7;
+  repeated string permissions = 8;
+  int64 expires_at = 9;
 }
 
 message InitiateSSORequest {
@@ -219,6 +260,12 @@ service AuthService {
       body: "*"
     };
   }
+  rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/validate-token"
+      body: "*"
+    };
+  }
   rpc InitiateSSO(InitiateSSORequest) returns (InitiateSSOResponse) {
     option (google.api.http) = {
       post: "/api/v1/auth/sso/initiate"
@@ -255,4 +302,31 @@ service AuthService {
       body: "*"
     };
   }
+  rpc ForgotPasswordWithOTP(ForgotPasswordOTPRequest) returns (ForgotPasswordOTPResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/forgot-password-otp"
+      body: "*"
+    };
+  }
+  rpc VerifyOTPAndResetPassword(VerifyOTPAndResetPasswordRequest) returns (VerifyOTPAndResetPasswordResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/verify-otp-reset-password"
+      body: "*"
+    };
+  }
+  rpc SwitchOrganization(SwitchOrganizationRequest) returns (UserLoginResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/switch-organization"
+      body: "*"
+    };
+  }
+}
+
+// ====================
+// Organization Switching
+// ====================
+message SwitchOrganizationRequest {
+  string org_id = 1;   // Optional - UUID of target organization
+  string org_name = 2; // Optional - Name of target organization (e.g., "Sales Department")
+  // At least one must be provided
 }

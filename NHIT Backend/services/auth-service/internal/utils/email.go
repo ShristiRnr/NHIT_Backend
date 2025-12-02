@@ -12,6 +12,7 @@ type EmailService interface {
 	SendVerificationEmail(to, name, token string) error
 	SendPasswordResetEmail(to, name, token string) error
 	SendEmailUpdateNotification(to, name string) error
+	SendWelcomeEmail(to, name string, data map[string]interface{}) error
 }
 
 // MockEmailService is a mock implementation for development/testing
@@ -142,4 +143,55 @@ func GenerateVerificationToken() string {
 // GeneratePasswordResetToken generates a password reset token
 func GeneratePasswordResetToken() string {
 	return uuid.New().String()
+}
+
+// SendWelcomeEmail sends a welcome email to new users (mock)
+func (s *MockEmailService) SendWelcomeEmail(to, name string, data map[string]interface{}) error {
+	subject := "Welcome to NHIT! 🎉"
+	
+	orgName := "your organization"
+	isSuperAdmin := false
+	
+	if val, ok := data["organization"]; ok {
+		orgName = val.(string)
+	}
+	if val, ok := data["is_super_admin"]; ok {
+		isSuperAdmin = val.(bool)
+	}
+	
+	roleInfo := ""
+	if isSuperAdmin {
+		roleInfo = "\n\nYou have been assigned as the Super Administrator of " + orgName + ". You have full access to manage all aspects of your organization including:\n- Adding and managing users\n- Creating departments and designations\n- Managing projects\n- Configuring organization settings"
+	}
+	
+	body := fmt.Sprintf(`
+Hello %s,
+
+Welcome to NHIT! 🚀
+
+Your account has been successfully created. We're excited to have you on board!
+
+Organization: %s%s
+
+You can now log in to your account and start exploring all the features.
+
+If you have any questions or need assistance, feel free to reach out to our support team.
+
+Best regards,
+NHIT Team
+`, name, orgName, roleInfo)
+	
+	s.SentEmails = append(s.SentEmails, SentEmail{
+		To:        to,
+		Subject:   subject,
+		Body:      body,
+		Timestamp: time.Now(),
+	})
+	
+	fmt.Printf("📧 [MOCK EMAIL] Welcome email sent to %s\n", to)
+	fmt.Printf("   Organization: %s\n", orgName)
+	if isSuperAdmin {
+		fmt.Printf("   Role: Super Administrator\n")
+	}
+	return nil
 }

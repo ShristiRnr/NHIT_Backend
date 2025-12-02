@@ -21,6 +21,23 @@ func NewUserRepository(queries *sqlc.Queries) ports.UserRepository {
 }
 
 func (r *userRepository) Create(ctx context.Context, user *domain.User) (*domain.User, error) {
+	if user.EmailVerifiedAt != nil {
+		params := sqlc.CreateUserWithVerificationParams{
+			TenantID:        user.TenantID,
+			Name:            user.Name,
+			Email:           user.Email,
+			Password:        user.Password,
+			EmailVerifiedAt: pgtype.Timestamptz{Time: *user.EmailVerifiedAt, Valid: true},
+		}
+
+		dbUser, err := r.queries.CreateUserWithVerification(ctx, params)
+		if err != nil {
+			return nil, err
+		}
+
+		return toDomainUser(dbUser), nil
+	}
+
 	params := sqlc.CreateUserParams{
 		TenantID: user.TenantID,
 		Name:     user.Name,

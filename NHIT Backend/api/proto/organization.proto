@@ -5,109 +5,178 @@ package organizations;
 option go_package = "github.com/ShristiRnr/NHIT_Backend/api/pb/organizationpb";
 
 import "google/protobuf/timestamp.proto";
-import "google/protobuf/empty.proto";
 import "google/api/annotations.proto";
+
+
+// ====================
+// Organization Status
+// ====================
+// Represents if an organization is active or deactivated.
+enum OrganizationStatus {
+  activated = 0;
+  deactivated = 1;
+}
+
+
+// ====================
+// Super Admin (Parent Only)
+// ====================
+// Super admin is ONLY required during system onboarding
+// when creating the first parent organization.
+// Child organizations will NEVER use this.
+message SuperAdminDetails {
+  string name = 1;
+  string email = 2;
+  string password = 3;
+}
+
+
+// ====================
+// Project Entity (for organization integration)
+// ====================
+message Project {
+  string project_id = 1;
+  string tenant_id = 2;
+  string org_id = 3;
+  string project_name = 4;
+  string created_by = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
 
 // ====================
 // Organization Entity
 // ====================
+// This represents both Parent and Child organizations.
+// A Parent Organization always has:
+//   - parent_org_id = ""
+//   - super_admin field filled
+//   - initial projects
+//
+// A Child Organization always has:
+//   - parent_org_id = <id of parent org>
+//   - super_admin = null
+//   - its own project list
 message Organization {
-  string org_id = 1;
-  string tenant_id = 2;
-  string name = 3;
-  string code = 4;                              // Unique organization code
-  string database_name = 5;                     // Database name for multi-tenancy
-  string description = 6;                       // Organization description
-  string logo = 7;                              // Logo file path/URL
-  bool is_active = 8;                           // Active status
-  string created_by = 9;                        // User ID who created this org
-  google.protobuf.Timestamp created_at = 10;
-  google.protobuf.Timestamp updated_at = 11;
+  string org_id = 1;                // Unique organization ID
+  string tenant_id = 2;             // Tenant linkage for multi-tenancy architecture
+
+  string parent_org_id = 3;         // EMPTY → Parent organization
+                                    // NOT EMPTY → Child organization
+
+  string name = 4;                  // Organization name
+  string code = 5;                  // Unique organization code (also used for DB name generation)
+  string database_name = 6;         // Auto-generated unique DB name for each org
+  string description = 7;           // Description (optional)
+  string logo = 8;                  // Logo upload path
+
+  SuperAdminDetails super_admin = 9;   // ONLY for parent organization; null for children
+
+  repeated string initial_projects = 10; // Projects belonging to this org (parent/child both have)
+
+  OrganizationStatus status = 11;      // activated/deactivated
+
+  google.protobuf.Timestamp created_at = 12;
+  google.protobuf.Timestamp updated_at = 13;
+  string created_by = 14;
 }
 
+
+
 // ====================
-// Create Organization
+// Create Organization Request
 // ====================
+// This request is used for:
+//   (1) Creating the FIRST parent organization (during onboarding)
+//   (2) Creating child organizations (from dashboard)
+//
+// Rules:
+// - parent_org_id = "" → Parent org creation (super_admin required)
+// - parent_org_id != "" → Child org creation (super_admin ignored)
 message CreateOrganizationRequest {
-  string tenant_id = 1;
-  string name = 2;
-  string code = 3;                              // Unique code for the organization
-  string description = 4;                       // Optional description
-  string logo = 5;                              // Optional logo path/URL
-  string created_by = 6;                        // User ID creating the organization
+  string name = 1;                  // Required for both parent + child
+  string code = 2;                  // Required
+  string description = 3;           // Optional
+  string logo = 4;                  // Optional
+
+  string parent_org_id = 5;         // Child Org MUST provide this
+                                    // Parent Org leaves empty
+
+  SuperAdminDetails super_admin = 6;  // Only parent org fills this
+
+  repeated string initial_projects = 7; // List of initial projects
+  OrganizationStatus status = 8;        // Default: activated
 }
 
+
 // ====================
-// Get Organization
+// Generic Organization Response
+// ====================
+message OrganizationResponse {
+  Organization organization = 1;
+  string message = 2;                   // Helpful messages like "Created", "Updated" etc.
+}
+
+
+
+// ====================
+// Other Request Messages
 // ====================
 message GetOrganizationRequest {
-  string org_id = 1;
+  string org_id = 1;                   // Fetch a specific org by ID
 }
 
-// ====================
-// Update Organization
-// ====================
+message GetOrganizationWithProjectsRequest {
+  string org_id = 1;                   // Fetch org with its projects
+}
+
+message GetOrganizationWithProjectsResponse {
+  Organization organization = 1;
+  repeated Project projects = 2;        // Projects belonging to this organization
+}
+
 message UpdateOrganizationRequest {
-  string org_id = 1;
+  string org_id = 1;                   // ID to update
   string name = 2;
   string code = 3;
   string description = 4;
   string logo = 5;
-  bool is_active = 6;
+  OrganizationStatus status = 6;
 }
 
-// ====================
-// Delete Organization
-// ====================
 message DeleteOrganizationRequest {
-  string org_id = 1;
+  string org_id = 1;                   // ID to delete
 }
 
-// ====================
-// List Organizations
-// ====================
-message ListOrganizationsByTenantRequest {
-  string tenant_id = 1;
-  int32 page = 2;
-  int32 page_size = 3;
-}
-
-message ListAccessibleOrganizationsRequest {
-  string user_id = 1;
-  int32 page = 2;
-  int32 page_size = 3;
-}
-
-// ====================
-// Toggle Organization Status
-// ====================
-message ToggleOrganizationStatusRequest {
-  string org_id = 1;
-  string user_id = 2;                           // User performing the action
-}
-
-// ====================
-// Check Organization Code
-// ====================
-message CheckOrganizationCodeRequest {
-  string code = 1;
-  string exclude_org_id = 2;                    // Optional: exclude org ID for updates
-}
-
-message CheckOrganizationCodeResponse {
-  bool is_available = 1;
+message DeleteOrganizationResponse {
+  bool success = 1;
   string message = 2;
 }
 
-// ====================
-// Get Organization by Code
-// ====================
-message GetOrganizationByCodeRequest {
-  string code = 1;
+message ListOrganizationsRequest {
+  int32 page = 1;                      // Pagination page number
+  int32 page_size = 2;                 // Items per page
 }
 
+message ListOrganizationsByTenantRequest {
+  string tenant_id = 1;                // Tenant ID
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message ListChildOrganizationsRequest {
+  string parent_org_id = 1;            // Parent org whose children you want to list
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message GetOrganizationByCodeRequest {
+  string code = 1;                     // Fetch org via unique code
+}
+
+
 // ====================
-// Pagination
+// Pagination Model
 // ====================
 message PaginationMetadata {
   int32 current_page = 1;
@@ -116,99 +185,80 @@ message PaginationMetadata {
   int32 total_pages = 4;
 }
 
-// ====================
-// Responses
-// ====================
-message OrganizationResponse {
-  Organization organization = 1;
-  string message = 2;
-}
-
 message ListOrganizationsResponse {
-  repeated Organization organizations = 1;
-  int32 total_count = 2;
-  PaginationMetadata pagination = 3;
+  repeated Organization organizations = 1;  // List of orgs returned
+  int32 total_count = 2;                    // Total count
+  PaginationMetadata pagination = 3;        // Pagination info
 }
 
-message DeleteOrganizationResponse {
-  bool success = 1;
-  string message = 2;
-}
-
-message ToggleOrganizationStatusResponse {
-  bool success = 1;
-  string message = 2;
-  Organization organization = 3;
-}
 
 // ====================
 // Organization Service
 // ====================
+// Same APIs work for both parent + child organizations.
+//
+// Parent Org Creation:
+//   - Happens only once
+//   - Usually called during system onboarding
+//
+// Child Org Creation:
+//   - Called from dashboard via "Add Organization" button
+//   - parent_org_id must be set
 service OrganizationService {
-  // Create a new organization
+
   rpc CreateOrganization(CreateOrganizationRequest) returns (OrganizationResponse) {
     option (google.api.http) = {
       post: "/api/v1/organizations"
       body: "*"
     };
   }
-  
-  // Get organization by ID
+
+  rpc ListOrganizations(ListOrganizationsRequest) returns (ListOrganizationsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/organizations"
+    };
+  }
+
+  rpc ListOrganizationsByTenant(ListOrganizationsByTenantRequest) returns (ListOrganizationsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/tenants/{tenant_id}/organizations"
+    };
+  }
+
+  rpc ListChildOrganizations(ListChildOrganizationsRequest) returns (ListOrganizationsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/organizations/{parent_org_id}/children"
+    };
+  }
+
   rpc GetOrganization(GetOrganizationRequest) returns (OrganizationResponse) {
     option (google.api.http) = {
       get: "/api/v1/organizations/{org_id}"
     };
   }
-  
-  // Get organization by code
+
+  rpc GetOrganizationWithProjects(GetOrganizationWithProjectsRequest) returns (GetOrganizationWithProjectsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/organizations/{org_id}/with-projects"
+    };
+  }
+
   rpc GetOrganizationByCode(GetOrganizationByCodeRequest) returns (OrganizationResponse) {
     option (google.api.http) = {
       get: "/api/v1/organizations/code/{code}"
     };
   }
-  
-  // Update organization
+
   rpc UpdateOrganization(UpdateOrganizationRequest) returns (OrganizationResponse) {
     option (google.api.http) = {
       put: "/api/v1/organizations/{org_id}"
       body: "*"
     };
   }
-  
-  // Delete organization
+
   rpc DeleteOrganization(DeleteOrganizationRequest) returns (DeleteOrganizationResponse) {
     option (google.api.http) = {
       delete: "/api/v1/organizations/{org_id}"
-    };
-  }
-  
-  // List organizations by tenant
-  rpc ListOrganizationsByTenant(ListOrganizationsByTenantRequest) returns (ListOrganizationsResponse) {
-    option (google.api.http) = {
-      get: "/api/v1/tenants/{tenant_id}/organizations"
-    };
-  }
-  
-  // List organizations accessible by a user
-  rpc ListAccessibleOrganizations(ListAccessibleOrganizationsRequest) returns (ListOrganizationsResponse) {
-    option (google.api.http) = {
-      get: "/api/v1/users/{user_id}/organizations"
-    };
-  }
-  
-  // Toggle organization active status
-  rpc ToggleOrganizationStatus(ToggleOrganizationStatusRequest) returns (ToggleOrganizationStatusResponse) {
-    option (google.api.http) = {
-      patch: "/api/v1/organizations/{org_id}/toggle-status"
-      body: "*"
-    };
-  }
-  
-  // Check if organization code is available
-  rpc CheckOrganizationCode(CheckOrganizationCodeRequest) returns (CheckOrganizationCodeResponse) {
-    option (google.api.http) = {
-      post: "/api/v1/organizations/check-code"
-      body: "*"
     };
   }
 }

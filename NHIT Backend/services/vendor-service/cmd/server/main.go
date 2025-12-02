@@ -10,17 +10,17 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	vendorpb "github.com/ShristiRnr/NHIT_Backend/api/pb/vendorpb"
 	"github.com/ShristiRnr/NHIT_Backend/services/vendor-service/internal/handlers"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	grpcLib "google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
 )
 
 const (
-	grpcPort = ":50056"
-	httpPort = ":8086"
+	grpcPort = ":50058"
+	httpPort = ":8084"
 )
 
 func main() {
@@ -58,7 +58,7 @@ func startGRPCServer(vendorHandler *handlers.VendorHandler) error {
 	}
 
 	server := grpcLib.NewServer()
-	
+
 	// Register vendor handler - handles all vendor and account operations
 	vendorpb.RegisterVendorServiceServer(server, vendorHandler)
 
@@ -101,7 +101,7 @@ func startHTTPGateway(ctx context.Context) error {
 	log.Printf("   - PUT    /api/v1/vendors/accounts/{id}      # Update vendor account")
 	log.Printf("   - DELETE /api/v1/vendors/accounts/{id}      # Delete vendor account")
 	log.Printf("   - POST   /api/v1/vendors/accounts/{id}/toggle-status # Toggle account status")
-	
+
 	return http.ListenAndServe(httpPort, handler)
 }
 

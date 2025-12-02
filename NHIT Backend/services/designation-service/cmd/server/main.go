@@ -21,7 +21,7 @@ import (
 
 func main() {
 	// Configuration
-	dbURL := getEnv("DATABASE_URL", "postgres://postgres:shristi@localhost:5432/nhit_db?sslmode=disable")
+	dbURL := getEnv("DATABASE_URL", "postgres://postgres:shristi@localhost:5433/nhit_db?sslmode=disable")
 	port := getEnv("PORT", "50055")
 
 	log.Printf("🚀 Starting Designation Service on port %s", port)

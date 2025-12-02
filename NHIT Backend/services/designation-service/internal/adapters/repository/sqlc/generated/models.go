@@ -14,17 +14,8 @@ type Designation struct {
 	// Unique identifier for the designation
 	ID uuid.UUID `db:"id" json:"id"`
 	// Designation name
-	Name        string `db:"name" json:"name"`
-	Description string `db:"description" json:"description"`
-	// URL-friendly slug (unique)
-	Slug     string `db:"slug" json:"slug"`
-	IsActive *bool  `db:"is_active" json:"is_active"`
-	// Parent designation for hierarchy
-	ParentID uuid.NullUUID `db:"parent_id" json:"parent_id"`
-	// Hierarchy level (0 for root)
-	Level *int32 `db:"level" json:"level"`
-	// Number of users with this designation
-	UserCount *int32             `db:"user_count" json:"user_count"`
-	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	UpdatedAt pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Name        string             `db:"name" json:"name"`
+	Description string             `db:"description" json:"description"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }

@@ -13,7 +13,7 @@ import (
 
 // AuthInterceptor validates JWT tokens
 type AuthInterceptor struct {
-	authService ports.AuthService
+	authService   ports.AuthService
 	publicMethods map[string]bool
 }
 
@@ -21,11 +21,12 @@ type AuthInterceptor struct {
 func NewAuthInterceptor(authService ports.AuthService) *AuthInterceptor {
 	// Methods that don't require authentication
 	publicMethods := map[string]bool{
-		"/AuthService/RegisterUser":          true,
-		"/AuthService/Login":                 true,
-		"/AuthService/ForgotPassword":        true,
-		"/AuthService/ResetPasswordByToken":  true,
+		"/AuthService/RegisterUser":           true,
+		"/AuthService/Login":                  true,
+		"/AuthService/ForgotPassword":         true,
+		"/AuthService/ResetPasswordByToken":   true,
 		"/AuthService/SendPasswordResetEmail": true,
+		"/AuthService/ValidateToken":          true,
 	}
 
 	return &AuthInterceptor{

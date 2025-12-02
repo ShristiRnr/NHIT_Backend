@@ -3,10 +3,10 @@ package repository
 import (
 	"context"
 
-	"github.com/google/uuid"
-	"github.com/ShristiRnr/NHIT_Backend/services/user-service/internal/adapters/repository/sqlc/generated"
+	sqlc "github.com/ShristiRnr/NHIT_Backend/services/user-service/internal/adapters/repository/sqlc/generated"
 	"github.com/ShristiRnr/NHIT_Backend/services/user-service/internal/core/domain"
 	"github.com/ShristiRnr/NHIT_Backend/services/user-service/internal/core/ports"
+	"github.com/google/uuid"
 )
 
 type userRoleRepository struct {
@@ -35,17 +35,14 @@ func (r *userRoleRepository) RemoveRole(ctx context.Context, userID, roleID uuid
 }
 
 func (r *userRoleRepository) ListRolesByUser(ctx context.Context, userID uuid.UUID) ([]*domain.Role, error) {
-	roleIDs, err := r.queries.ListRolesForUser(ctx, userID)
+	dbRoles, err := r.queries.ListDetailedRolesForUser(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	roles := make([]*domain.Role, len(roleIDs))
-	for i, roleID := range roleIDs {
-		roles[i] = &domain.Role{
-			RoleID: roleID,
-			// Name and other fields would need to be fetched from role service
-		}
+	roles := make([]*domain.Role, len(dbRoles))
+	for i, dbRole := range dbRoles {
+		roles[i] = toDomainRole(dbRole)
 	}
 
 	return roles, nil

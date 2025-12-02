@@ -1,33 +1,53 @@
--- Migration: Create organizations and user_organizations tables
--- Description: Creates the database schema for the organization service
+-- ================================================
+-- Organizations Table (Matches Proto Definition)
+-- ================================================
 
--- ================================================
--- Organizations Table
--- ================================================
 CREATE TABLE IF NOT EXISTS organizations (
     org_id UUID PRIMARY KEY,
-    tenant_id UUID NOT NULL,
+    tenant_id UUID FOREIGN KEY REFERENCES tenants(tenant_id),
+
+    -- Parent Org = NULL
+    -- Child Org = parent_org_id = parent organization's UUID
+    parent_org_id UUID,
+
     name VARCHAR(255) NOT NULL,
-    code VARCHAR(10) NOT NULL UNIQUE,
-    database_name VARCHAR(64) NOT NULL UNIQUE,
+    code VARCHAR(50) NOT NULL UNIQUE,
+    database_name VARCHAR(100) NOT NULL UNIQUE,
     description TEXT,
     logo VARCHAR(500),
-    is_active BOOLEAN NOT NULL DEFAULT true,
-    created_by UUID NOT NULL,
+
+    -- Super admin details (ONLY for parent orgs)
+    super_admin_name VARCHAR(255),
+    super_admin_email VARCHAR(255),
+    super_admin_password VARCHAR(255),
+
+    -- Array of project strings
+    initial_projects TEXT[],
+
+    -- Status field: 0 = activated, 1 = deactivated
+    status SMALLINT NOT NULL DEFAULT 0,
+
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    -- Foreign key for parent org (self reference)
+    CONSTRAINT fk_parent_org
+        FOREIGN KEY (parent_org_id)
+        REFERENCES organizations(org_id)
+        ON DELETE SET NULL
 );
 
--- Create indexes for better query performance
+-- Indexes
 CREATE INDEX idx_organizations_tenant_id ON organizations(tenant_id);
 CREATE INDEX idx_organizations_code ON organizations(code);
-CREATE INDEX idx_organizations_is_active ON organizations(is_active);
-CREATE INDEX idx_organizations_created_by ON organizations(created_by);
+CREATE INDEX idx_organizations_status ON organizations(status);
+CREATE INDEX idx_organizations_parent_org_id ON organizations(parent_org_id);
 CREATE INDEX idx_organizations_created_at ON organizations(created_at DESC);
 
 -- ================================================
--- User Organizations Table (Junction Table)
+-- User Organizations Table (Keeps Existing)
 -- ================================================
+
 CREATE TABLE IF NOT EXISTS user_organizations (
     user_id UUID NOT NULL,
     org_id UUID NOT NULL,
@@ -35,20 +55,22 @@ CREATE TABLE IF NOT EXISTS user_organizations (
     is_current_context BOOLEAN NOT NULL DEFAULT false,
     joined_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    
+
     PRIMARY KEY (user_id, org_id),
     FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE
 );
 
--- Create indexes for better query performance
-CREATE INDEX idx_user_organizations_user_id ON user_organizations(user_id);
-CREATE INDEX idx_user_organizations_org_id ON user_organizations(org_id);
-CREATE INDEX idx_user_organizations_role_id ON user_organizations(role_id);
-CREATE INDEX idx_user_organizations_current_context ON user_organizations(user_id, is_current_context) WHERE is_current_context = true;
+-- Indexes
+CREATE INDEX idx_user_orgs_user_id ON user_organizations(user_id);
+CREATE INDEX idx_user_orgs_org_id ON user_organizations(org_id);
+CREATE INDEX idx_user_orgs_role_id ON user_organizations(role_id);
+CREATE INDEX idx_user_orgs_current_context ON user_organizations(user_id, is_current_context)
+    WHERE is_current_context = true;
 
 -- ================================================
--- Trigger to update updated_at timestamp
+-- Trigger to Auto-update updated_at
 -- ================================================
+
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -59,27 +81,26 @@ $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER update_organizations_updated_at
     BEFORE UPDATE ON organizations
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_user_organizations_updated_at
+CREATE TRIGGER update_user_orgs_updated_at
     BEFORE UPDATE ON user_organizations
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ================================================
--- Comments for documentation
+-- Documentation Comments
 -- ================================================
-COMMENT ON TABLE organizations IS 'Stores organization information for multi-tenancy';
-COMMENT ON COLUMN organizations.org_id IS 'Unique identifier for the organization';
-COMMENT ON COLUMN organizations.tenant_id IS 'Reference to the tenant this organization belongs to';
-COMMENT ON COLUMN organizations.code IS 'Unique organization code (e.g., NHIT, ABC)';
-COMMENT ON COLUMN organizations.database_name IS 'Database name for this organization (multi-tenant isolation)';
-COMMENT ON COLUMN organizations.is_active IS 'Whether the organization is active and accessible';
-COMMENT ON COLUMN organizations.created_by IS 'User ID who created this organization';
 
-COMMENT ON TABLE user_organizations IS 'Junction table for user-organization relationships';
-COMMENT ON COLUMN user_organizations.user_id IS 'Reference to the user';
-COMMENT ON COLUMN user_organizations.org_id IS 'Reference to the organization';
-COMMENT ON COLUMN user_organizations.role_id IS 'Role the user has within this organization';
-COMMENT ON COLUMN user_organizations.is_current_context IS 'Whether this is the users current active organization context';
+COMMENT ON TABLE organizations IS 'Stores parent and child organizations. Matches proto Organization message.';
+
+COMMENT ON COLUMN organizations.parent_org_id IS 'NULL for parent orgs; contains parent org UUID for child orgs.';
+
+COMMENT ON COLUMN organizations.super_admin_name IS 'Only filled for parent orgs. Represents initial super admin for system onboarding.';
+COMMENT ON COLUMN organizations.super_admin_email IS 'Super admin email for parent orgs.';
+COMMENT ON COLUMN organizations.super_admin_password IS 'Super admin password for parent orgs.';
+
+COMMENT ON COLUMN organizations.initial_projects IS 'List of initial projects stored as TEXT[]';
+
+COMMENT ON COLUMN organizations.status IS '0 = activated, 1 = deactivated (matches proto enum OrganizationStatus)';
+
+COMMENT ON TABLE user_organizations IS 'Junction table mapping users to organizations.';

@@ -20,14 +20,14 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	OrganizationService_CreateOrganization_FullMethodName          = "/organizations.OrganizationService/CreateOrganization"
+	OrganizationService_ListOrganizations_FullMethodName           = "/organizations.OrganizationService/ListOrganizations"
+	OrganizationService_ListOrganizationsByTenant_FullMethodName   = "/organizations.OrganizationService/ListOrganizationsByTenant"
+	OrganizationService_ListChildOrganizations_FullMethodName      = "/organizations.OrganizationService/ListChildOrganizations"
 	OrganizationService_GetOrganization_FullMethodName             = "/organizations.OrganizationService/GetOrganization"
+	OrganizationService_GetOrganizationWithProjects_FullMethodName = "/organizations.OrganizationService/GetOrganizationWithProjects"
 	OrganizationService_GetOrganizationByCode_FullMethodName       = "/organizations.OrganizationService/GetOrganizationByCode"
 	OrganizationService_UpdateOrganization_FullMethodName          = "/organizations.OrganizationService/UpdateOrganization"
 	OrganizationService_DeleteOrganization_FullMethodName          = "/organizations.OrganizationService/DeleteOrganization"
-	OrganizationService_ListOrganizationsByTenant_FullMethodName   = "/organizations.OrganizationService/ListOrganizationsByTenant"
-	OrganizationService_ListAccessibleOrganizations_FullMethodName = "/organizations.OrganizationService/ListAccessibleOrganizations"
-	OrganizationService_ToggleOrganizationStatus_FullMethodName    = "/organizations.OrganizationService/ToggleOrganizationStatus"
-	OrganizationService_CheckOrganizationCode_FullMethodName       = "/organizations.OrganizationService/CheckOrganizationCode"
 )
 
 // OrganizationServiceClient is the client API for OrganizationService service.
@@ -37,25 +37,25 @@ const (
 // ====================
 // Organization Service
 // ====================
+// Same APIs work for both parent + child organizations.
+//
+// Parent Org Creation:
+//   - Happens only once
+//   - Usually called during system onboarding
+//
+// Child Org Creation:
+//   - Called from dashboard via "Add Organization" button
+//   - parent_org_id must be set
 type OrganizationServiceClient interface {
-	// Create a new organization
 	CreateOrganization(ctx context.Context, in *CreateOrganizationRequest, opts ...grpc.CallOption) (*OrganizationResponse, error)
-	// Get organization by ID
-	GetOrganization(ctx context.Context, in *GetOrganizationRequest, opts ...grpc.CallOption) (*OrganizationResponse, error)
-	// Get organization by code
-	GetOrganizationByCode(ctx context.Context, in *GetOrganizationByCodeRequest, opts ...grpc.CallOption) (*OrganizationResponse, error)
-	// Update organization
-	UpdateOrganization(ctx context.Context, in *UpdateOrganizationRequest, opts ...grpc.CallOption) (*OrganizationResponse, error)
-	// Delete organization
-	DeleteOrganization(ctx context.Context, in *DeleteOrganizationRequest, opts ...grpc.CallOption) (*DeleteOrganizationResponse, error)
-	// List organizations by tenant
+	ListOrganizations(ctx context.Context, in *ListOrganizationsRequest, opts ...grpc.CallOption) (*ListOrganizationsResponse, error)
 	ListOrganizationsByTenant(ctx context.Context, in *ListOrganizationsByTenantRequest, opts ...grpc.CallOption) (*ListOrganizationsResponse, error)
-	// List organizations accessible by a user
-	ListAccessibleOrganizations(ctx context.Context, in *ListAccessibleOrganizationsRequest, opts ...grpc.CallOption) (*ListOrganizationsResponse, error)
-	// Toggle organization active status
-	ToggleOrganizationStatus(ctx context.Context, in *ToggleOrganizationStatusRequest, opts ...grpc.CallOption) (*ToggleOrganizationStatusResponse, error)
-	// Check if organization code is available
-	CheckOrganizationCode(ctx context.Context, in *CheckOrganizationCodeRequest, opts ...grpc.CallOption) (*CheckOrganizationCodeResponse, error)
+	ListChildOrganizations(ctx context.Context, in *ListChildOrganizationsRequest, opts ...grpc.CallOption) (*ListOrganizationsResponse, error)
+	GetOrganization(ctx context.Context, in *GetOrganizationRequest, opts ...grpc.CallOption) (*OrganizationResponse, error)
+	GetOrganizationWithProjects(ctx context.Context, in *GetOrganizationWithProjectsRequest, opts ...grpc.CallOption) (*GetOrganizationWithProjectsResponse, error)
+	GetOrganizationByCode(ctx context.Context, in *GetOrganizationByCodeRequest, opts ...grpc.CallOption) (*OrganizationResponse, error)
+	UpdateOrganization(ctx context.Context, in *UpdateOrganizationRequest, opts ...grpc.CallOption) (*OrganizationResponse, error)
+	DeleteOrganization(ctx context.Context, in *DeleteOrganizationRequest, opts ...grpc.CallOption) (*DeleteOrganizationResponse, error)
 }
 
 type organizationServiceClient struct {
@@ -76,10 +76,50 @@ func (c *organizationServiceClient) CreateOrganization(ctx context.Context, in *
 	return out, nil
 }
 
+func (c *organizationServiceClient) ListOrganizations(ctx context.Context, in *ListOrganizationsRequest, opts ...grpc.CallOption) (*ListOrganizationsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListOrganizationsResponse)
+	err := c.cc.Invoke(ctx, OrganizationService_ListOrganizations_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *organizationServiceClient) ListOrganizationsByTenant(ctx context.Context, in *ListOrganizationsByTenantRequest, opts ...grpc.CallOption) (*ListOrganizationsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListOrganizationsResponse)
+	err := c.cc.Invoke(ctx, OrganizationService_ListOrganizationsByTenant_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *organizationServiceClient) ListChildOrganizations(ctx context.Context, in *ListChildOrganizationsRequest, opts ...grpc.CallOption) (*ListOrganizationsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListOrganizationsResponse)
+	err := c.cc.Invoke(ctx, OrganizationService_ListChildOrganizations_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *organizationServiceClient) GetOrganization(ctx context.Context, in *GetOrganizationRequest, opts ...grpc.CallOption) (*OrganizationResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(OrganizationResponse)
 	err := c.cc.Invoke(ctx, OrganizationService_GetOrganization_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *organizationServiceClient) GetOrganizationWithProjects(ctx context.Context, in *GetOrganizationWithProjectsRequest, opts ...grpc.CallOption) (*GetOrganizationWithProjectsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetOrganizationWithProjectsResponse)
+	err := c.cc.Invoke(ctx, OrganizationService_GetOrganizationWithProjects_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -116,46 +156,6 @@ func (c *organizationServiceClient) DeleteOrganization(ctx context.Context, in *
 	return out, nil
 }
 
-func (c *organizationServiceClient) ListOrganizationsByTenant(ctx context.Context, in *ListOrganizationsByTenantRequest, opts ...grpc.CallOption) (*ListOrganizationsResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListOrganizationsResponse)
-	err := c.cc.Invoke(ctx, OrganizationService_ListOrganizationsByTenant_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *organizationServiceClient) ListAccessibleOrganizations(ctx context.Context, in *ListAccessibleOrganizationsRequest, opts ...grpc.CallOption) (*ListOrganizationsResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListOrganizationsResponse)
-	err := c.cc.Invoke(ctx, OrganizationService_ListAccessibleOrganizations_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *organizationServiceClient) ToggleOrganizationStatus(ctx context.Context, in *ToggleOrganizationStatusRequest, opts ...grpc.CallOption) (*ToggleOrganizationStatusResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ToggleOrganizationStatusResponse)
-	err := c.cc.Invoke(ctx, OrganizationService_ToggleOrganizationStatus_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *organizationServiceClient) CheckOrganizationCode(ctx context.Context, in *CheckOrganizationCodeRequest, opts ...grpc.CallOption) (*CheckOrganizationCodeResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CheckOrganizationCodeResponse)
-	err := c.cc.Invoke(ctx, OrganizationService_CheckOrganizationCode_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // OrganizationServiceServer is the server API for OrganizationService service.
 // All implementations must embed UnimplementedOrganizationServiceServer
 // for forward compatibility.
@@ -163,25 +163,25 @@ func (c *organizationServiceClient) CheckOrganizationCode(ctx context.Context, i
 // ====================
 // Organization Service
 // ====================
+// Same APIs work for both parent + child organizations.
+//
+// Parent Org Creation:
+//   - Happens only once
+//   - Usually called during system onboarding
+//
+// Child Org Creation:
+//   - Called from dashboard via "Add Organization" button
+//   - parent_org_id must be set
 type OrganizationServiceServer interface {
-	// Create a new organization
 	CreateOrganization(context.Context, *CreateOrganizationRequest) (*OrganizationResponse, error)
-	// Get organization by ID
-	GetOrganization(context.Context, *GetOrganizationRequest) (*OrganizationResponse, error)
-	// Get organization by code
-	GetOrganizationByCode(context.Context, *GetOrganizationByCodeRequest) (*OrganizationResponse, error)
-	// Update organization
-	UpdateOrganization(context.Context, *UpdateOrganizationRequest) (*OrganizationResponse, error)
-	// Delete organization
-	DeleteOrganization(context.Context, *DeleteOrganizationRequest) (*DeleteOrganizationResponse, error)
-	// List organizations by tenant
+	ListOrganizations(context.Context, *ListOrganizationsRequest) (*ListOrganizationsResponse, error)
 	ListOrganizationsByTenant(context.Context, *ListOrganizationsByTenantRequest) (*ListOrganizationsResponse, error)
-	// List organizations accessible by a user
-	ListAccessibleOrganizations(context.Context, *ListAccessibleOrganizationsRequest) (*ListOrganizationsResponse, error)
-	// Toggle organization active status
-	ToggleOrganizationStatus(context.Context, *ToggleOrganizationStatusRequest) (*ToggleOrganizationStatusResponse, error)
-	// Check if organization code is available
-	CheckOrganizationCode(context.Context, *CheckOrganizationCodeRequest) (*CheckOrganizationCodeResponse, error)
+	ListChildOrganizations(context.Context, *ListChildOrganizationsRequest) (*ListOrganizationsResponse, error)
+	GetOrganization(context.Context, *GetOrganizationRequest) (*OrganizationResponse, error)
+	GetOrganizationWithProjects(context.Context, *GetOrganizationWithProjectsRequest) (*GetOrganizationWithProjectsResponse, error)
+	GetOrganizationByCode(context.Context, *GetOrganizationByCodeRequest) (*OrganizationResponse, error)
+	UpdateOrganization(context.Context, *UpdateOrganizationRequest) (*OrganizationResponse, error)
+	DeleteOrganization(context.Context, *DeleteOrganizationRequest) (*DeleteOrganizationResponse, error)
 	mustEmbedUnimplementedOrganizationServiceServer()
 }
 
@@ -195,8 +195,20 @@ type UnimplementedOrganizationServiceServer struct{}
 func (UnimplementedOrganizationServiceServer) CreateOrganization(context.Context, *CreateOrganizationRequest) (*OrganizationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateOrganization not implemented")
 }
+func (UnimplementedOrganizationServiceServer) ListOrganizations(context.Context, *ListOrganizationsRequest) (*ListOrganizationsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListOrganizations not implemented")
+}
+func (UnimplementedOrganizationServiceServer) ListOrganizationsByTenant(context.Context, *ListOrganizationsByTenantRequest) (*ListOrganizationsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListOrganizationsByTenant not implemented")
+}
+func (UnimplementedOrganizationServiceServer) ListChildOrganizations(context.Context, *ListChildOrganizationsRequest) (*ListOrganizationsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListChildOrganizations not implemented")
+}
 func (UnimplementedOrganizationServiceServer) GetOrganization(context.Context, *GetOrganizationRequest) (*OrganizationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetOrganization not implemented")
+}
+func (UnimplementedOrganizationServiceServer) GetOrganizationWithProjects(context.Context, *GetOrganizationWithProjectsRequest) (*GetOrganizationWithProjectsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetOrganizationWithProjects not implemented")
 }
 func (UnimplementedOrganizationServiceServer) GetOrganizationByCode(context.Context, *GetOrganizationByCodeRequest) (*OrganizationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetOrganizationByCode not implemented")
@@ -206,18 +218,6 @@ func (UnimplementedOrganizationServiceServer) UpdateOrganization(context.Context
 }
 func (UnimplementedOrganizationServiceServer) DeleteOrganization(context.Context, *DeleteOrganizationRequest) (*DeleteOrganizationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteOrganization not implemented")
-}
-func (UnimplementedOrganizationServiceServer) ListOrganizationsByTenant(context.Context, *ListOrganizationsByTenantRequest) (*ListOrganizationsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListOrganizationsByTenant not implemented")
-}
-func (UnimplementedOrganizationServiceServer) ListAccessibleOrganizations(context.Context, *ListAccessibleOrganizationsRequest) (*ListOrganizationsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListAccessibleOrganizations not implemented")
-}
-func (UnimplementedOrganizationServiceServer) ToggleOrganizationStatus(context.Context, *ToggleOrganizationStatusRequest) (*ToggleOrganizationStatusResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ToggleOrganizationStatus not implemented")
-}
-func (UnimplementedOrganizationServiceServer) CheckOrganizationCode(context.Context, *CheckOrganizationCodeRequest) (*CheckOrganizationCodeResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CheckOrganizationCode not implemented")
 }
 func (UnimplementedOrganizationServiceServer) mustEmbedUnimplementedOrganizationServiceServer() {}
 func (UnimplementedOrganizationServiceServer) testEmbeddedByValue()                             {}
@@ -258,6 +258,60 @@ func _OrganizationService_CreateOrganization_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _OrganizationService_ListOrganizations_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListOrganizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OrganizationServiceServer).ListOrganizations(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OrganizationService_ListOrganizations_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OrganizationServiceServer).ListOrganizations(ctx, req.(*ListOrganizationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _OrganizationService_ListOrganizationsByTenant_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListOrganizationsByTenantRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OrganizationServiceServer).ListOrganizationsByTenant(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OrganizationService_ListOrganizationsByTenant_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OrganizationServiceServer).ListOrganizationsByTenant(ctx, req.(*ListOrganizationsByTenantRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _OrganizationService_ListChildOrganizations_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListChildOrganizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OrganizationServiceServer).ListChildOrganizations(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OrganizationService_ListChildOrganizations_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OrganizationServiceServer).ListChildOrganizations(ctx, req.(*ListChildOrganizationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _OrganizationService_GetOrganization_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetOrganizationRequest)
 	if err := dec(in); err != nil {
@@ -272,6 +326,24 @@ func _OrganizationService_GetOrganization_Handler(srv interface{}, ctx context.C
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(OrganizationServiceServer).GetOrganization(ctx, req.(*GetOrganizationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _OrganizationService_GetOrganizationWithProjects_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetOrganizationWithProjectsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OrganizationServiceServer).GetOrganizationWithProjects(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OrganizationService_GetOrganizationWithProjects_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OrganizationServiceServer).GetOrganizationWithProjects(ctx, req.(*GetOrganizationWithProjectsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -330,78 +402,6 @@ func _OrganizationService_DeleteOrganization_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
-func _OrganizationService_ListOrganizationsByTenant_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListOrganizationsByTenantRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(OrganizationServiceServer).ListOrganizationsByTenant(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: OrganizationService_ListOrganizationsByTenant_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(OrganizationServiceServer).ListOrganizationsByTenant(ctx, req.(*ListOrganizationsByTenantRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _OrganizationService_ListAccessibleOrganizations_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListAccessibleOrganizationsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(OrganizationServiceServer).ListAccessibleOrganizations(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: OrganizationService_ListAccessibleOrganizations_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(OrganizationServiceServer).ListAccessibleOrganizations(ctx, req.(*ListAccessibleOrganizationsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _OrganizationService_ToggleOrganizationStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ToggleOrganizationStatusRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(OrganizationServiceServer).ToggleOrganizationStatus(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: OrganizationService_ToggleOrganizationStatus_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(OrganizationServiceServer).ToggleOrganizationStatus(ctx, req.(*ToggleOrganizationStatusRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _OrganizationService_CheckOrganizationCode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CheckOrganizationCodeRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(OrganizationServiceServer).CheckOrganizationCode(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: OrganizationService_CheckOrganizationCode_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(OrganizationServiceServer).CheckOrganizationCode(ctx, req.(*CheckOrganizationCodeRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // OrganizationService_ServiceDesc is the grpc.ServiceDesc for OrganizationService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -414,8 +414,24 @@ var OrganizationService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _OrganizationService_CreateOrganization_Handler,
 		},
 		{
+			MethodName: "ListOrganizations",
+			Handler:    _OrganizationService_ListOrganizations_Handler,
+		},
+		{
+			MethodName: "ListOrganizationsByTenant",
+			Handler:    _OrganizationService_ListOrganizationsByTenant_Handler,
+		},
+		{
+			MethodName: "ListChildOrganizations",
+			Handler:    _OrganizationService_ListChildOrganizations_Handler,
+		},
+		{
 			MethodName: "GetOrganization",
 			Handler:    _OrganizationService_GetOrganization_Handler,
+		},
+		{
+			MethodName: "GetOrganizationWithProjects",
+			Handler:    _OrganizationService_GetOrganizationWithProjects_Handler,
 		},
 		{
 			MethodName: "GetOrganizationByCode",
@@ -428,22 +444,6 @@ var OrganizationService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteOrganization",
 			Handler:    _OrganizationService_DeleteOrganization_Handler,
-		},
-		{
-			MethodName: "ListOrganizationsByTenant",
-			Handler:    _OrganizationService_ListOrganizationsByTenant_Handler,
-		},
-		{
-			MethodName: "ListAccessibleOrganizations",
-			Handler:    _OrganizationService_ListAccessibleOrganizations_Handler,
-		},
-		{
-			MethodName: "ToggleOrganizationStatus",
-			Handler:    _OrganizationService_ToggleOrganizationStatus_Handler,
-		},
-		{
-			MethodName: "CheckOrganizationCode",
-			Handler:    _OrganizationService_CheckOrganizationCode_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

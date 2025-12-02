@@ -12,107 +12,16 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const activateDesignation = `-- name: ActivateDesignation :exec
-UPDATE designations SET is_active = true, updated_at = $2 WHERE id = $1
-`
-
-type ActivateDesignationParams struct {
-	ID        uuid.UUID          `db:"id" json:"id"`
-	UpdatedAt pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
-}
-
-func (q *Queries) ActivateDesignation(ctx context.Context, arg ActivateDesignationParams) error {
-	_, err := q.db.Exec(ctx, activateDesignation, arg.ID, arg.UpdatedAt)
-	return err
-}
-
-const calculateDesignationLevel = `-- name: CalculateDesignationLevel :one
-SELECT COALESCE((SELECT level + 1 FROM designations WHERE id = $1), 0)
-`
-
-func (q *Queries) CalculateDesignationLevel(ctx context.Context, id uuid.UUID) (interface{}, error) {
-	row := q.db.QueryRow(ctx, calculateDesignationLevel, id)
-	var coalesce interface{}
-	err := row.Scan(&coalesce)
-	return coalesce, err
-}
-
-const checkDesignationExists = `-- name: CheckDesignationExists :one
-SELECT EXISTS(
-    SELECT 1 FROM designations 
-    WHERE LOWER(name) = LOWER($1) 
-    AND ($2::uuid IS NULL OR id != $2)
-)
-`
-
-type CheckDesignationExistsParams struct {
-	Lower   string      `db:"lower" json:"lower"`
-	Column2 pgtype.UUID `db:"column_2" json:"column_2"`
-}
-
-func (q *Queries) CheckDesignationExists(ctx context.Context, arg CheckDesignationExistsParams) (bool, error) {
-	row := q.db.QueryRow(ctx, checkDesignationExists, arg.Lower, arg.Column2)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
-}
-
-const checkSlugExists = `-- name: CheckSlugExists :one
-SELECT EXISTS(
-    SELECT 1 FROM designations 
-    WHERE slug = $1 
-    AND ($2::uuid IS NULL OR id != $2)
-)
-`
-
-type CheckSlugExistsParams struct {
-	Slug    string      `db:"slug" json:"slug"`
-	Column2 pgtype.UUID `db:"column_2" json:"column_2"`
-}
-
-func (q *Queries) CheckSlugExists(ctx context.Context, arg CheckSlugExistsParams) (bool, error) {
-	row := q.db.QueryRow(ctx, checkSlugExists, arg.Slug, arg.Column2)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
-}
-
-const countDesignations = `-- name: CountDesignations :one
-SELECT COUNT(*) FROM designations
-WHERE 
-    ($1::boolean = false OR is_active = true)
-    AND ($2::uuid IS NULL OR parent_id = $2 OR ($2 = '00000000-0000-0000-0000-000000000000'::uuid AND parent_id IS NULL))
-    AND ($3::text = '' OR LOWER(name) LIKE LOWER('%' || $3 || '%') OR LOWER(description) LIKE LOWER('%' || $3 || '%'))
-`
-
-type CountDesignationsParams struct {
-	Column1 bool        `db:"column_1" json:"column_1"`
-	Column2 pgtype.UUID `db:"column_2" json:"column_2"`
-	Column3 string      `db:"column_3" json:"column_3"`
-}
-
-func (q *Queries) CountDesignations(ctx context.Context, arg CountDesignationsParams) (int64, error) {
-	row := q.db.QueryRow(ctx, countDesignations, arg.Column1, arg.Column2, arg.Column3)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
 const createDesignation = `-- name: CreateDesignation :one
-INSERT INTO designations (id, name, description, slug, is_active, parent_id, level, user_count, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-RETURNING id, name, description, slug, is_active, parent_id, level, user_count, created_at, updated_at
+INSERT INTO designations (id, name, description, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, name, description, created_at, updated_at
 `
 
 type CreateDesignationParams struct {
 	ID          uuid.UUID          `db:"id" json:"id"`
 	Name        string             `db:"name" json:"name"`
 	Description string             `db:"description" json:"description"`
-	Slug        string             `db:"slug" json:"slug"`
-	IsActive    *bool              `db:"is_active" json:"is_active"`
-	ParentID    uuid.NullUUID      `db:"parent_id" json:"parent_id"`
-	Level       *int32             `db:"level" json:"level"`
-	UserCount   *int32             `db:"user_count" json:"user_count"`
 	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
@@ -122,11 +31,6 @@ func (q *Queries) CreateDesignation(ctx context.Context, arg CreateDesignationPa
 		arg.ID,
 		arg.Name,
 		arg.Description,
-		arg.Slug,
-		arg.IsActive,
-		arg.ParentID,
-		arg.Level,
-		arg.UserCount,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
@@ -135,29 +39,10 @@ func (q *Queries) CreateDesignation(ctx context.Context, arg CreateDesignationPa
 		&i.ID,
 		&i.Name,
 		&i.Description,
-		&i.Slug,
-		&i.IsActive,
-		&i.ParentID,
-		&i.Level,
-		&i.UserCount,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
 	return &i, err
-}
-
-const deactivateDesignation = `-- name: DeactivateDesignation :exec
-UPDATE designations SET is_active = false, updated_at = $2 WHERE id = $1
-`
-
-type DeactivateDesignationParams struct {
-	ID        uuid.UUID          `db:"id" json:"id"`
-	UpdatedAt pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
-}
-
-func (q *Queries) DeactivateDesignation(ctx context.Context, arg DeactivateDesignationParams) error {
-	_, err := q.db.Exec(ctx, deactivateDesignation, arg.ID, arg.UpdatedAt)
-	return err
 }
 
 const deleteDesignation = `-- name: DeleteDesignation :exec
@@ -169,43 +54,8 @@ func (q *Queries) DeleteDesignation(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
-const getActiveDesignations = `-- name: GetActiveDesignations :many
-SELECT id, name, description, slug, is_active, parent_id, level, user_count, created_at, updated_at FROM designations WHERE is_active = true ORDER BY level ASC, name ASC
-`
-
-func (q *Queries) GetActiveDesignations(ctx context.Context) ([]*Designation, error) {
-	rows, err := q.db.Query(ctx, getActiveDesignations)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []*Designation{}
-	for rows.Next() {
-		var i Designation
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.Description,
-			&i.Slug,
-			&i.IsActive,
-			&i.ParentID,
-			&i.Level,
-			&i.UserCount,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, &i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getDesignationByID = `-- name: GetDesignationByID :one
-SELECT id, name, description, slug, is_active, parent_id, level, user_count, created_at, updated_at FROM designations WHERE id = $1
+SELECT id, name, description, created_at, updated_at FROM designations WHERE id = $1
 `
 
 func (q *Queries) GetDesignationByID(ctx context.Context, id uuid.UUID) (*Designation, error) {
@@ -215,203 +65,26 @@ func (q *Queries) GetDesignationByID(ctx context.Context, id uuid.UUID) (*Design
 		&i.ID,
 		&i.Name,
 		&i.Description,
-		&i.Slug,
-		&i.IsActive,
-		&i.ParentID,
-		&i.Level,
-		&i.UserCount,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
 	return &i, err
-}
-
-const getDesignationByName = `-- name: GetDesignationByName :one
-SELECT id, name, description, slug, is_active, parent_id, level, user_count, created_at, updated_at FROM designations WHERE LOWER(name) = LOWER($1)
-`
-
-func (q *Queries) GetDesignationByName(ctx context.Context, lower string) (*Designation, error) {
-	row := q.db.QueryRow(ctx, getDesignationByName, lower)
-	var i Designation
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Description,
-		&i.Slug,
-		&i.IsActive,
-		&i.ParentID,
-		&i.Level,
-		&i.UserCount,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return &i, err
-}
-
-const getDesignationBySlug = `-- name: GetDesignationBySlug :one
-SELECT id, name, description, slug, is_active, parent_id, level, user_count, created_at, updated_at FROM designations WHERE slug = $1
-`
-
-func (q *Queries) GetDesignationBySlug(ctx context.Context, slug string) (*Designation, error) {
-	row := q.db.QueryRow(ctx, getDesignationBySlug, slug)
-	var i Designation
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Description,
-		&i.Slug,
-		&i.IsActive,
-		&i.ParentID,
-		&i.Level,
-		&i.UserCount,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return &i, err
-}
-
-const getDesignationChildren = `-- name: GetDesignationChildren :many
-SELECT id, name, description, slug, is_active, parent_id, level, user_count, created_at, updated_at FROM designations WHERE parent_id = $1 ORDER BY name ASC
-`
-
-func (q *Queries) GetDesignationChildren(ctx context.Context, parentID uuid.NullUUID) ([]*Designation, error) {
-	rows, err := q.db.Query(ctx, getDesignationChildren, parentID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []*Designation{}
-	for rows.Next() {
-		var i Designation
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.Description,
-			&i.Slug,
-			&i.IsActive,
-			&i.ParentID,
-			&i.Level,
-			&i.UserCount,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, &i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getDesignationLevel = `-- name: GetDesignationLevel :one
-SELECT level FROM designations WHERE id = $1
-`
-
-func (q *Queries) GetDesignationLevel(ctx context.Context, id uuid.UUID) (*int32, error) {
-	row := q.db.QueryRow(ctx, getDesignationLevel, id)
-	var level *int32
-	err := row.Scan(&level)
-	return level, err
-}
-
-const getDesignationsByParent = `-- name: GetDesignationsByParent :many
-SELECT id, name, description, slug, is_active, parent_id, level, user_count, created_at, updated_at FROM designations WHERE parent_id = $1 ORDER BY name ASC
-`
-
-func (q *Queries) GetDesignationsByParent(ctx context.Context, parentID uuid.NullUUID) ([]*Designation, error) {
-	rows, err := q.db.Query(ctx, getDesignationsByParent, parentID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []*Designation{}
-	for rows.Next() {
-		var i Designation
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.Description,
-			&i.Slug,
-			&i.IsActive,
-			&i.ParentID,
-			&i.Level,
-			&i.UserCount,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, &i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getRootDesignations = `-- name: GetRootDesignations :many
-SELECT id, name, description, slug, is_active, parent_id, level, user_count, created_at, updated_at FROM designations WHERE parent_id IS NULL ORDER BY name ASC
-`
-
-func (q *Queries) GetRootDesignations(ctx context.Context) ([]*Designation, error) {
-	rows, err := q.db.Query(ctx, getRootDesignations)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []*Designation{}
-	for rows.Next() {
-		var i Designation
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.Description,
-			&i.Slug,
-			&i.IsActive,
-			&i.ParentID,
-			&i.Level,
-			&i.UserCount,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, &i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
 
 const listDesignations = `-- name: ListDesignations :many
-SELECT id, name, description, slug, is_active, parent_id, level, user_count, created_at, updated_at FROM designations
-WHERE 
-    ($1::boolean = false OR is_active = true)
-    AND ($2::uuid IS NULL OR parent_id = $2 OR ($2 = '00000000-0000-0000-0000-000000000000'::uuid AND parent_id IS NULL))
-    AND ($3::text = '' OR LOWER(name) LIKE LOWER('%' || $3 || '%') OR LOWER(description) LIKE LOWER('%' || $3 || '%'))
-ORDER BY level ASC, name ASC
-LIMIT $4 OFFSET $5
+SELECT id, name, description, created_at, updated_at
+FROM designations
+ORDER BY name ASC
+LIMIT $1 OFFSET $2
 `
 
 type ListDesignationsParams struct {
-	Column1 bool        `db:"column_1" json:"column_1"`
-	Column2 pgtype.UUID `db:"column_2" json:"column_2"`
-	Column3 string      `db:"column_3" json:"column_3"`
-	Limit   int32       `db:"limit" json:"limit"`
-	Offset  int32       `db:"offset" json:"offset"`
+	Limit  int32 `db:"limit" json:"limit"`
+	Offset int32 `db:"offset" json:"offset"`
 }
 
 func (q *Queries) ListDesignations(ctx context.Context, arg ListDesignationsParams) ([]*Designation, error) {
-	rows, err := q.db.Query(ctx, listDesignations,
-		arg.Column1,
-		arg.Column2,
-		arg.Column3,
-		arg.Limit,
-		arg.Offset,
-	)
+	rows, err := q.db.Query(ctx, listDesignations, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -423,11 +96,6 @@ func (q *Queries) ListDesignations(ctx context.Context, arg ListDesignationsPara
 			&i.ID,
 			&i.Name,
 			&i.Description,
-			&i.Slug,
-			&i.IsActive,
-			&i.ParentID,
-			&i.Level,
-			&i.UserCount,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -443,19 +111,15 @@ func (q *Queries) ListDesignations(ctx context.Context, arg ListDesignationsPara
 
 const updateDesignation = `-- name: UpdateDesignation :one
 UPDATE designations
-SET name = $2, description = $3, slug = $4, is_active = $5, parent_id = $6, level = $7, updated_at = $8
+SET name = $2, description = $3, updated_at = $4
 WHERE id = $1
-RETURNING id, name, description, slug, is_active, parent_id, level, user_count, created_at, updated_at
+RETURNING id, name, description, created_at, updated_at
 `
 
 type UpdateDesignationParams struct {
 	ID          uuid.UUID          `db:"id" json:"id"`
 	Name        string             `db:"name" json:"name"`
 	Description string             `db:"description" json:"description"`
-	Slug        string             `db:"slug" json:"slug"`
-	IsActive    *bool              `db:"is_active" json:"is_active"`
-	ParentID    uuid.NullUUID      `db:"parent_id" json:"parent_id"`
-	Level       *int32             `db:"level" json:"level"`
 	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
@@ -464,10 +128,6 @@ func (q *Queries) UpdateDesignation(ctx context.Context, arg UpdateDesignationPa
 		arg.ID,
 		arg.Name,
 		arg.Description,
-		arg.Slug,
-		arg.IsActive,
-		arg.ParentID,
-		arg.Level,
 		arg.UpdatedAt,
 	)
 	var i Designation
@@ -475,28 +135,8 @@ func (q *Queries) UpdateDesignation(ctx context.Context, arg UpdateDesignationPa
 		&i.ID,
 		&i.Name,
 		&i.Description,
-		&i.Slug,
-		&i.IsActive,
-		&i.ParentID,
-		&i.Level,
-		&i.UserCount,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
 	return &i, err
-}
-
-const updateDesignationUserCount = `-- name: UpdateDesignationUserCount :exec
-UPDATE designations SET user_count = $2, updated_at = $3 WHERE id = $1
-`
-
-type UpdateDesignationUserCountParams struct {
-	ID        uuid.UUID          `db:"id" json:"id"`
-	UserCount *int32             `db:"user_count" json:"user_count"`
-	UpdatedAt pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
-}
-
-func (q *Queries) UpdateDesignationUserCount(ctx context.Context, arg UpdateDesignationUserCountParams) error {
-	_, err := q.db.Exec(ctx, updateDesignationUserCount, arg.ID, arg.UserCount, arg.UpdatedAt)
-	return err
 }

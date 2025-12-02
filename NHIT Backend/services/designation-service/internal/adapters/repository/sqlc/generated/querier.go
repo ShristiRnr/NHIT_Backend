@@ -11,25 +11,11 @@ import (
 )
 
 type Querier interface {
-	ActivateDesignation(ctx context.Context, arg ActivateDesignationParams) error
-	CalculateDesignationLevel(ctx context.Context, id uuid.UUID) (interface{}, error)
-	CheckDesignationExists(ctx context.Context, arg CheckDesignationExistsParams) (bool, error)
-	CheckSlugExists(ctx context.Context, arg CheckSlugExistsParams) (bool, error)
-	CountDesignations(ctx context.Context, arg CountDesignationsParams) (int64, error)
 	CreateDesignation(ctx context.Context, arg CreateDesignationParams) (*Designation, error)
-	DeactivateDesignation(ctx context.Context, arg DeactivateDesignationParams) error
 	DeleteDesignation(ctx context.Context, id uuid.UUID) error
-	GetActiveDesignations(ctx context.Context) ([]*Designation, error)
 	GetDesignationByID(ctx context.Context, id uuid.UUID) (*Designation, error)
-	GetDesignationByName(ctx context.Context, lower string) (*Designation, error)
-	GetDesignationBySlug(ctx context.Context, slug string) (*Designation, error)
-	GetDesignationChildren(ctx context.Context, parentID uuid.NullUUID) ([]*Designation, error)
-	GetDesignationLevel(ctx context.Context, id uuid.UUID) (*int32, error)
-	GetDesignationsByParent(ctx context.Context, parentID uuid.NullUUID) ([]*Designation, error)
-	GetRootDesignations(ctx context.Context) ([]*Designation, error)
 	ListDesignations(ctx context.Context, arg ListDesignationsParams) ([]*Designation, error)
 	UpdateDesignation(ctx context.Context, arg UpdateDesignationParams) (*Designation, error)
-	UpdateDesignationUserCount(ctx context.Context, arg UpdateDesignationUserCountParams) error
 }
 
 var _ Querier = (*Queries)(nil)

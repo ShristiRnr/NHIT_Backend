@@ -27,7 +27,7 @@
 ## 🔧 Pre-Test Setup
 
 ### **Database Setup:**
-✅ **Database Connection:** `postgres://postgres:shristi@localhost:5432/nhit`  
+✅ **Database Connection:** `postgres://postgres:shristi@localhost:5433/nhit`  
 ✅ **Tables Created:** `organizations`, `user_organizations`  
 ✅ **Migration Applied:** `001_create_organizations_tables.sql`  
 ✅ **Indexes Created:** 5 indexes for performance  

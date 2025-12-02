@@ -5,9 +5,9 @@ services:
     image: postgres:15-alpine
     container_name: nhit-postgres
     environment:
-      POSTGRES_USER: nhit_user
-      POSTGRES_PASSWORD: nhit_password
-      POSTGRES_DB: nhit
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: shristi
+      POSTGRES_DB: nhit_db
     ports:
       - "5432:5432"
     volumes:
@@ -22,7 +22,7 @@ services:
     container_name: nhit-user-service
     environment:
       SERVER_PORT: "50051"
-      DB_URL: "postgres://nhit_user:nhit_password@postgres:5432/nhit?sslmode=disable"
+      DB_URL: "postgres://postgres:shristi@postgres:5432/nhit_db?sslmode=disable"
       JWT_SECRET: "your-secret-key-here"
     ports:
       - "50051:50051"
@@ -38,7 +38,7 @@ services:
     container_name: nhit-auth-service
     environment:
       SERVER_PORT: "50052"
-      DB_URL: "postgres://nhit_user:nhit_password@postgres:5432/nhit?sslmode=disable"
+      DB_URL: "postgres://postgres:shristi@postgres:5432/nhit_db?sslmode=disable"
       JWT_SECRET: "your-secret-key-here"
       JWT_EXPIRY: "15m"
       REFRESH_TOKEN_EXPIRY: "168h"
@@ -58,7 +58,7 @@ services:
     container_name: nhit-organization-service
     environment:
       SERVER_PORT: "50053"
-      DB_URL: "postgres://nhit_user:nhit_password@postgres:5432/nhit?sslmode=disable"
+      DB_URL: "postgres://postgres:shristi@postgres:5432/nhit_db?sslmode=disable"
       USER_SERVICE_URL: "user-service:50051"
     ports:
       - "50053:50053"
@@ -75,7 +75,7 @@ services:
     container_name: nhit-department-service
     environment:
       SERVER_PORT: "50054"
-      DB_URL: "postgres://nhit_user:nhit_password@postgres:5432/nhit?sslmode=disable"
+      DB_URL: "postgres://postgres:shristi@postgres:5432/nhit_db?sslmode=disable"
       USER_SERVICE_URL: "user-service:50051"
     ports:
       - "50054:50054"
@@ -90,7 +90,7 @@ services:
       context: .
       dockerfile: services/designation-service/Dockerfile
     environment:
-      DATABASE_URL: "postgres://nhit_user:nhit_password@postgres:5432/nhit?sslmode=disable"
+      DATABASE_URL: "postgres://postgres:shristi@postgres:5432/nhit_db?sslmode=disable"
       PORT: "50055"
     ports:
       - "50055:50055"

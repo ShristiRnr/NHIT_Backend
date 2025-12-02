@@ -19,18 +19,30 @@ type Querier interface {
 	CountUsersByTenant(ctx context.Context, tenantID uuid.UUID) (int64, error)
 	CountUsersForRole(ctx context.Context, roleID uuid.UUID) (int64, error)
 	CreateLoginHistory(ctx context.Context, arg CreateLoginHistoryParams) (*UserLoginHistory, error)
+	CreateRole(ctx context.Context, arg CreateRoleParams) (*Role, error)
+	CreateTenant(ctx context.Context, arg CreateTenantParams) (*Tenant, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (*User, error)
 	CreateUserWithVerification(ctx context.Context, arg CreateUserWithVerificationParams) (*User, error)
 	DeleteLoginHistory(ctx context.Context, historyID uuid.UUID) error
 	DeleteOldLoginHistories(ctx context.Context, loginTime pgtype.Timestamptz) error
+	DeleteRole(ctx context.Context, roleID uuid.UUID) error
 	DeleteUser(ctx context.Context, userID uuid.UUID) error
 	DeleteUserLoginHistories(ctx context.Context, userID uuid.NullUUID) error
 	GetLoginHistory(ctx context.Context, historyID uuid.UUID) (*UserLoginHistory, error)
+	GetRole(ctx context.Context, roleID uuid.UUID) (*Role, error)
+	GetTenant(ctx context.Context, tenantID pgtype.UUID) (*Tenant, error)
 	GetUser(ctx context.Context, userID uuid.UUID) (*User, error)
 	GetUserByEmail(ctx context.Context, email string) (*User, error)
 	GetUserByEmailAndTenant(ctx context.Context, arg GetUserByEmailAndTenantParams) (*User, error)
 	ListAllUsers(ctx context.Context, arg ListAllUsersParams) ([]*User, error)
+	ListDetailedRolesForUser(ctx context.Context, userID uuid.UUID) ([]*Role, error)
+	ListPermissions(ctx context.Context) ([]*Permission, error)
+	ListPermissionsByModule(ctx context.Context, module *string) ([]*Permission, error)
 	ListRecentLoginHistories(ctx context.Context, arg ListRecentLoginHistoriesParams) ([]*UserLoginHistory, error)
+	ListRolesByIDs(ctx context.Context, dollar_1 []pgtype.UUID) ([]*Role, error)
+	ListRolesByOrganizationIncludingSystem(ctx context.Context, arg ListRolesByOrganizationIncludingSystemParams) ([]*Role, error)
+	ListRolesByTenant(ctx context.Context, tenantID uuid.UUID) ([]*Role, error)
+	ListRolesByTenantAndOrg(ctx context.Context, arg ListRolesByTenantAndOrgParams) ([]*Role, error)
 	ListRolesForUser(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error)
 	ListUserLoginHistories(ctx context.Context, arg ListUserLoginHistoriesParams) ([]*UserLoginHistory, error)
 	ListUsersByDepartment(ctx context.Context, arg ListUsersByDepartmentParams) ([]*User, error)
@@ -41,6 +53,7 @@ type Querier interface {
 	RemoveRoleFromUser(ctx context.Context, arg RemoveRoleFromUserParams) error
 	SearchUsersByEmail(ctx context.Context, arg SearchUsersByEmailParams) ([]*User, error)
 	SearchUsersByName(ctx context.Context, arg SearchUsersByNameParams) ([]*User, error)
+	UpdateRole(ctx context.Context, arg UpdateRoleParams) (*Role, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (*User, error)
 	UpdateUserDepartment(ctx context.Context, arg UpdateUserDepartmentParams) (*User, error)
 	UpdateUserDesignation(ctx context.Context, arg UpdateUserDesignationParams) (*User, error)

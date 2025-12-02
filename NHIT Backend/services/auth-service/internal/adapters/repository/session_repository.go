@@ -5,15 +5,19 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/ShristiRnr/NHIT_Backend/services/auth-service/internal/core/domain"
+	"github.com/ShristiRnr/NHIT_Backend/services/auth-service/internal/core/ports"
+	"github.com/google/uuid"
 )
 
 type sessionRepository struct {
 	db *sql.DB
 }
 
-func NewSessionRepository(db *sql.DB) *sessionRepository {
+// Ensure sessionRepository implements ports.SessionRepository at compile time
+var _ ports.SessionRepository = (*sessionRepository)(nil)
+
+func NewSessionRepository(db *sql.DB) ports.SessionRepository {
 	return &sessionRepository{db: db}
 }
 
@@ -117,6 +121,43 @@ func (r *sessionRepository) Delete(ctx context.Context, sessionID uuid.UUID) err
 	}
 
 	return nil
+}
+
+func (r *sessionRepository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]*domain.Session, error) {
+	query := `
+		SELECT session_id, user_id, session_token, created_at, expires_at
+		FROM sessions
+		WHERE user_id = $1 AND expires_at > NOW()
+		ORDER BY created_at DESC
+	`
+
+	rows, err := r.db.QueryContext(ctx, query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get sessions: %w", err)
+	}
+	defer rows.Close()
+
+	var sessions []*domain.Session
+	for rows.Next() {
+		session := &domain.Session{}
+		err := rows.Scan(
+			&session.SessionID,
+			&session.UserID,
+			&session.SessionToken,
+			&session.CreatedAt,
+			&session.ExpiresAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan session: %w", err)
+		}
+		sessions = append(sessions, session)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate sessions: %w", err)
+	}
+
+	return sessions, nil
 }
 
 func (r *sessionRepository) DeleteByUserID(ctx context.Context, userID uuid.UUID) error {

@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v6.32.0
-// source: api/proto/designation.proto
+// source: designation.proto
 
 package designationpb
 
@@ -19,42 +19,26 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	DesignationService_CreateDesignation_FullMethodName       = "/designations.DesignationService/CreateDesignation"
-	DesignationService_GetDesignation_FullMethodName          = "/designations.DesignationService/GetDesignation"
-	DesignationService_GetDesignationBySlug_FullMethodName    = "/designations.DesignationService/GetDesignationBySlug"
-	DesignationService_UpdateDesignation_FullMethodName       = "/designations.DesignationService/UpdateDesignation"
-	DesignationService_DeleteDesignation_FullMethodName       = "/designations.DesignationService/DeleteDesignation"
-	DesignationService_ListDesignations_FullMethodName        = "/designations.DesignationService/ListDesignations"
-	DesignationService_GetDesignationHierarchy_FullMethodName = "/designations.DesignationService/GetDesignationHierarchy"
-	DesignationService_ToggleDesignationStatus_FullMethodName = "/designations.DesignationService/ToggleDesignationStatus"
-	DesignationService_CheckDesignationExists_FullMethodName  = "/designations.DesignationService/CheckDesignationExists"
-	DesignationService_GetUsersCount_FullMethodName           = "/designations.DesignationService/GetUsersCount"
+	DesignationService_CreateDesignation_FullMethodName = "/designations.DesignationService/CreateDesignation"
+	DesignationService_GetDesignation_FullMethodName    = "/designations.DesignationService/GetDesignation"
+	DesignationService_UpdateDesignation_FullMethodName = "/designations.DesignationService/UpdateDesignation"
+	DesignationService_DeleteDesignation_FullMethodName = "/designations.DesignationService/DeleteDesignation"
+	DesignationService_ListDesignations_FullMethodName  = "/designations.DesignationService/ListDesignations"
 )
 
 // DesignationServiceClient is the client API for DesignationService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DesignationServiceClient interface {
-	// Create a new designation
 	CreateDesignation(ctx context.Context, in *CreateDesignationRequest, opts ...grpc.CallOption) (*DesignationResponse, error)
 	// Get designation by ID
 	GetDesignation(ctx context.Context, in *GetDesignationRequest, opts ...grpc.CallOption) (*DesignationResponse, error)
-	// Get designation by slug
-	GetDesignationBySlug(ctx context.Context, in *GetDesignationBySlugRequest, opts ...grpc.CallOption) (*DesignationResponse, error)
 	// Update designation
 	UpdateDesignation(ctx context.Context, in *UpdateDesignationRequest, opts ...grpc.CallOption) (*DesignationResponse, error)
 	// Delete designation
 	DeleteDesignation(ctx context.Context, in *DeleteDesignationRequest, opts ...grpc.CallOption) (*DeleteDesignationResponse, error)
 	// List designations with pagination and filters
 	ListDesignations(ctx context.Context, in *ListDesignationsRequest, opts ...grpc.CallOption) (*ListDesignationsResponse, error)
-	// Get designation hierarchy (parent and children)
-	GetDesignationHierarchy(ctx context.Context, in *GetDesignationHierarchyRequest, opts ...grpc.CallOption) (*GetDesignationHierarchyResponse, error)
-	// Toggle designation active status
-	ToggleDesignationStatus(ctx context.Context, in *ToggleDesignationStatusRequest, opts ...grpc.CallOption) (*DesignationResponse, error)
-	// Check if designation name exists
-	CheckDesignationExists(ctx context.Context, in *CheckDesignationExistsRequest, opts ...grpc.CallOption) (*CheckDesignationExistsResponse, error)
-	// Get users count for a designation
-	GetUsersCount(ctx context.Context, in *GetUsersCountRequest, opts ...grpc.CallOption) (*GetUsersCountResponse, error)
 }
 
 type designationServiceClient struct {
@@ -79,16 +63,6 @@ func (c *designationServiceClient) GetDesignation(ctx context.Context, in *GetDe
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(DesignationResponse)
 	err := c.cc.Invoke(ctx, DesignationService_GetDesignation_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *designationServiceClient) GetDesignationBySlug(ctx context.Context, in *GetDesignationBySlugRequest, opts ...grpc.CallOption) (*DesignationResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(DesignationResponse)
-	err := c.cc.Invoke(ctx, DesignationService_GetDesignationBySlug_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -125,70 +99,19 @@ func (c *designationServiceClient) ListDesignations(ctx context.Context, in *Lis
 	return out, nil
 }
 
-func (c *designationServiceClient) GetDesignationHierarchy(ctx context.Context, in *GetDesignationHierarchyRequest, opts ...grpc.CallOption) (*GetDesignationHierarchyResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetDesignationHierarchyResponse)
-	err := c.cc.Invoke(ctx, DesignationService_GetDesignationHierarchy_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *designationServiceClient) ToggleDesignationStatus(ctx context.Context, in *ToggleDesignationStatusRequest, opts ...grpc.CallOption) (*DesignationResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(DesignationResponse)
-	err := c.cc.Invoke(ctx, DesignationService_ToggleDesignationStatus_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *designationServiceClient) CheckDesignationExists(ctx context.Context, in *CheckDesignationExistsRequest, opts ...grpc.CallOption) (*CheckDesignationExistsResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CheckDesignationExistsResponse)
-	err := c.cc.Invoke(ctx, DesignationService_CheckDesignationExists_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *designationServiceClient) GetUsersCount(ctx context.Context, in *GetUsersCountRequest, opts ...grpc.CallOption) (*GetUsersCountResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetUsersCountResponse)
-	err := c.cc.Invoke(ctx, DesignationService_GetUsersCount_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // DesignationServiceServer is the server API for DesignationService service.
 // All implementations must embed UnimplementedDesignationServiceServer
 // for forward compatibility.
 type DesignationServiceServer interface {
-	// Create a new designation
 	CreateDesignation(context.Context, *CreateDesignationRequest) (*DesignationResponse, error)
 	// Get designation by ID
 	GetDesignation(context.Context, *GetDesignationRequest) (*DesignationResponse, error)
-	// Get designation by slug
-	GetDesignationBySlug(context.Context, *GetDesignationBySlugRequest) (*DesignationResponse, error)
 	// Update designation
 	UpdateDesignation(context.Context, *UpdateDesignationRequest) (*DesignationResponse, error)
 	// Delete designation
 	DeleteDesignation(context.Context, *DeleteDesignationRequest) (*DeleteDesignationResponse, error)
 	// List designations with pagination and filters
 	ListDesignations(context.Context, *ListDesignationsRequest) (*ListDesignationsResponse, error)
-	// Get designation hierarchy (parent and children)
-	GetDesignationHierarchy(context.Context, *GetDesignationHierarchyRequest) (*GetDesignationHierarchyResponse, error)
-	// Toggle designation active status
-	ToggleDesignationStatus(context.Context, *ToggleDesignationStatusRequest) (*DesignationResponse, error)
-	// Check if designation name exists
-	CheckDesignationExists(context.Context, *CheckDesignationExistsRequest) (*CheckDesignationExistsResponse, error)
-	// Get users count for a designation
-	GetUsersCount(context.Context, *GetUsersCountRequest) (*GetUsersCountResponse, error)
 	mustEmbedUnimplementedDesignationServiceServer()
 }
 
@@ -205,9 +128,6 @@ func (UnimplementedDesignationServiceServer) CreateDesignation(context.Context, 
 func (UnimplementedDesignationServiceServer) GetDesignation(context.Context, *GetDesignationRequest) (*DesignationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetDesignation not implemented")
 }
-func (UnimplementedDesignationServiceServer) GetDesignationBySlug(context.Context, *GetDesignationBySlugRequest) (*DesignationResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetDesignationBySlug not implemented")
-}
 func (UnimplementedDesignationServiceServer) UpdateDesignation(context.Context, *UpdateDesignationRequest) (*DesignationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateDesignation not implemented")
 }
@@ -216,18 +136,6 @@ func (UnimplementedDesignationServiceServer) DeleteDesignation(context.Context, 
 }
 func (UnimplementedDesignationServiceServer) ListDesignations(context.Context, *ListDesignationsRequest) (*ListDesignationsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListDesignations not implemented")
-}
-func (UnimplementedDesignationServiceServer) GetDesignationHierarchy(context.Context, *GetDesignationHierarchyRequest) (*GetDesignationHierarchyResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetDesignationHierarchy not implemented")
-}
-func (UnimplementedDesignationServiceServer) ToggleDesignationStatus(context.Context, *ToggleDesignationStatusRequest) (*DesignationResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ToggleDesignationStatus not implemented")
-}
-func (UnimplementedDesignationServiceServer) CheckDesignationExists(context.Context, *CheckDesignationExistsRequest) (*CheckDesignationExistsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CheckDesignationExists not implemented")
-}
-func (UnimplementedDesignationServiceServer) GetUsersCount(context.Context, *GetUsersCountRequest) (*GetUsersCountResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetUsersCount not implemented")
 }
 func (UnimplementedDesignationServiceServer) mustEmbedUnimplementedDesignationServiceServer() {}
 func (UnimplementedDesignationServiceServer) testEmbeddedByValue()                            {}
@@ -286,24 +194,6 @@ func _DesignationService_GetDesignation_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DesignationService_GetDesignationBySlug_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetDesignationBySlugRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(DesignationServiceServer).GetDesignationBySlug(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: DesignationService_GetDesignationBySlug_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DesignationServiceServer).GetDesignationBySlug(ctx, req.(*GetDesignationBySlugRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _DesignationService_UpdateDesignation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UpdateDesignationRequest)
 	if err := dec(in); err != nil {
@@ -358,78 +248,6 @@ func _DesignationService_ListDesignations_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DesignationService_GetDesignationHierarchy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetDesignationHierarchyRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(DesignationServiceServer).GetDesignationHierarchy(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: DesignationService_GetDesignationHierarchy_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DesignationServiceServer).GetDesignationHierarchy(ctx, req.(*GetDesignationHierarchyRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _DesignationService_ToggleDesignationStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ToggleDesignationStatusRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(DesignationServiceServer).ToggleDesignationStatus(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: DesignationService_ToggleDesignationStatus_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DesignationServiceServer).ToggleDesignationStatus(ctx, req.(*ToggleDesignationStatusRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _DesignationService_CheckDesignationExists_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CheckDesignationExistsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(DesignationServiceServer).CheckDesignationExists(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: DesignationService_CheckDesignationExists_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DesignationServiceServer).CheckDesignationExists(ctx, req.(*CheckDesignationExistsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _DesignationService_GetUsersCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetUsersCountRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(DesignationServiceServer).GetUsersCount(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: DesignationService_GetUsersCount_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DesignationServiceServer).GetUsersCount(ctx, req.(*GetUsersCountRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // DesignationService_ServiceDesc is the grpc.ServiceDesc for DesignationService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -446,10 +264,6 @@ var DesignationService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _DesignationService_GetDesignation_Handler,
 		},
 		{
-			MethodName: "GetDesignationBySlug",
-			Handler:    _DesignationService_GetDesignationBySlug_Handler,
-		},
-		{
 			MethodName: "UpdateDesignation",
 			Handler:    _DesignationService_UpdateDesignation_Handler,
 		},
@@ -461,23 +275,7 @@ var DesignationService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "ListDesignations",
 			Handler:    _DesignationService_ListDesignations_Handler,
 		},
-		{
-			MethodName: "GetDesignationHierarchy",
-			Handler:    _DesignationService_GetDesignationHierarchy_Handler,
-		},
-		{
-			MethodName: "ToggleDesignationStatus",
-			Handler:    _DesignationService_ToggleDesignationStatus_Handler,
-		},
-		{
-			MethodName: "CheckDesignationExists",
-			Handler:    _DesignationService_CheckDesignationExists_Handler,
-		},
-		{
-			MethodName: "GetUsersCount",
-			Handler:    _DesignationService_GetUsersCount_Handler,
-		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "api/proto/designation.proto",
+	Metadata: "designation.proto",
 }

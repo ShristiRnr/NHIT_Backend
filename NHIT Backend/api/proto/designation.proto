@@ -12,13 +12,8 @@ message Designation {
   string id = 1;
   string name = 2;
   string description = 3;
-  string slug = 4;
-  bool is_active = 5;
-  string parent_id = 6; // For hierarchical designations
-  int32 level = 7; // Hierarchy level (0 = top level)
-  int32 user_count = 8; // Number of users with this designation
-  google.protobuf.Timestamp created_at = 9;
-  google.protobuf.Timestamp updated_at = 10;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp updated_at = 5;
 }
 
 // ========== Request/Response Messages ==========
@@ -27,12 +22,11 @@ message Designation {
 message CreateDesignationRequest {
   string name = 1;
   string description = 2;
-  bool is_active = 3;
-  string parent_id = 4; // Optional parent designation
 }
 
 message DesignationResponse {
   Designation designation = 1;
+  string message = 2;
 }
 
 // Get Designation
@@ -45,14 +39,19 @@ message UpdateDesignationRequest {
   string id = 1;
   string name = 2;
   string description = 3;
-  bool is_active = 4;
-  string parent_id = 5;
+}
+
+// Pagination metadata
+message PaginationMetadata {
+  int32 current_page = 1;
+  int32 page_size = 2;
+  int64 total_items = 3;
+  int32 total_pages = 4;
 }
 
 // Delete Designation
 message DeleteDesignationRequest {
   string id = 1;
-  bool force = 2; // Force delete even if users assigned (reassign to parent or null)
 }
 
 message DeleteDesignationResponse {
@@ -64,68 +63,18 @@ message DeleteDesignationResponse {
 message ListDesignationsRequest {
   int32 page = 1;
   int32 page_size = 2;
-  bool active_only = 3; // Filter only active designations
-  string parent_id = 4; // Filter by parent (empty = root level)
-  string search = 5; // Search by name or description
 }
 
 message ListDesignationsResponse {
   repeated Designation designations = 1;
-  int64 total_count = 2;
-  int32 page = 3;
-  int32 page_size = 4;
-}
-
-// Get Designation by Slug
-message GetDesignationBySlugRequest {
-  string slug = 1;
-}
-
-// Get Designation Hierarchy (parent and children)
-message GetDesignationHierarchyRequest {
-  string id = 1;
-}
-
-message DesignationHierarchy {
-  Designation designation = 1;
-  Designation parent = 2;
-  repeated Designation children = 3;
-}
-
-message GetDesignationHierarchyResponse {
-  DesignationHierarchy hierarchy = 1;
-}
-
-// Activate/Deactivate Designation
-message ToggleDesignationStatusRequest {
-  string id = 1;
-  bool is_active = 2;
-}
-
-// Check if designation name exists
-message CheckDesignationExistsRequest {
-  string name = 1;
-  string exclude_id = 2; // Exclude this ID from check (for updates)
-}
-
-message CheckDesignationExistsResponse {
-  bool exists = 1;
-  string existing_id = 2;
-}
-
-// Get users count by designation
-message GetUsersCountRequest {
-  string designation_id = 1;
-}
-
-message GetUsersCountResponse {
-  int32 count = 1;
+  PaginationMetadata pagination = 2;
 }
 
 // ========== Service ==========
 
 service DesignationService {
   // Create a new designation
+  
   rpc CreateDesignation(CreateDesignationRequest) returns (DesignationResponse) {
     option (google.api.http) = {
       post: "/api/v1/designations"
@@ -137,13 +86,6 @@ service DesignationService {
   rpc GetDesignation(GetDesignationRequest) returns (DesignationResponse) {
     option (google.api.http) = {
       get: "/api/v1/designations/{id}"
-    };
-  }
-  
-  // Get designation by slug
-  rpc GetDesignationBySlug(GetDesignationBySlugRequest) returns (DesignationResponse) {
-    option (google.api.http) = {
-      get: "/api/v1/designations/slug/{slug}"
     };
   }
   
@@ -166,36 +108,6 @@ service DesignationService {
   rpc ListDesignations(ListDesignationsRequest) returns (ListDesignationsResponse) {
     option (google.api.http) = {
       get: "/api/v1/designations"
-    };
-  }
-  
-  // Get designation hierarchy (parent and children)
-  rpc GetDesignationHierarchy(GetDesignationHierarchyRequest) returns (GetDesignationHierarchyResponse) {
-    option (google.api.http) = {
-      get: "/api/v1/designations/{id}/hierarchy"
-    };
-  }
-  
-  // Toggle designation active status
-  rpc ToggleDesignationStatus(ToggleDesignationStatusRequest) returns (DesignationResponse) {
-    option (google.api.http) = {
-      patch: "/api/v1/designations/{id}/status"
-      body: "*"
-    };
-  }
-  
-  // Check if designation name exists
-  rpc CheckDesignationExists(CheckDesignationExistsRequest) returns (CheckDesignationExistsResponse) {
-    option (google.api.http) = {
-      post: "/api/v1/designations/check-exists"
-      body: "*"
-    };
-  }
-  
-  // Get users count for a designation
-  rpc GetUsersCount(GetUsersCountRequest) returns (GetUsersCountResponse) {
-    option (google.api.http) = {
-      get: "/api/v1/designations/{designation_id}/users-count"
     };
   }
 }

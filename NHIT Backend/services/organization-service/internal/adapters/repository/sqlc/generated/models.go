@@ -9,36 +9,36 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-// Stores organization information for multi-tenancy
+// Stores parent and child organizations. Matches proto Organization message.
 type Organization struct {
-	// Unique identifier for the organization
-	OrgID uuid.UUID `db:"org_id" json:"org_id"`
-	// Reference to the tenant this organization belongs to
+	OrgID    uuid.UUID `db:"org_id" json:"org_id"`
 	TenantID uuid.UUID `db:"tenant_id" json:"tenant_id"`
-	Name     string    `db:"name" json:"name"`
-	// Unique organization code (e.g., NHIT, ABC)
-	Code string `db:"code" json:"code"`
-	// Database name for this organization (multi-tenant isolation)
-	DatabaseName string  `db:"database_name" json:"database_name"`
-	Description  *string `db:"description" json:"description"`
-	Logo         *string `db:"logo" json:"logo"`
-	// Whether the organization is active and accessible
-	IsActive bool `db:"is_active" json:"is_active"`
-	// User ID who created this organization
-	CreatedBy uuid.UUID        `db:"created_by" json:"created_by"`
+	// NULL for parent orgs; contains parent org UUID for child orgs.
+	ParentOrgID  pgtype.UUID `db:"parent_org_id" json:"parent_org_id"`
+	Name         string      `db:"name" json:"name"`
+	Code         string      `db:"code" json:"code"`
+	DatabaseName string      `db:"database_name" json:"database_name"`
+	Description  *string     `db:"description" json:"description"`
+	Logo         *string     `db:"logo" json:"logo"`
+	// Only filled for parent orgs. Represents initial super admin for system onboarding.
+	SuperAdminName *string `db:"super_admin_name" json:"super_admin_name"`
+	// Super admin email for parent orgs.
+	SuperAdminEmail *string `db:"super_admin_email" json:"super_admin_email"`
+	// Super admin password for parent orgs.
+	SuperAdminPassword *string `db:"super_admin_password" json:"super_admin_password"`
+	// List of initial projects stored as TEXT[]
+	InitialProjects []string `db:"initial_projects" json:"initial_projects"`
+	// 0 = activated, 1 = deactivated (matches proto enum OrganizationStatus)
+	Status    int16            `db:"status" json:"status"`
 	CreatedAt pgtype.Timestamp `db:"created_at" json:"created_at"`
 	UpdatedAt pgtype.Timestamp `db:"updated_at" json:"updated_at"`
 }
 
-// Junction table for user-organization relationships
+// Junction table mapping users to organizations.
 type UserOrganization struct {
-	// Reference to the user
-	UserID uuid.UUID `db:"user_id" json:"user_id"`
-	// Reference to the organization
-	OrgID uuid.UUID `db:"org_id" json:"org_id"`
-	// Role the user has within this organization
-	RoleID uuid.UUID `db:"role_id" json:"role_id"`
-	// Whether this is the users current active organization context
+	UserID           uuid.UUID        `db:"user_id" json:"user_id"`
+	OrgID            uuid.UUID        `db:"org_id" json:"org_id"`
+	RoleID           uuid.UUID        `db:"role_id" json:"role_id"`
 	IsCurrentContext bool             `db:"is_current_context" json:"is_current_context"`
 	JoinedAt         pgtype.Timestamp `db:"joined_at" json:"joined_at"`
 	UpdatedAt        pgtype.Timestamp `db:"updated_at" json:"updated_at"`

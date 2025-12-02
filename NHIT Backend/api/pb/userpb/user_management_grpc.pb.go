@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v6.32.0
-// source: user_management.proto
+// source: api/proto/user_management.proto
 
 package userpb
 
@@ -20,24 +20,39 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	UserManagement_CreateTenant_FullMethodName           = "/UserManagement/CreateTenant"
-	UserManagement_GetTenant_FullMethodName              = "/UserManagement/GetTenant"
-	UserManagement_CreateRole_FullMethodName             = "/UserManagement/CreateRole"
-	UserManagement_ListRoles_FullMethodName              = "/UserManagement/ListRoles"
-	UserManagement_GetRole_FullMethodName                = "/UserManagement/GetRole"
-	UserManagement_UpdateRole_FullMethodName             = "/UserManagement/UpdateRole"
-	UserManagement_DeleteRole_FullMethodName             = "/UserManagement/DeleteRole"
-	UserManagement_CreateUser_FullMethodName             = "/UserManagement/CreateUser"
-	UserManagement_GetUser_FullMethodName                = "/UserManagement/GetUser"
-	UserManagement_ListUsers_FullMethodName              = "/UserManagement/ListUsers"
-	UserManagement_UpdateUser_FullMethodName             = "/UserManagement/UpdateUser"
-	UserManagement_DeleteUser_FullMethodName             = "/UserManagement/DeleteUser"
-	UserManagement_AssignRolesToUser_FullMethodName      = "/UserManagement/AssignRolesToUser"
-	UserManagement_ListRolesOfUser_FullMethodName        = "/UserManagement/ListRolesOfUser"
-	UserManagement_CreateUserLoginHistory_FullMethodName = "/UserManagement/CreateUserLoginHistory"
-	UserManagement_ListUserLoginHistories_FullMethodName = "/UserManagement/ListUserLoginHistories"
-	UserManagement_ListUsersPaginated_FullMethodName     = "/UserManagement/ListUsersPaginated"
-	UserManagement_CountUsersByTenant_FullMethodName     = "/UserManagement/CountUsersByTenant"
+	UserManagement_CreateTenant_FullMethodName               = "/UserManagement/CreateTenant"
+	UserManagement_GetTenant_FullMethodName                  = "/UserManagement/GetTenant"
+	UserManagement_CreateRole_FullMethodName                 = "/UserManagement/CreateRole"
+	UserManagement_ListRoles_FullMethodName                  = "/UserManagement/ListRoles"
+	UserManagement_ListRolesByOrganization_FullMethodName    = "/UserManagement/ListRolesByOrganization"
+	UserManagement_GetRole_FullMethodName                    = "/UserManagement/GetRole"
+	UserManagement_UpdateRole_FullMethodName                 = "/UserManagement/UpdateRole"
+	UserManagement_DeleteRole_FullMethodName                 = "/UserManagement/DeleteRole"
+	UserManagement_CloneRole_FullMethodName                  = "/UserManagement/CloneRole"
+	UserManagement_ListPermissions_FullMethodName            = "/UserManagement/ListPermissions"
+	UserManagement_GetPermissionsByModule_FullMethodName     = "/UserManagement/GetPermissionsByModule"
+	UserManagement_CreateCustomPermission_FullMethodName     = "/UserManagement/CreateCustomPermission"
+	UserManagement_CreateUser_FullMethodName                 = "/UserManagement/CreateUser"
+	UserManagement_GetUser_FullMethodName                    = "/UserManagement/GetUser"
+	UserManagement_ListUsers_FullMethodName                  = "/UserManagement/ListUsers"
+	UserManagement_UpdateUser_FullMethodName                 = "/UserManagement/UpdateUser"
+	UserManagement_DeleteUser_FullMethodName                 = "/UserManagement/DeleteUser"
+	UserManagement_AssignRolesToUser_FullMethodName          = "/UserManagement/AssignRolesToUser"
+	UserManagement_ListRolesOfUser_FullMethodName            = "/UserManagement/ListRolesOfUser"
+	UserManagement_CreateUserLoginHistory_FullMethodName     = "/UserManagement/CreateUserLoginHistory"
+	UserManagement_ListUserLoginHistories_FullMethodName     = "/UserManagement/ListUserLoginHistories"
+	UserManagement_DeactivateUser_FullMethodName             = "/UserManagement/DeactivateUser"
+	UserManagement_ReactivateUser_FullMethodName             = "/UserManagement/ReactivateUser"
+	UserManagement_CreateActivityLog_FullMethodName          = "/UserManagement/CreateActivityLog"
+	UserManagement_ListActivityLogs_FullMethodName           = "/UserManagement/ListActivityLogs"
+	UserManagement_CreateNotification_FullMethodName         = "/UserManagement/CreateNotification"
+	UserManagement_ListNotifications_FullMethodName          = "/UserManagement/ListNotifications"
+	UserManagement_MarkNotificationAsRead_FullMethodName     = "/UserManagement/MarkNotificationAsRead"
+	UserManagement_AddUserToOrganization_FullMethodName      = "/UserManagement/AddUserToOrganization"
+	UserManagement_RemoveUserFromOrganization_FullMethodName = "/UserManagement/RemoveUserFromOrganization"
+	UserManagement_ListUserOrganizations_FullMethodName      = "/UserManagement/ListUserOrganizations"
+	UserManagement_ListUsersPaginated_FullMethodName         = "/UserManagement/ListUsersPaginated"
+	UserManagement_CountUsersByTenant_FullMethodName         = "/UserManagement/CountUsersByTenant"
 )
 
 // UserManagementClient is the client API for UserManagement service.
@@ -51,12 +66,18 @@ type UserManagementClient interface {
 	// Tenant / Super Admin
 	CreateTenant(ctx context.Context, in *CreateTenantRequest, opts ...grpc.CallOption) (*TenantResponse, error)
 	GetTenant(ctx context.Context, in *GetTenantRequest, opts ...grpc.CallOption) (*TenantResponse, error)
-	// Role Management
+	// Role Management (Dynamic)
 	CreateRole(ctx context.Context, in *CreateRoleRequest, opts ...grpc.CallOption) (*RoleResponse, error)
 	ListRoles(ctx context.Context, in *ListRolesRequest, opts ...grpc.CallOption) (*ListRolesResponse, error)
+	ListRolesByOrganization(ctx context.Context, in *ListRolesByOrganizationRequest, opts ...grpc.CallOption) (*ListRolesResponse, error)
 	GetRole(ctx context.Context, in *GetRoleRequest, opts ...grpc.CallOption) (*RoleResponse, error)
 	UpdateRole(ctx context.Context, in *UpdateRoleRequest, opts ...grpc.CallOption) (*RoleResponse, error)
 	DeleteRole(ctx context.Context, in *DeleteRoleRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	CloneRole(ctx context.Context, in *CloneRoleRequest, opts ...grpc.CallOption) (*RoleResponse, error)
+	// Permission Management
+	ListPermissions(ctx context.Context, in *ListPermissionsRequest, opts ...grpc.CallOption) (*ListPermissionsResponse, error)
+	GetPermissionsByModule(ctx context.Context, in *GetPermissionsByModuleRequest, opts ...grpc.CallOption) (*ListPermissionsResponse, error)
+	CreateCustomPermission(ctx context.Context, in *CreateCustomPermissionRequest, opts ...grpc.CallOption) (*PermissionResponse, error)
 	// --------------------
 	// User Management (CRUD + Roles)
 	// --------------------
@@ -71,6 +92,20 @@ type UserManagementClient interface {
 	// User Login History
 	CreateUserLoginHistory(ctx context.Context, in *CreateUserLoginHistoryRequest, opts ...grpc.CallOption) (*UserLoginHistoryResponse, error)
 	ListUserLoginHistories(ctx context.Context, in *ListUserLoginHistoriesRequest, opts ...grpc.CallOption) (*ListUserLoginHistoriesResponse, error)
+	// User Deactivation/Reactivation
+	DeactivateUser(ctx context.Context, in *DeactivateUserRequest, opts ...grpc.CallOption) (*UserResponse, error)
+	ReactivateUser(ctx context.Context, in *ReactivateUserRequest, opts ...grpc.CallOption) (*UserResponse, error)
+	// Activity Logs
+	CreateActivityLog(ctx context.Context, in *CreateActivityLogRequest, opts ...grpc.CallOption) (*ActivityLogResponse, error)
+	ListActivityLogs(ctx context.Context, in *ListActivityLogsRequest, opts ...grpc.CallOption) (*ListActivityLogsResponse, error)
+	// Notifications
+	CreateNotification(ctx context.Context, in *CreateNotificationRequest, opts ...grpc.CallOption) (*NotificationResponse, error)
+	ListNotifications(ctx context.Context, in *ListNotificationsRequest, opts ...grpc.CallOption) (*ListNotificationsResponse, error)
+	MarkNotificationAsRead(ctx context.Context, in *MarkNotificationAsReadRequest, opts ...grpc.CallOption) (*NotificationResponse, error)
+	// User-Organization Management
+	AddUserToOrganization(ctx context.Context, in *AddUserToOrganizationRequest, opts ...grpc.CallOption) (*UserResponse, error)
+	RemoveUserFromOrganization(ctx context.Context, in *RemoveUserFromOrganizationRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	ListUserOrganizations(ctx context.Context, in *ListUserOrganizationsRequest, opts ...grpc.CallOption) (*ListUserOrganizationsResponse, error)
 	// Pagination & Count
 	ListUsersPaginated(ctx context.Context, in *ListUsersPaginatedRequest, opts ...grpc.CallOption) (*ListUsersPaginatedResponse, error)
 	CountUsersByTenant(ctx context.Context, in *CountUsersByTenantRequest, opts ...grpc.CallOption) (*CountUsersByTenantResponse, error)
@@ -124,6 +159,16 @@ func (c *userManagementClient) ListRoles(ctx context.Context, in *ListRolesReque
 	return out, nil
 }
 
+func (c *userManagementClient) ListRolesByOrganization(ctx context.Context, in *ListRolesByOrganizationRequest, opts ...grpc.CallOption) (*ListRolesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListRolesResponse)
+	err := c.cc.Invoke(ctx, UserManagement_ListRolesByOrganization_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *userManagementClient) GetRole(ctx context.Context, in *GetRoleRequest, opts ...grpc.CallOption) (*RoleResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(RoleResponse)
@@ -148,6 +193,46 @@ func (c *userManagementClient) DeleteRole(ctx context.Context, in *DeleteRoleReq
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, UserManagement_DeleteRole_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userManagementClient) CloneRole(ctx context.Context, in *CloneRoleRequest, opts ...grpc.CallOption) (*RoleResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RoleResponse)
+	err := c.cc.Invoke(ctx, UserManagement_CloneRole_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userManagementClient) ListPermissions(ctx context.Context, in *ListPermissionsRequest, opts ...grpc.CallOption) (*ListPermissionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListPermissionsResponse)
+	err := c.cc.Invoke(ctx, UserManagement_ListPermissions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userManagementClient) GetPermissionsByModule(ctx context.Context, in *GetPermissionsByModuleRequest, opts ...grpc.CallOption) (*ListPermissionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListPermissionsResponse)
+	err := c.cc.Invoke(ctx, UserManagement_GetPermissionsByModule_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userManagementClient) CreateCustomPermission(ctx context.Context, in *CreateCustomPermissionRequest, opts ...grpc.CallOption) (*PermissionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PermissionResponse)
+	err := c.cc.Invoke(ctx, UserManagement_CreateCustomPermission_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -244,6 +329,106 @@ func (c *userManagementClient) ListUserLoginHistories(ctx context.Context, in *L
 	return out, nil
 }
 
+func (c *userManagementClient) DeactivateUser(ctx context.Context, in *DeactivateUserRequest, opts ...grpc.CallOption) (*UserResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UserResponse)
+	err := c.cc.Invoke(ctx, UserManagement_DeactivateUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userManagementClient) ReactivateUser(ctx context.Context, in *ReactivateUserRequest, opts ...grpc.CallOption) (*UserResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UserResponse)
+	err := c.cc.Invoke(ctx, UserManagement_ReactivateUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userManagementClient) CreateActivityLog(ctx context.Context, in *CreateActivityLogRequest, opts ...grpc.CallOption) (*ActivityLogResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ActivityLogResponse)
+	err := c.cc.Invoke(ctx, UserManagement_CreateActivityLog_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userManagementClient) ListActivityLogs(ctx context.Context, in *ListActivityLogsRequest, opts ...grpc.CallOption) (*ListActivityLogsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListActivityLogsResponse)
+	err := c.cc.Invoke(ctx, UserManagement_ListActivityLogs_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userManagementClient) CreateNotification(ctx context.Context, in *CreateNotificationRequest, opts ...grpc.CallOption) (*NotificationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(NotificationResponse)
+	err := c.cc.Invoke(ctx, UserManagement_CreateNotification_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userManagementClient) ListNotifications(ctx context.Context, in *ListNotificationsRequest, opts ...grpc.CallOption) (*ListNotificationsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListNotificationsResponse)
+	err := c.cc.Invoke(ctx, UserManagement_ListNotifications_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userManagementClient) MarkNotificationAsRead(ctx context.Context, in *MarkNotificationAsReadRequest, opts ...grpc.CallOption) (*NotificationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(NotificationResponse)
+	err := c.cc.Invoke(ctx, UserManagement_MarkNotificationAsRead_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userManagementClient) AddUserToOrganization(ctx context.Context, in *AddUserToOrganizationRequest, opts ...grpc.CallOption) (*UserResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UserResponse)
+	err := c.cc.Invoke(ctx, UserManagement_AddUserToOrganization_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userManagementClient) RemoveUserFromOrganization(ctx context.Context, in *RemoveUserFromOrganizationRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, UserManagement_RemoveUserFromOrganization_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userManagementClient) ListUserOrganizations(ctx context.Context, in *ListUserOrganizationsRequest, opts ...grpc.CallOption) (*ListUserOrganizationsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListUserOrganizationsResponse)
+	err := c.cc.Invoke(ctx, UserManagement_ListUserOrganizations_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *userManagementClient) ListUsersPaginated(ctx context.Context, in *ListUsersPaginatedRequest, opts ...grpc.CallOption) (*ListUsersPaginatedResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListUsersPaginatedResponse)
@@ -275,12 +460,18 @@ type UserManagementServer interface {
 	// Tenant / Super Admin
 	CreateTenant(context.Context, *CreateTenantRequest) (*TenantResponse, error)
 	GetTenant(context.Context, *GetTenantRequest) (*TenantResponse, error)
-	// Role Management
+	// Role Management (Dynamic)
 	CreateRole(context.Context, *CreateRoleRequest) (*RoleResponse, error)
 	ListRoles(context.Context, *ListRolesRequest) (*ListRolesResponse, error)
+	ListRolesByOrganization(context.Context, *ListRolesByOrganizationRequest) (*ListRolesResponse, error)
 	GetRole(context.Context, *GetRoleRequest) (*RoleResponse, error)
 	UpdateRole(context.Context, *UpdateRoleRequest) (*RoleResponse, error)
 	DeleteRole(context.Context, *DeleteRoleRequest) (*emptypb.Empty, error)
+	CloneRole(context.Context, *CloneRoleRequest) (*RoleResponse, error)
+	// Permission Management
+	ListPermissions(context.Context, *ListPermissionsRequest) (*ListPermissionsResponse, error)
+	GetPermissionsByModule(context.Context, *GetPermissionsByModuleRequest) (*ListPermissionsResponse, error)
+	CreateCustomPermission(context.Context, *CreateCustomPermissionRequest) (*PermissionResponse, error)
 	// --------------------
 	// User Management (CRUD + Roles)
 	// --------------------
@@ -295,6 +486,20 @@ type UserManagementServer interface {
 	// User Login History
 	CreateUserLoginHistory(context.Context, *CreateUserLoginHistoryRequest) (*UserLoginHistoryResponse, error)
 	ListUserLoginHistories(context.Context, *ListUserLoginHistoriesRequest) (*ListUserLoginHistoriesResponse, error)
+	// User Deactivation/Reactivation
+	DeactivateUser(context.Context, *DeactivateUserRequest) (*UserResponse, error)
+	ReactivateUser(context.Context, *ReactivateUserRequest) (*UserResponse, error)
+	// Activity Logs
+	CreateActivityLog(context.Context, *CreateActivityLogRequest) (*ActivityLogResponse, error)
+	ListActivityLogs(context.Context, *ListActivityLogsRequest) (*ListActivityLogsResponse, error)
+	// Notifications
+	CreateNotification(context.Context, *CreateNotificationRequest) (*NotificationResponse, error)
+	ListNotifications(context.Context, *ListNotificationsRequest) (*ListNotificationsResponse, error)
+	MarkNotificationAsRead(context.Context, *MarkNotificationAsReadRequest) (*NotificationResponse, error)
+	// User-Organization Management
+	AddUserToOrganization(context.Context, *AddUserToOrganizationRequest) (*UserResponse, error)
+	RemoveUserFromOrganization(context.Context, *RemoveUserFromOrganizationRequest) (*emptypb.Empty, error)
+	ListUserOrganizations(context.Context, *ListUserOrganizationsRequest) (*ListUserOrganizationsResponse, error)
 	// Pagination & Count
 	ListUsersPaginated(context.Context, *ListUsersPaginatedRequest) (*ListUsersPaginatedResponse, error)
 	CountUsersByTenant(context.Context, *CountUsersByTenantRequest) (*CountUsersByTenantResponse, error)
@@ -320,6 +525,9 @@ func (UnimplementedUserManagementServer) CreateRole(context.Context, *CreateRole
 func (UnimplementedUserManagementServer) ListRoles(context.Context, *ListRolesRequest) (*ListRolesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListRoles not implemented")
 }
+func (UnimplementedUserManagementServer) ListRolesByOrganization(context.Context, *ListRolesByOrganizationRequest) (*ListRolesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListRolesByOrganization not implemented")
+}
 func (UnimplementedUserManagementServer) GetRole(context.Context, *GetRoleRequest) (*RoleResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetRole not implemented")
 }
@@ -328,6 +536,18 @@ func (UnimplementedUserManagementServer) UpdateRole(context.Context, *UpdateRole
 }
 func (UnimplementedUserManagementServer) DeleteRole(context.Context, *DeleteRoleRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteRole not implemented")
+}
+func (UnimplementedUserManagementServer) CloneRole(context.Context, *CloneRoleRequest) (*RoleResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CloneRole not implemented")
+}
+func (UnimplementedUserManagementServer) ListPermissions(context.Context, *ListPermissionsRequest) (*ListPermissionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListPermissions not implemented")
+}
+func (UnimplementedUserManagementServer) GetPermissionsByModule(context.Context, *GetPermissionsByModuleRequest) (*ListPermissionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPermissionsByModule not implemented")
+}
+func (UnimplementedUserManagementServer) CreateCustomPermission(context.Context, *CreateCustomPermissionRequest) (*PermissionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateCustomPermission not implemented")
 }
 func (UnimplementedUserManagementServer) CreateUser(context.Context, *CreateUserRequest) (*UserResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateUser not implemented")
@@ -355,6 +575,36 @@ func (UnimplementedUserManagementServer) CreateUserLoginHistory(context.Context,
 }
 func (UnimplementedUserManagementServer) ListUserLoginHistories(context.Context, *ListUserLoginHistoriesRequest) (*ListUserLoginHistoriesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListUserLoginHistories not implemented")
+}
+func (UnimplementedUserManagementServer) DeactivateUser(context.Context, *DeactivateUserRequest) (*UserResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeactivateUser not implemented")
+}
+func (UnimplementedUserManagementServer) ReactivateUser(context.Context, *ReactivateUserRequest) (*UserResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReactivateUser not implemented")
+}
+func (UnimplementedUserManagementServer) CreateActivityLog(context.Context, *CreateActivityLogRequest) (*ActivityLogResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateActivityLog not implemented")
+}
+func (UnimplementedUserManagementServer) ListActivityLogs(context.Context, *ListActivityLogsRequest) (*ListActivityLogsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListActivityLogs not implemented")
+}
+func (UnimplementedUserManagementServer) CreateNotification(context.Context, *CreateNotificationRequest) (*NotificationResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateNotification not implemented")
+}
+func (UnimplementedUserManagementServer) ListNotifications(context.Context, *ListNotificationsRequest) (*ListNotificationsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListNotifications not implemented")
+}
+func (UnimplementedUserManagementServer) MarkNotificationAsRead(context.Context, *MarkNotificationAsReadRequest) (*NotificationResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method MarkNotificationAsRead not implemented")
+}
+func (UnimplementedUserManagementServer) AddUserToOrganization(context.Context, *AddUserToOrganizationRequest) (*UserResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddUserToOrganization not implemented")
+}
+func (UnimplementedUserManagementServer) RemoveUserFromOrganization(context.Context, *RemoveUserFromOrganizationRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveUserFromOrganization not implemented")
+}
+func (UnimplementedUserManagementServer) ListUserOrganizations(context.Context, *ListUserOrganizationsRequest) (*ListUserOrganizationsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListUserOrganizations not implemented")
 }
 func (UnimplementedUserManagementServer) ListUsersPaginated(context.Context, *ListUsersPaginatedRequest) (*ListUsersPaginatedResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListUsersPaginated not implemented")
@@ -455,6 +705,24 @@ func _UserManagement_ListRoles_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserManagement_ListRolesByOrganization_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListRolesByOrganizationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserManagementServer).ListRolesByOrganization(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserManagement_ListRolesByOrganization_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserManagementServer).ListRolesByOrganization(ctx, req.(*ListRolesByOrganizationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _UserManagement_GetRole_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetRoleRequest)
 	if err := dec(in); err != nil {
@@ -505,6 +773,78 @@ func _UserManagement_DeleteRole_Handler(srv interface{}, ctx context.Context, de
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(UserManagementServer).DeleteRole(ctx, req.(*DeleteRoleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserManagement_CloneRole_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CloneRoleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserManagementServer).CloneRole(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserManagement_CloneRole_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserManagementServer).CloneRole(ctx, req.(*CloneRoleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserManagement_ListPermissions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListPermissionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserManagementServer).ListPermissions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserManagement_ListPermissions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserManagementServer).ListPermissions(ctx, req.(*ListPermissionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserManagement_GetPermissionsByModule_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPermissionsByModuleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserManagementServer).GetPermissionsByModule(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserManagement_GetPermissionsByModule_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserManagementServer).GetPermissionsByModule(ctx, req.(*GetPermissionsByModuleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserManagement_CreateCustomPermission_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateCustomPermissionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserManagementServer).CreateCustomPermission(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserManagement_CreateCustomPermission_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserManagementServer).CreateCustomPermission(ctx, req.(*CreateCustomPermissionRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -671,6 +1011,186 @@ func _UserManagement_ListUserLoginHistories_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserManagement_DeactivateUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeactivateUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserManagementServer).DeactivateUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserManagement_DeactivateUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserManagementServer).DeactivateUser(ctx, req.(*DeactivateUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserManagement_ReactivateUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReactivateUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserManagementServer).ReactivateUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserManagement_ReactivateUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserManagementServer).ReactivateUser(ctx, req.(*ReactivateUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserManagement_CreateActivityLog_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateActivityLogRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserManagementServer).CreateActivityLog(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserManagement_CreateActivityLog_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserManagementServer).CreateActivityLog(ctx, req.(*CreateActivityLogRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserManagement_ListActivityLogs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListActivityLogsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserManagementServer).ListActivityLogs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserManagement_ListActivityLogs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserManagementServer).ListActivityLogs(ctx, req.(*ListActivityLogsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserManagement_CreateNotification_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateNotificationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserManagementServer).CreateNotification(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserManagement_CreateNotification_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserManagementServer).CreateNotification(ctx, req.(*CreateNotificationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserManagement_ListNotifications_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListNotificationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserManagementServer).ListNotifications(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserManagement_ListNotifications_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserManagementServer).ListNotifications(ctx, req.(*ListNotificationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserManagement_MarkNotificationAsRead_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MarkNotificationAsReadRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserManagementServer).MarkNotificationAsRead(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserManagement_MarkNotificationAsRead_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserManagementServer).MarkNotificationAsRead(ctx, req.(*MarkNotificationAsReadRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserManagement_AddUserToOrganization_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddUserToOrganizationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserManagementServer).AddUserToOrganization(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserManagement_AddUserToOrganization_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserManagementServer).AddUserToOrganization(ctx, req.(*AddUserToOrganizationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserManagement_RemoveUserFromOrganization_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveUserFromOrganizationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserManagementServer).RemoveUserFromOrganization(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserManagement_RemoveUserFromOrganization_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserManagementServer).RemoveUserFromOrganization(ctx, req.(*RemoveUserFromOrganizationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserManagement_ListUserOrganizations_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListUserOrganizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserManagementServer).ListUserOrganizations(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserManagement_ListUserOrganizations_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserManagementServer).ListUserOrganizations(ctx, req.(*ListUserOrganizationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _UserManagement_ListUsersPaginated_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListUsersPaginatedRequest)
 	if err := dec(in); err != nil {
@@ -731,6 +1251,10 @@ var UserManagement_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _UserManagement_ListRoles_Handler,
 		},
 		{
+			MethodName: "ListRolesByOrganization",
+			Handler:    _UserManagement_ListRolesByOrganization_Handler,
+		},
+		{
 			MethodName: "GetRole",
 			Handler:    _UserManagement_GetRole_Handler,
 		},
@@ -741,6 +1265,22 @@ var UserManagement_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteRole",
 			Handler:    _UserManagement_DeleteRole_Handler,
+		},
+		{
+			MethodName: "CloneRole",
+			Handler:    _UserManagement_CloneRole_Handler,
+		},
+		{
+			MethodName: "ListPermissions",
+			Handler:    _UserManagement_ListPermissions_Handler,
+		},
+		{
+			MethodName: "GetPermissionsByModule",
+			Handler:    _UserManagement_GetPermissionsByModule_Handler,
+		},
+		{
+			MethodName: "CreateCustomPermission",
+			Handler:    _UserManagement_CreateCustomPermission_Handler,
 		},
 		{
 			MethodName: "CreateUser",
@@ -779,6 +1319,46 @@ var UserManagement_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _UserManagement_ListUserLoginHistories_Handler,
 		},
 		{
+			MethodName: "DeactivateUser",
+			Handler:    _UserManagement_DeactivateUser_Handler,
+		},
+		{
+			MethodName: "ReactivateUser",
+			Handler:    _UserManagement_ReactivateUser_Handler,
+		},
+		{
+			MethodName: "CreateActivityLog",
+			Handler:    _UserManagement_CreateActivityLog_Handler,
+		},
+		{
+			MethodName: "ListActivityLogs",
+			Handler:    _UserManagement_ListActivityLogs_Handler,
+		},
+		{
+			MethodName: "CreateNotification",
+			Handler:    _UserManagement_CreateNotification_Handler,
+		},
+		{
+			MethodName: "ListNotifications",
+			Handler:    _UserManagement_ListNotifications_Handler,
+		},
+		{
+			MethodName: "MarkNotificationAsRead",
+			Handler:    _UserManagement_MarkNotificationAsRead_Handler,
+		},
+		{
+			MethodName: "AddUserToOrganization",
+			Handler:    _UserManagement_AddUserToOrganization_Handler,
+		},
+		{
+			MethodName: "RemoveUserFromOrganization",
+			Handler:    _UserManagement_RemoveUserFromOrganization_Handler,
+		},
+		{
+			MethodName: "ListUserOrganizations",
+			Handler:    _UserManagement_ListUserOrganizations_Handler,
+		},
+		{
 			MethodName: "ListUsersPaginated",
 			Handler:    _UserManagement_ListUsersPaginated_Handler,
 		},
@@ -788,5 +1368,5 @@ var UserManagement_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "user_management.proto",
+	Metadata: "api/proto/user_management.proto",
 }
