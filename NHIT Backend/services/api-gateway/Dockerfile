@@ -10,6 +10,8 @@ COPY api/pb/departmentpb/go.mod ./api/pb/departmentpb/
 COPY api/pb/designationpb/go.mod ./api/pb/designationpb/
 COPY api/pb/organizationpb/go.mod ./api/pb/organizationpb/
 COPY api/pb/vendorpb/go.mod ./api/pb/vendorpb/
+COPY api/pb/authpb/go.mod ./api/pb/authpb/
+COPY api/pb/projectpb/go.mod ./api/pb/projectpb/
 
 # Download dependencies for the api-gateway module
 RUN cd services/api-gateway && go mod download

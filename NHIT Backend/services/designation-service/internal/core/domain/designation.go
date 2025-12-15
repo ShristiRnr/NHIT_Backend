@@ -11,6 +11,7 @@ import (
 // Designation represents a job designation/position in the organization
 type Designation struct {
 	ID          uuid.UUID
+	OrgID       *uuid.UUID
 	Name        string
 	Description string
 	CreatedAt   time.Time
@@ -18,7 +19,7 @@ type Designation struct {
 }
 
 // NewDesignation creates a new designation with validation
-func NewDesignation(name, description string) (*Designation, error) {
+func NewDesignation(name, description string, orgID *uuid.UUID) (*Designation, error) {
 	name = strings.TrimSpace(name)
 	description = strings.TrimSpace(description)
 
@@ -36,6 +37,7 @@ func NewDesignation(name, description string) (*Designation, error) {
 
 	return &Designation{
 		ID:          uuid.New(),
+		OrgID:       orgID,
 		Name:        name,
 		Description: description,
 		CreatedAt:   now,

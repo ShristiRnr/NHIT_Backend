@@ -5,6 +5,9 @@ WORKDIR /app
 # Copy service and local module go.mod files
 COPY services/auth-service/go.mod services/auth-service/go.sum ./services/auth-service/
 COPY api/proto/go.mod api/proto/go.sum ./api/proto/
+COPY api/pb/authpb/go.mod ./api/pb/authpb/
+COPY api/pb/organizationpb/go.mod ./api/pb/organizationpb/
+COPY api/pb/userpb/go.mod ./api/pb/userpb/
 
 # Download dependencies for the auth-service module
 RUN cd services/auth-service && go mod download

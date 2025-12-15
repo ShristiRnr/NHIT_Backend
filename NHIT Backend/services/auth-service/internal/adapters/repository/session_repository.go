@@ -2,22 +2,23 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 
 	"github.com/ShristiRnr/NHIT_Backend/services/auth-service/internal/core/domain"
 	"github.com/ShristiRnr/NHIT_Backend/services/auth-service/internal/core/ports"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type sessionRepository struct {
-	db *sql.DB
+	db *pgxpool.Pool
 }
 
 // Ensure sessionRepository implements ports.SessionRepository at compile time
 var _ ports.SessionRepository = (*sessionRepository)(nil)
 
-func NewSessionRepository(db *sql.DB) ports.SessionRepository {
+func NewSessionRepository(db *pgxpool.Pool) ports.SessionRepository {
 	return &sessionRepository{db: db}
 }
 
@@ -28,7 +29,7 @@ func (r *sessionRepository) Create(ctx context.Context, session *domain.Session)
 		RETURNING session_id, user_id, session_token, created_at, expires_at
 	`
 
-	err := r.db.QueryRowContext(
+	err := r.db.QueryRow(
 		ctx,
 		query,
 		session.SessionID,
@@ -59,7 +60,7 @@ func (r *sessionRepository) GetByID(ctx context.Context, sessionID uuid.UUID) (*
 	`
 
 	session := &domain.Session{}
-	err := r.db.QueryRowContext(ctx, query, sessionID).Scan(
+	err := r.db.QueryRow(ctx, query, sessionID).Scan(
 		&session.SessionID,
 		&session.UserID,
 		&session.SessionToken,
@@ -67,7 +68,7 @@ func (r *sessionRepository) GetByID(ctx context.Context, sessionID uuid.UUID) (*
 		&session.ExpiresAt,
 	)
 
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		return nil, fmt.Errorf("session not found")
 	}
 	if err != nil {
@@ -85,7 +86,7 @@ func (r *sessionRepository) GetByToken(ctx context.Context, token string) (*doma
 	`
 
 	session := &domain.Session{}
-	err := r.db.QueryRowContext(ctx, query, token).Scan(
+	err := r.db.QueryRow(ctx, query, token).Scan(
 		&session.SessionID,
 		&session.UserID,
 		&session.SessionToken,
@@ -93,7 +94,7 @@ func (r *sessionRepository) GetByToken(ctx context.Context, token string) (*doma
 		&session.ExpiresAt,
 	)
 
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		return nil, fmt.Errorf("session not found")
 	}
 	if err != nil {
@@ -106,15 +107,12 @@ func (r *sessionRepository) GetByToken(ctx context.Context, token string) (*doma
 func (r *sessionRepository) Delete(ctx context.Context, sessionID uuid.UUID) error {
 	query := `DELETE FROM sessions WHERE session_id = $1`
 
-	result, err := r.db.ExecContext(ctx, query, sessionID)
+	result, err := r.db.Exec(ctx, query, sessionID)
 	if err != nil {
 		return fmt.Errorf("failed to delete session: %w", err)
 	}
 
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
-	}
+	rows := result.RowsAffected()
 
 	if rows == 0 {
 		return fmt.Errorf("session not found")
@@ -131,7 +129,7 @@ func (r *sessionRepository) GetByUserID(ctx context.Context, userID uuid.UUID) (
 		ORDER BY created_at DESC
 	`
 
-	rows, err := r.db.QueryContext(ctx, query, userID)
+	rows, err := r.db.Query(ctx, query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get sessions: %w", err)
 	}
@@ -163,7 +161,7 @@ func (r *sessionRepository) GetByUserID(ctx context.Context, userID uuid.UUID) (
 func (r *sessionRepository) DeleteByUserID(ctx context.Context, userID uuid.UUID) error {
 	query := `DELETE FROM sessions WHERE user_id = $1`
 
-	_, err := r.db.ExecContext(ctx, query, userID)
+	_, err := r.db.Exec(ctx, query, userID)
 	if err != nil {
 		return fmt.Errorf("failed to delete sessions: %w", err)
 	}

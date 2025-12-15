@@ -1,6 +1,6 @@
 -- name: CreateDesignation :one
-INSERT INTO designations (id, name, description, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO designations (id, name, description, created_at, updated_at, org_id)
+VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *;
 
 -- name: GetDesignationByID :one
@@ -16,7 +16,8 @@ RETURNING *;
 DELETE FROM designations WHERE id = $1;
 
 -- name: ListDesignations :many
-SELECT id, name, description, created_at, updated_at
+SELECT *
 FROM designations
+WHERE ($1::uuid IS NULL OR org_id = $1)
 ORDER BY name ASC
-LIMIT $1 OFFSET $2;
+LIMIT $2 OFFSET $3;

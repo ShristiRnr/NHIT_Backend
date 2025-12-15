@@ -284,15 +284,18 @@ func (s *vendorService) ListVendors(ctx context.Context, tenantID uuid.UUID, fil
 // GenerateVendorCode generates a vendor code (equivalent to PHP VendorService::generateVendorCode)
 func (s *vendorService) GenerateVendorCode(ctx context.Context, vendorName string, vendorType *string) (string, error) {
 	// Create temporary vendor for code generation
+	accountType := ""
+	if vendorType != nil {
+		accountType = *vendorType
+	}
 	tempVendor := &domain.Vendor{
-		VendorName: vendorName,
-		VendorType: vendorType,
+		VendorName:  vendorName,
+		AccountType: accountType,
 	}
 
 	code := tempVendor.GenerateCode()
 
 	s.logger.Debug(ctx, "Generated vendor code", map[string]interface{}{
-		"vendor_name": vendorName,
 		"vendor_type": vendorType,
 		"generated_code": code,
 	})

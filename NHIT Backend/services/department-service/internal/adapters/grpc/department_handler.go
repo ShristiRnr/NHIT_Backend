@@ -3,8 +3,11 @@ package grpc
 import (
 	"context"
 
+	"strings"
+
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -25,6 +28,35 @@ func NewDepartmentHandler(service ports.DepartmentService) *DepartmentHandler {
 	}
 }
 
+// helper to get first non-empty metadata value by keys
+func firstMetadataValue(md metadata.MD, keys ...string) string {
+	for _, k := range keys {
+		if vals := md[strings.ToLower(k)]; len(vals) > 0 && vals[0] != "" {
+			return vals[0]
+		}
+	}
+	return ""
+}
+
+// getOrgIDFromContext extracts org_id from metadata
+func getOrgIDFromContext(ctx context.Context) *uuid.UUID {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil
+	}
+	// Check headers first (if context switching)
+	orgIDStr := firstMetadataValue(md, "x-org-id", "org-id", "orgId", "org_id")
+	if orgIDStr == "" {
+		return nil
+	}
+
+	id, err := uuid.Parse(orgIDStr)
+	if err != nil {
+		return nil
+	}
+	return &id
+}
+
 // CreateDepartment creates a new department
 func (h *DepartmentHandler) CreateDepartment(ctx context.Context, req *departmentpb.CreateDepartmentRequest) (*departmentpb.DepartmentResponse, error) {
 	// Validate request
@@ -35,8 +67,13 @@ func (h *DepartmentHandler) CreateDepartment(ctx context.Context, req *departmen
 		return nil, status.Error(codes.InvalidArgument, "department description is required")
 	}
 
+	orgID := getOrgIDFromContext(ctx)
+	// Optionally enforce orgID requirement?
+	// User said "org_id is not fetching... and not storing". So we should store it.
+	// We pass it to service (which passes to repo).
+
 	// Create department
-	dept, err := h.service.CreateDepartment(ctx, req.Name, req.Description)
+	dept, err := h.service.CreateDepartment(ctx, req.Name, req.Description, orgID)
 	if err != nil {
 		return nil, handleError(err)
 	}
@@ -123,8 +160,10 @@ func (h *DepartmentHandler) ListDepartments(ctx context.Context, req *department
 		pageSize = 10
 	}
 
+	orgID := getOrgIDFromContext(ctx)
+
 	// List departments
-	departments, total, err := h.service.ListDepartments(ctx, page, pageSize)
+	departments, total, err := h.service.ListDepartments(ctx, orgID, page, pageSize)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to list departments")
 	}

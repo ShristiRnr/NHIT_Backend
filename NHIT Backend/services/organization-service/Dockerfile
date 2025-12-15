@@ -5,6 +5,9 @@ WORKDIR /app
 # Copy service and local module go.mod files to satisfy local replaces
 COPY services/organization-service/go.mod services/organization-service/go.sum ./services/organization-service/
 COPY api/pb/organizationpb/go.mod ./api/pb/organizationpb/
+COPY api/pb/authpb/go.mod ./api/pb/authpb/
+COPY api/pb/projectpb/go.mod ./api/pb/projectpb/
+COPY pkg/middleware/go.mod ./pkg/middleware/
 COPY services/shared/go.mod services/shared/go.sum ./services/shared/
 
 # Download dependencies for the organization-service module

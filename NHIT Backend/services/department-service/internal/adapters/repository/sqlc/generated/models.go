@@ -19,4 +19,6 @@ type Department struct {
 	Description string             `db:"description" json:"description"`
 	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	// Organization ID for organization-specific departments (NULL for global departments)
+	OrgID pgtype.UUID `db:"org_id" json:"org_id"`
 }

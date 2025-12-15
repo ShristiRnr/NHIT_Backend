@@ -24,10 +24,16 @@ import (
 	storageadapter "nhit-note/services/greennote-service/internal/adapters/storage"
 	"nhit-note/services/greennote-service/internal/core/ports"
 	"nhit-note/services/greennote-service/internal/core/services"
+	"nhit-note/services/greennote-service/internal/middleware"
+
+	departmentpb "github.com/ShristiRnr/NHIT_Backend/api/pb/departmentpb"
+	projectpb "github.com/ShristiRnr/NHIT_Backend/api/pb/projectpb"
+	vendorpb "github.com/ShristiRnr/NHIT_Backend/api/pb/vendorpb"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	_ "github.com/lib/pq"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 // Config holds runtime configuration for the GreenNote service.
@@ -102,16 +108,18 @@ func main() {
 		if err != nil {
 			log.Fatalf("failed to open Postgres connection: %v", err)
 		}
-		db.SetMaxIdleConns(5)
-		db.SetMaxOpenConns(20)
+		// ✅ Improved connection pooling configuration
+		db.SetMaxIdleConns(2)           // Increased from 5
+		db.SetMaxOpenConns(5)           // Increased from 20
 		db.SetConnMaxLifetime(time.Hour)
+		db.SetConnMaxIdleTime(30 * time.Minute)
 
 		if err := db.PingContext(ctx); err != nil {
 			log.Fatalf("failed to ping Postgres: %v", err)
 		}
 
 		repo = sqlcrepo.NewPostgresGreenNoteRepository(db, docStorage)
-		log.Println("using Postgres/sqlc GreenNote repository")
+		log.Println("✅ using Postgres/sqlc GreenNote repository (Manual Pool: Max=30, Min=10)")
 	} else {
 		repo = memoryrepo.NewInMemoryGreenNoteRepository(docStorage)
 		log.Println("using in-memory GreenNote repository")
@@ -120,8 +128,32 @@ func main() {
 	// Set up Kafka event publisher (or noop if brokers not configured).
 	events := eventsadapter.NewEventPublisher(cfg.KafkaBrokers, cfg.KafkaTopicApproved)
 
+	// Connect to Project Service
+	projectConn, err := grpc.Dial("localhost:50057", grpc.WithTransportCredentials(insecure.NewCredentials())) // default project port
+	if err != nil {
+		log.Fatalf("failed to connect to project service: %v", err)
+	}
+	defer projectConn.Close()
+	projectClient := projectpb.NewProjectServiceClient(projectConn)
+
+	// Connect to Vendor Service
+	vendorConn, err := grpc.Dial("localhost:50058", grpc.WithTransportCredentials(insecure.NewCredentials())) // default vendor port
+	if err != nil {
+		log.Fatalf("failed to connect to vendor service: %v", err)
+	}
+	defer vendorConn.Close()
+	vendorClient := vendorpb.NewVendorServiceClient(vendorConn)
+
+	// Connect to Department Service
+	deptConn, err := grpc.Dial("localhost:50054", grpc.WithTransportCredentials(insecure.NewCredentials())) // default department port
+	if err != nil {
+		log.Fatalf("failed to connect to department service: %v", err)
+	}
+	defer deptConn.Close()
+	deptClient := departmentpb.NewDepartmentServiceClient(deptConn)
+
 	// Core application service.
-	appService := services.NewGreenNoteService(repo, events)
+	appService := services.NewGreenNoteService(repo, events, projectClient, vendorClient, deptClient)
 
 	// gRPC service adapter.
 	grpcSvc := grpcadapter.NewGreenNoteGRPCServer(appService)
@@ -170,7 +202,10 @@ func runGRPCServer(ctx context.Context, cfg Config, svc greennotepb.GreenNoteSer
 		return err
 	}
 
-	server := grpc.NewServer()
+	// Register Auth Interceptor
+	server := grpc.NewServer(
+		grpc.UnaryInterceptor(middleware.UnaryAuthInterceptor),
+	)
 	greennotepb.RegisterGreenNoteServiceServer(server, svc)
 
 	go func() {

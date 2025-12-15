@@ -4,7 +4,7 @@
 
 CREATE TABLE IF NOT EXISTS organizations (
     org_id UUID PRIMARY KEY,
-    tenant_id UUID FOREIGN KEY REFERENCES tenants(tenant_id),
+    tenant_id UUID REFERENCES tenants(tenant_id),
 
     -- Parent Org = NULL
     -- Child Org = parent_org_id = parent organization's UUID

@@ -8,6 +8,26 @@ import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/ShristiRnr/NHIT_Backend/api/pb/vendorpb";
 
+// Enums
+enum AccountType {
+  ACCOUNT_TYPE_UNSPECIFIED = 0;
+  INTERNAL = 1;
+  EXTERNAL = 2;
+}
+
+enum VendorStatus {
+  VENDOR_STATUS_UNSPECIFIED = 0;
+  ACTIVE = 1;
+  INACTIVE = 2;
+}
+
+enum MSMEClassification {
+  MSME_CLASSIFICATION_UNSPECIFIED = 0;
+  MICRO = 1;
+  SMALL = 2;
+  MEDIUM = 3;
+}
+
 // VendorService provides vendor management operations
 service VendorService {
   // Vendor operations
@@ -110,6 +130,13 @@ service VendorService {
       body: "*"
     };
   }
+
+  // Dropdown endpoints
+  rpc GetProjectsDropdown(GetProjectsDropdownRequest) returns (GetProjectsDropdownResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/vendors/dropdowns/projects"
+    };
+  }
 }
 
 // Messages
@@ -120,7 +147,7 @@ message Vendor {
   string vendor_name = 4;
   string vendor_email = 5;
   optional string vendor_mobile = 6;
-  optional string vendor_type = 7;
+  string account_type = 7;
   optional string vendor_nick_name = 8;
   optional string activity_type = 9;
   optional string email = 10;
@@ -134,7 +161,7 @@ message Vendor {
   optional string country_name = 18;
   optional string state_name = 19;
   optional string city_name = 20;
-  optional string msme_classification = 21;
+  string msme_classification = 21;
   optional string msme = 22;
   optional string msme_registration_number = 23;
   optional google.protobuf.Timestamp msme_start_date = 24;
@@ -147,7 +174,7 @@ message Vendor {
   optional string common_bank_details = 31;
   optional string income_tax_type = 32;
   optional string project = 33;
-  optional string status = 34;
+  string status = 34;
   optional string from_account_type = 35;
   optional string account_name = 36;
   optional string short_name = 37;
@@ -197,50 +224,50 @@ message BankingDetails {
 
 // Request messages
 message CreateVendorRequest {
-  string tenant_id = 1;
-  string vendor_name = 2;
-  string vendor_email = 3;
-  optional string vendor_mobile = 4;
-  optional string vendor_type = 5;
-  optional string vendor_nick_name = 6;
-  optional string activity_type = 7;
+  string tenant_id = 1 [json_name = "tenant_id"];
+  string vendor_name = 2 [json_name = "vendor_name"];
+  string vendor_email = 3 [json_name = "vendor_email"];
+  optional string vendor_mobile = 4 [json_name = "vendor_mobile"];
+  string account_type = 5 [json_name = "account_type"];
+  optional string vendor_nick_name = 6 [json_name = "vendor_nick_name"];
+  optional string activity_type = 7 [json_name = "activity_type"];
   optional string email = 8;
   optional string mobile = 9;
   optional string gstin = 10;
   string pan = 11;
   optional string pin = 12;
-  optional string country_id = 13;
-  optional string state_id = 14;
-  optional string city_id = 15;
-  optional string country_name = 16;
-  optional string state_name = 17;
-  optional string city_name = 18;
-  optional string msme_classification = 19;
+  optional string country_id = 13 [json_name = "country_id"];
+  optional string state_id = 14 [json_name = "state_id"];
+  optional string city_id = 15 [json_name = "city_id"];
+  optional string country_name = 16 [json_name = "country_name"];
+  optional string state_name = 17 [json_name = "state_name"];
+  optional string city_name = 18 [json_name = "city_name"];
+  string msme_classification = 19 [json_name = "msme_classification"];
   optional string msme = 20;
-  optional string msme_registration_number = 21;
-  optional string msme_start_date = 22;
-  optional string msme_end_date = 23;
-  optional string material_nature = 24;
-  optional string gst_defaulted = 25;
-  optional string section_206ab_verified = 26;
-  string beneficiary_name = 27;
-  optional string remarks_address = 28;
-  optional string common_bank_details = 29;
-  optional string income_tax_type = 30;
+  optional string msme_registration_number = 21 [json_name = "msme_registration_number"];
+  optional string msme_start_date = 22 [json_name = "msme_start_date"];
+  optional string msme_end_date = 23 [json_name = "msme_end_date"];
+  optional string material_nature = 24 [json_name = "material_nature"];
+  optional string gst_defaulted = 25 [json_name = "gst_defaulted"];
+  optional string section_206ab_verified = 26 [json_name = "section_206ab_verified"];
+  string beneficiary_name = 27 [json_name = "beneficiary_name"];
+  optional string remarks_address = 28 [json_name = "remarks_address"];
+  optional string common_bank_details = 29 [json_name = "common_bank_details"];
+  optional string income_tax_type = 30 [json_name = "income_tax_type"];
   optional string project = 31;
-  optional string status = 32;
-  optional string from_account_type = 33;
-  optional string account_name = 34;
-  optional string short_name = 35;
+  string status = 32;
+  optional string from_account_type = 33 [json_name = "from_account_type"];
+  optional string account_name = 34 [json_name = "account_name"];
+  optional string short_name = 35 [json_name = "short_name"];
   optional string parent = 36;
-  repeated string file_paths = 37;
-  string created_by = 38;
+  repeated string file_paths = 37 [json_name = "file_paths"];
+  string created_by = 38 [json_name = "created_by"];
   
   // Banking details (for creating primary account)
-  optional string account_number = 39;
-  optional string name_of_bank = 40;
-  optional string ifsc_code = 41;
-  optional string ifsc_code_id = 42;
+  optional string account_number = 39 [json_name = "account_number"];
+  optional string name_of_bank = 40 [json_name = "name_of_bank"];
+  optional string ifsc_code = 41 [json_name = "ifsc_code"];
+  optional string ifsc_code_id = 42 [json_name = "ifsc_code_id"];
 }
 
 message GetVendorRequest {
@@ -305,7 +332,7 @@ message ListVendorsRequest {
   string tenant_id = 1;
   optional string search = 2;
   optional bool is_active = 3;
-  optional string vendor_type = 4;
+  optional string account_type = 4;
   optional string project = 5;
   int32 limit = 6;
   int32 offset = 7;
@@ -315,7 +342,7 @@ message ListVendorsRequest {
 
 message GenerateVendorCodeRequest {
   string vendor_name = 1;
-  optional string vendor_type = 2;
+  string account_type = 2;
 }
 
 message UpdateVendorCodeRequest {
@@ -409,4 +436,18 @@ message GetVendorAccountRequest {
 
 message SetPrimaryAccountRequest {
   string account_id = 1;
+}
+
+// Dropdown messages
+message GetProjectsDropdownRequest {
+  // org_id will be extracted from JWT middleware
+}
+
+message ProjectDropdownItem {
+  string id = 1;
+  string name = 2;
+}
+
+message GetProjectsDropdownResponse {
+  repeated ProjectDropdownItem projects = 1;
 }

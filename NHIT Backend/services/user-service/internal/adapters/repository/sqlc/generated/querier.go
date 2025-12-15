@@ -13,16 +13,19 @@ import (
 
 type Querier interface {
 	AssignRoleToUser(ctx context.Context, arg AssignRoleToUserParams) error
+	CountActivityLogs(ctx context.Context) (int64, error)
 	CountAllUsers(ctx context.Context) (int64, error)
 	CountRolesForUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountUserLoginHistories(ctx context.Context, userID uuid.NullUUID) (int64, error)
 	CountUsersByTenant(ctx context.Context, tenantID uuid.UUID) (int64, error)
 	CountUsersForRole(ctx context.Context, roleID uuid.UUID) (int64, error)
+	CreateActivityLog(ctx context.Context, arg CreateActivityLogParams) (*ActivityLog, error)
 	CreateLoginHistory(ctx context.Context, arg CreateLoginHistoryParams) (*UserLoginHistory, error)
 	CreateRole(ctx context.Context, arg CreateRoleParams) (*Role, error)
 	CreateTenant(ctx context.Context, arg CreateTenantParams) (*Tenant, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (*User, error)
 	CreateUserWithVerification(ctx context.Context, arg CreateUserWithVerificationParams) (*User, error)
+	DeleteActivityLog(ctx context.Context, id int32) error
 	DeleteLoginHistory(ctx context.Context, historyID uuid.UUID) error
 	DeleteOldLoginHistories(ctx context.Context, loginTime pgtype.Timestamptz) error
 	DeleteRole(ctx context.Context, roleID uuid.UUID) error
@@ -34,6 +37,7 @@ type Querier interface {
 	GetUser(ctx context.Context, userID uuid.UUID) (*User, error)
 	GetUserByEmail(ctx context.Context, email string) (*User, error)
 	GetUserByEmailAndTenant(ctx context.Context, arg GetUserByEmailAndTenantParams) (*User, error)
+	ListActivityLogs(ctx context.Context, arg ListActivityLogsParams) ([]*ActivityLog, error)
 	ListAllUsers(ctx context.Context, arg ListAllUsersParams) ([]*User, error)
 	ListDetailedRolesForUser(ctx context.Context, userID uuid.UUID) ([]*Role, error)
 	ListPermissions(ctx context.Context) ([]*Permission, error)

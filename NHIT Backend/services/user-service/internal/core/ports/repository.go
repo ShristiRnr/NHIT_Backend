@@ -15,6 +15,7 @@ type UserRepository interface {
 	Update(ctx context.Context, user *domain.User) (*domain.User, error)
 	Delete(ctx context.Context, userID uuid.UUID) error
 	ListByTenant(ctx context.Context, tenantID uuid.UUID, limit, offset int32) ([]*domain.User, error)
+	UpdateLastLogin(ctx context.Context, userID uuid.UUID, lastLoginIP, userAgent string) error
 }
 
 // TenantRepository defines the interface for tenant data operations
@@ -50,4 +51,11 @@ type PermissionRepository interface {
 type LoginHistoryRepository interface {
 	Create(ctx context.Context, history *domain.UserLoginHistory) (*domain.UserLoginHistory, error)
 	ListByUser(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]*domain.UserLoginHistory, error)
+}
+
+// ActivityLogRepository defines the interface for activity log data operations
+type ActivityLogRepository interface {
+	Create(ctx context.Context, log *domain.ActivityLog) (*domain.ActivityLog, error)
+	List(ctx context.Context, limit, offset int32) ([]*domain.ActivityLog, error)
+	Count(ctx context.Context) (int64, error)
 }

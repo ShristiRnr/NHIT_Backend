@@ -2,18 +2,19 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/ShristiRnr/NHIT_Backend/services/auth-service/internal/core/domain"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type refreshTokenRepository struct {
-	db *sql.DB
+	db *pgxpool.Pool
 }
 
-func NewRefreshTokenRepository(db *sql.DB) *refreshTokenRepository {
+func NewRefreshTokenRepository(db *pgxpool.Pool) *refreshTokenRepository {
 	return &refreshTokenRepository{db: db}
 }
 
@@ -23,7 +24,7 @@ func (r *refreshTokenRepository) Create(ctx context.Context, token *domain.Refre
 		VALUES ($1, $2, $3, $4)
 	`
 
-	_, err := r.db.ExecContext(
+	_, err := r.db.Exec(
 		ctx,
 		query,
 		token.Token,
@@ -47,9 +48,9 @@ func (r *refreshTokenRepository) GetUserIDByToken(ctx context.Context, token str
 	`
 
 	var userID uuid.UUID
-	err := r.db.QueryRowContext(ctx, query, token).Scan(&userID)
+	err := r.db.QueryRow(ctx, query, token).Scan(&userID)
 
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		return uuid.Nil, fmt.Errorf("refresh token not found or expired")
 	}
 	if err != nil {
@@ -62,7 +63,7 @@ func (r *refreshTokenRepository) GetUserIDByToken(ctx context.Context, token str
 func (r *refreshTokenRepository) Delete(ctx context.Context, token string) error {
 	query := `DELETE FROM refresh_tokens WHERE token = $1`
 
-	_, err := r.db.ExecContext(ctx, query, token)
+	_, err := r.db.Exec(ctx, query, token)
 	if err != nil {
 		return fmt.Errorf("failed to delete refresh token: %w", err)
 	}
@@ -73,7 +74,7 @@ func (r *refreshTokenRepository) Delete(ctx context.Context, token string) error
 func (r *refreshTokenRepository) DeleteByUserID(ctx context.Context, userID uuid.UUID) error {
 	query := `DELETE FROM refresh_tokens WHERE user_id = $1`
 
-	_, err := r.db.ExecContext(ctx, query, userID)
+	_, err := r.db.Exec(ctx, query, userID)
 	if err != nil {
 		return fmt.Errorf("failed to delete refresh tokens: %w", err)
 	}

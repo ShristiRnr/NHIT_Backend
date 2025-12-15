@@ -5,14 +5,19 @@ import (
 	"log"
 	"net"
 	"os"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	authpb "github.com/ShristiRnr/NHIT_Backend/api/pb/authpb"
 	departmentpb "github.com/ShristiRnr/NHIT_Backend/api/pb/departmentpb"
+	"github.com/ShristiRnr/NHIT_Backend/pkg/middleware"
 	grpcHandler "github.com/ShristiRnr/NHIT_Backend/services/department-service/internal/adapters/grpc"
 	"github.com/ShristiRnr/NHIT_Backend/services/department-service/internal/adapters/repository"
 	"github.com/ShristiRnr/NHIT_Backend/services/department-service/internal/adapters/repository/sqlc/generated"
+	"github.com/ShristiRnr/NHIT_Backend/services/department-service/internal/config"
 	"github.com/ShristiRnr/NHIT_Backend/services/department-service/internal/core/services"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
@@ -29,9 +34,21 @@ func main() {
 
 	log.Printf("🚀 Starting Department Service on port %s", port)
 
-	// Connect to database using pgxpool
+	// Connect to database with optimized pool configuration
 	ctx := context.Background()
-	pool, err := pgxpool.New(ctx, databaseURL)
+	poolConfig, err := pgxpool.ParseConfig(databaseURL)
+	if err != nil {
+		log.Fatalf("Failed to parse database config: %v", err)
+	}
+
+	// ✅ Optimized connection pool limits
+	poolConfig.MaxConns = 5                       // Low traffic service (mostly reads)
+	poolConfig.MinConns = 2                       // Maintain warm connections
+	poolConfig.MaxConnLifetime = time.Hour
+	poolConfig.MaxConnIdleTime = 30 * time.Minute
+	poolConfig.HealthCheckPeriod = 1 * time.Minute
+
+	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
@@ -41,7 +58,7 @@ func main() {
 	if err := pool.Ping(ctx); err != nil {
 		log.Fatalf("Failed to ping database: %v", err)
 	}
-	log.Println("✅ Database connection established")
+	log.Println("✅ Database connection established (Pool: Max=20, Min=5)")
 
 	// Initialize sqlc queries with local SQLC
 	queries := sqlc.New(pool)
@@ -55,8 +72,33 @@ func main() {
 	// Initialize gRPC handlers
 	departmentHandler := grpcHandler.NewDepartmentHandler(departmentService)
 
-	// Create gRPC server
-	grpcServer := grpc.NewServer()
+	// Connect to auth-service for RBAC
+	authServiceURL := os.Getenv("AUTH_SERVICE_URL")
+	if authServiceURL == "" {
+		authServiceURL = "localhost:50052"
+	}
+	authConn, err := grpc.Dial(authServiceURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("Failed to connect to auth service: %v", err)
+	}
+	defer authConn.Close()
+	authClient := authpb.NewAuthServiceClient(authConn)
+	log.Println("✅ Connected to Auth Service", authServiceURL)
+
+	// Initialize RBAC interceptor
+	rbac := middleware.NewRBACInterceptor(authClient)
+	for method, perms := range config.GetPermissionMap() {
+		rbac.RegisterPermissions(method, perms)
+	}
+	for _, method := range config.GetPublicMethods() {
+		rbac.RegisterPublicMethod(method)
+	}
+	log.Println("✅ RBAC interceptor initialized")
+
+	// Create gRPC server with RBAC
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(rbac.UnaryServerInterceptor()),
+	)
 	departmentpb.RegisterDepartmentServiceServer(grpcServer, departmentHandler)
 
 	// Start listening

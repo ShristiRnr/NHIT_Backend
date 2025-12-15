@@ -22,6 +22,14 @@ service ProjectService {
       get: "/api/v1/organizations/{org_id}/projects"
     };
   }
+
+  // Create project synchronously
+  rpc CreateProject(CreateProjectRequest) returns (CreateProjectResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/projects"
+      body: "*"
+    };
+  }
 }
 
 // Messages
@@ -50,5 +58,16 @@ message ListProjectsByOrganizationRequest {
 
 message ListProjectsByOrganizationResponse {
   repeated Project projects = 1;
+}
+
+message CreateProjectRequest {
+  string tenant_id = 1;
+  string org_id = 2;
+  string project_name = 3;
+  string created_by = 4;
+}
+
+message CreateProjectResponse {
+  Project project = 1;
 }
 

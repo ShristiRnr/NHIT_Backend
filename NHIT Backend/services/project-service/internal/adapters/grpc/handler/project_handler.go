@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
@@ -42,14 +43,60 @@ func (h *projectHandler) GetProject(ctx context.Context, req *pb.GetProjectReque
 	}, nil
 }
 
+// CreateProject creates a new project
+func (h *projectHandler) CreateProject(ctx context.Context, req *pb.CreateProjectRequest) (*pb.CreateProjectResponse, error) {
+	fmt.Printf("DEBUG CreateProject: TenantID='%s', OrgID='%s', ProjectName='%s', CreatedBy='%s'\n", 
+		req.TenantId, req.OrgId, req.ProjectName, req.CreatedBy)
+	
+	tenantID, err := uuid.Parse(req.TenantId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid tenant ID: %v", err)
+	}
+
+	orgID, err := uuid.Parse(req.OrgId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid organization ID: %v", err)
+	}
+
+	if req.ProjectName == "" {
+		return nil, status.Error(codes.InvalidArgument, "project name is required")
+	}
+
+	project, err := h.service.CreateProject(ctx, tenantID, orgID, req.ProjectName, req.CreatedBy)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to create project: %v", err)
+	}
+
+	return &pb.CreateProjectResponse{
+		Project: toProtoProject(project),
+	}, nil
+}
+
 // ListProjectsByOrganization lists all projects for an organization
 func (h *projectHandler) ListProjectsByOrganization(ctx context.Context, req *pb.ListProjectsByOrganizationRequest) (*pb.ListProjectsByOrganizationResponse, error) {
-	// TODO: Implement this method by calling the service
-	// For now, return empty list
-	projects := []*pb.Project{}
+	fmt.Printf("DEBUG PROJECT HANDLER: ListProjectsByOrganization called for OrgID=%s\n", req.OrgId)
+	
+	orgID, err := uuid.Parse(req.OrgId)
+	if err != nil {
+		fmt.Printf("DEBUG PROJECT HANDLER: Invalid OrgID format: %v\n", err)
+		return nil, status.Errorf(codes.InvalidArgument, "invalid organization ID: %v", err)
+	}
+
+	projects, err := h.service.ListProjectsByOrganization(ctx, orgID)
+	if err != nil {
+		fmt.Printf("DEBUG PROJECT HANDLER: Service returned error: %v\n", err)
+		return nil, status.Errorf(codes.Internal, "failed to list projects: %v", err)
+	}
+	
+	fmt.Printf("DEBUG PROJECT HANDLER: Found %d projects for OrgID=%s\n", len(projects), req.OrgId)
+
+	var pbProjects []*pb.Project
+	for _, p := range projects {
+		pbProjects = append(pbProjects, toProtoProject(p))
+	}
 
 	return &pb.ListProjectsByOrganizationResponse{
-		Projects: projects,
+		Projects: pbProjects,
 	}, nil
 }
 

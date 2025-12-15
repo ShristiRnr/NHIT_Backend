@@ -16,9 +16,9 @@ func NewDesignationService(repo ports.DesignationRepository) ports.DesignationSe
 	return &designationService{repo: repo}
 }
 
-func (s *designationService) CreateDesignation(ctx context.Context, name, description string) (*domain.Designation, error) {
+func (s *designationService) CreateDesignation(ctx context.Context, name, description string, orgID *uuid.UUID) (*domain.Designation, error) {
 	// domain.NewDesignation sets ID, CreatedAt, UpdatedAt
-	d, err := domain.NewDesignation(name, description)
+	d, err := domain.NewDesignation(name, description, orgID)
 	if err != nil {
 		return nil, err
 	}
@@ -54,8 +54,8 @@ func (s *designationService) DeleteDesignation(ctx context.Context, id uuid.UUID
 	return s.repo.Delete(ctx, id)
 }
 
-func (s *designationService) ListDesignations(ctx context.Context, page, pageSize int32) ([]*domain.Designation, error) {
-    list, err := s.repo.List(ctx, page, pageSize)
+func (s *designationService) ListDesignations(ctx context.Context, orgID *uuid.UUID,page, pageSize int32) ([]*domain.Designation, error) {
+    list, err := s.repo.List(ctx, orgID,page, pageSize)
     if err != nil {
         return nil, err
     }

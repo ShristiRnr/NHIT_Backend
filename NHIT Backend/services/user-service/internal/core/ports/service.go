@@ -34,7 +34,7 @@ type UserService interface {
 
 	// Activity logging
 	CreateActivityLog(ctx context.Context, log *domain.ActivityLog) (*domain.ActivityLog, error)
-	ListActivityLogs(ctx context.Context, userID *uuid.UUID, resourceType *string, limit, offset int32) ([]*domain.ActivityLog, error)
+	ListActivityLogs(ctx context.Context, limit, offset int32) ([]*domain.ActivityLog, error)
 
 	// Notifications
 	CreateNotification(ctx context.Context, notification *domain.Notification) (*domain.Notification, error)

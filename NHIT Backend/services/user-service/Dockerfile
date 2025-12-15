@@ -5,6 +5,10 @@ WORKDIR /app
 # Copy service and local module go.mod files to satisfy local replaces
 COPY services/user-service/go.mod services/user-service/go.sum ./services/user-service/
 COPY api/pb/userpb/go.mod ./api/pb/userpb/
+COPY api/pb/authpb/go.mod ./api/pb/authpb/
+COPY api/pb/departmentpb/go.mod ./api/pb/departmentpb/
+COPY api/pb/designationpb/go.mod ./api/pb/designationpb/
+COPY pkg/middleware/go.mod ./pkg/middleware/
 
 # Download dependencies for the user-service module
 RUN cd services/user-service && go mod download

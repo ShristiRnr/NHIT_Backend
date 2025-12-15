@@ -4,14 +4,19 @@ FROM golang:1.24-alpine AS builder
 WORKDIR /app
 
 # Copy go mod files
-COPY go.mod go.sum ./
-RUN go mod download
+COPY services/project-service/go.mod services/project-service/go.sum ./services/project-service/
+COPY api/pb/projectpb/go.mod ./api/pb/projectpb/
+COPY api/pb/authpb/go.mod ./api/pb/authpb/
+COPY pkg/middleware/go.mod ./pkg/middleware/
+
+# Download dependencies
+RUN cd services/project-service && go mod download
 
 # Copy source code
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -o project-service ./cmd/server
+RUN cd services/project-service && CGO_ENABLED=0 GOOS=linux go build -o /app/project-service ./cmd/server
 
 # Final stage
 FROM alpine:latest

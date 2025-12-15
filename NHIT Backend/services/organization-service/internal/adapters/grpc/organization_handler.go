@@ -9,6 +9,7 @@ import (
 
 	authpb "github.com/ShristiRnr/NHIT_Backend/api/pb/authpb"
 	pb "github.com/ShristiRnr/NHIT_Backend/api/pb/organizationpb"
+	projectpb "github.com/ShristiRnr/NHIT_Backend/api/pb/projectpb"
 	"github.com/ShristiRnr/NHIT_Backend/services/organization-service/internal/core/ports"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -206,10 +207,14 @@ func (h *OrganizationHandler) CreateOrganization(ctx context.Context, req *pb.Cr
 	}
 
 	// Resolve tenant name for created_by display field using tenantID
+	// Default to "superadmin" if lookup fails or name is empty
 	if h.db != nil && tenantID != "" {
 		if err := h.db.QueryRow(ctx, `SELECT name FROM tenants WHERE tenant_id = $1`, tenantID).Scan(&createdBy); err != nil {
-			createdBy = ""
+			createdBy = "superadmin"
 		}
+	}
+	if createdBy == "" {
+		createdBy = "superadmin"
 	}
 
 	var descPtr, logoPtr *string
@@ -241,19 +246,93 @@ func (h *OrganizationHandler) CreateOrganization(ctx context.Context, req *pb.Cr
 		UpdatedAt:       now,
 	}
 
+	// Extract metadata (auth token) from incoming context to propagate to project service
+	var pairs []string
+	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		if auth := md.Get("authorization"); len(auth) > 0 {
+			pairs = append(pairs, "authorization", auth[0])
+		}
+		if tenantIDs := md.Get("tenant_id"); len(tenantIDs) > 0 {
+			pairs = append(pairs, "tenant_id", tenantIDs[0])
+		}
+		if userIDs := md.Get("user_id"); len(userIDs) > 0 {
+			pairs = append(pairs, "user_id", userIDs[0])
+		}
+		if role := md.Get("role"); len(role) > 0 {
+			pairs = append(pairs, "role", role[0])
+		}
+	}
+
+	// Call repository to persist
 	created, err := h.repo.CreateOrganization(ctx, repoModel)
 	if err != nil {
 		// translate to gRPC error (simplified)
 		return nil, status.Errorf(codes.Internal, "failed to create organization: %v", err)
 	}
 
+	// Synchronously create projects via gRPC to ensure immediate availability
+	if len(req.InitialProjects) > 0 {
+		h.logger.Printf("Found %d initial projects to create: %v", len(req.InitialProjects), req.InitialProjects)
+		go func() {
+			// Using background context to not block response if it takes long,
+			// but propagating the auth metadata for RBAC checks in project service
+			projectCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			
+			// Attach metadata to outgoing context
+			if len(pairs) > 0 {
+				projectCtx = metadata.NewOutgoingContext(projectCtx, metadata.Pairs(pairs...))
+			}
+			
+			h.logger.Printf("Calling createProjectsSync for projects: %v", req.InitialProjects)
+			if err := h.createProjectsSync(projectCtx, created.TenantID, created.OrgID, req.InitialProjects, createdBy); err != nil {
+				h.logger.Printf("Failed to create initial projects synchronously: %v", err)
+			} else {
+				h.logger.Printf("Successfully created initial projects synchronously")
+			}
+		}()
+	} else {
+		h.logger.Println("No initial projects provided in request")
+	}
+
 	orgProto := mapModelToProto(created)
 	orgProto.CreatedBy = createdBy
+	// Manually populate InitialProjects in response since repository model might not persist it field (it's distinct table)
+	orgProto.InitialProjects = req.InitialProjects
 
 	return &pb.OrganizationResponse{
 		Organization: orgProto,
 		Message:      "organization created",
 	}, nil
+}
+
+// createProjectsSync calls project-service to create projects
+func (h *OrganizationHandler) createProjectsSync(ctx context.Context, tenantID, orgID string, projectNames []string, createdBy string) error {
+	h.logger.Printf("Connecting to project service at localhost:50057 for %d projects...", len(projectNames))
+	conn, err := grpc.Dial("localhost:50057", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return fmt.Errorf("failed to connect to project service: %w", err)
+	}
+	defer conn.Close()
+
+	client := projectpb.NewProjectServiceClient(conn)
+
+	for _, name := range projectNames {
+		h.logger.Printf("Sending CreateProject request for: %s", name)
+		resp, err := client.CreateProject(ctx, &projectpb.CreateProjectRequest{
+			TenantId:    tenantID,
+			OrgId:       orgID,
+			ProjectName: name,
+			CreatedBy:   createdBy,
+		})
+		if err != nil {
+			h.logger.Printf("Error creating project '%s': %v", name, err)
+			// continue with other projects
+		} else {
+			h.logger.Printf("Project created successfully: %s (ID: %s)", name, resp.Project.ProjectId)
+		}
+	}
+	return nil
 }
 
 // ListOrganizations
@@ -464,8 +543,7 @@ func (h *OrganizationHandler) GetOrganizationWithProjects(ctx context.Context, r
 	projects, err := h.fetchProjectsFromProjectService(ctx, req.OrgId)
 	if err != nil {
 		h.logger.Printf("Failed to fetch projects from project service: %v", err)
-		// Return organization with empty projects list if project service is unavailable
-		projects = []*pb.Project{}
+		return nil, status.Errorf(codes.Internal, "failed to list projects: %v", err)
 	}
 
 	return &pb.GetOrganizationWithProjectsResponse{
@@ -476,40 +554,49 @@ func (h *OrganizationHandler) GetOrganizationWithProjects(ctx context.Context, r
 
 // fetchProjectsFromProjectService calls the project service to get projects for an organization
 func (h *OrganizationHandler) fetchProjectsFromProjectService(ctx context.Context, orgID string) ([]*pb.Project, error) {
-	// TODO: Use ctx for timeout and cancellation in production
-	_ = ctx // Suppress unused parameter warning (will be used in production)
-	// Create gRPC connection to project service
+	// Extract incoming metadata (authorization, tenant_id, etc.)
+	var pairs []string
+	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		// Copy all relevant metadata keys
+		for k, v := range md {
+			for _, val := range v {
+				pairs = append(pairs, k, val)
+			}
+		}
+	}
+	
+	// Create outgoing context with the extracted metadata
+	outCtx := metadata.NewOutgoingContext(ctx, metadata.Pairs(pairs...))
+
+	// Connect to project service
 	conn, err := grpc.Dial("localhost:50057", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to project service: %w", err)
 	}
 	defer conn.Close()
 
-	// For now, return mock data since we don't have the project service protobuf imported
-	// In production, you would:
-	// 1. Import projectpb package
-	// 2. Create client: client := projectpb.NewProjectServiceClient(conn)
-	// 3. Call: resp, err := client.ListProjectsByOrganization(ctx, &projectpb.ListProjectsByOrganizationRequest{OrgId: orgID})
-
-	projects := []*pb.Project{
-		{
-			ProjectId:   "11111111-1111-1111-1111-111111111111",
-			TenantId:    "12345678-1234-1234-1234-123456789abc",
-			OrgId:       orgID,
-			ProjectName: "Mobile App Development",
-			CreatedBy:   "System",
-			CreatedAt:   timestamppb.Now(),
-			UpdatedAt:   timestamppb.Now(),
-		},
-		{
-			ProjectId:   "22222222-2222-2222-2222-222222222222",
-			TenantId:    "12345678-1234-1234-1234-123456789abc",
-			OrgId:       orgID,
-			ProjectName: "Cloud Infrastructure",
-			CreatedBy:   "System",
-			CreatedAt:   timestamppb.Now(),
-			UpdatedAt:   timestamppb.Now(),
-		},
+	client := projectpb.NewProjectServiceClient(conn)
+	
+	// Call ListProjectsByOrganization using the context with metadata
+	resp, err := client.ListProjectsByOrganization(outCtx, &projectpb.ListProjectsByOrganizationRequest{OrgId: orgID})
+	if err != nil {
+		h.logger.Printf("Failed to list projects from service: %v", err)
+		return nil, fmt.Errorf("failed to list projects: %w", err)
+	}
+	
+	// Map projectpb.Project to organizationpb.Project
+	// Note: proto definition of organizationpb.Project must match fields we want to return
+	var projects []*pb.Project
+	for _, p := range resp.Projects {
+		projects = append(projects, &pb.Project{
+			ProjectId:   p.ProjectId,
+			TenantId:    p.TenantId,
+			OrgId:       p.OrgId,
+			ProjectName: p.ProjectName,
+			CreatedBy:   p.CreatedBy,
+			CreatedAt:   p.CreatedAt,
+			UpdatedAt:   p.UpdatedAt,
+		})
 	}
 
 	return projects, nil

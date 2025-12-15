@@ -22,12 +22,20 @@ func NewDesignationRepository(queries *sqlc.Queries) ports.DesignationRepository
 
 // Create creates a new designation
 func (r *designationRepository) Create(ctx context.Context, designation *domain.Designation) error {
+	var orgID pgtype.UUID
+	if designation.OrgID != nil {
+		orgID = pgtype.UUID{Bytes: *designation.OrgID, Valid: true}
+	} else {
+		orgID = pgtype.UUID{Valid: false}
+	}
+
 	_, err := r.queries.CreateDesignation(ctx, sqlc.CreateDesignationParams{
 		ID:          designation.ID,
 		Name:        designation.Name,
 		Description: designation.Description,
 		CreatedAt:   pgtype.Timestamptz{Time: designation.CreatedAt, Valid: true},
 		UpdatedAt:   pgtype.Timestamptz{Time: designation.UpdatedAt, Valid: true},
+		OrgID:       orgID,
 	})
 
 	return err
@@ -60,29 +68,44 @@ func (r *designationRepository) Delete(ctx context.Context, id uuid.UUID) error 
 	return r.queries.DeleteDesignation(ctx, id)
 }
 
-func (r *designationRepository) List(ctx context.Context, page, pageSize int32) ([]*domain.Designation, error) {
+func (r *designationRepository) List(ctx context.Context, orgID *uuid.UUID, page, pageSize int32) ([]*domain.Designation, error) {
     offset := (page - 1) * pageSize
 
-    dbDesignations, err := r.queries.ListDesignations(ctx, sqlc.ListDesignationsParams{
-        Limit:  pageSize,
-        Offset: offset,
-    })
-    if err != nil {
-        return nil, err
-    }
+	var orgIDParam pgtype.UUID
+	if orgID != nil {
+		orgIDParam = pgtype.UUID{Bytes: *orgID, Valid: true}
+	} else {
+		orgIDParam = pgtype.UUID{Valid: false}
+	}
 
-    designations := make([]*domain.Designation, len(dbDesignations))
-    for i, d := range dbDesignations {
-        designations[i] = toDomainDesignation(d)
-    }
+	dbDesignations, err := r.queries.ListDesignations(ctx, sqlc.ListDesignationsParams{
+		Column1: orgIDParam,
+		Limit:   pageSize,
+		Offset:  offset,
+	})
+	if err != nil {
+		return nil, err
+	}
 
-    return designations, nil
+	designations := make([]*domain.Designation, len(dbDesignations))
+	for i, d := range dbDesignations {
+		designations[i] = toDomainDesignation(d)
+	}
+
+	return designations, nil
 }
 
 // toDomainDesignation converts a database designation to a domain designation
 func toDomainDesignation(dbDesignation *sqlc.Designation) *domain.Designation {
+	var orgID *uuid.UUID
+	if dbDesignation.OrgID.Valid {
+		id := uuid.UUID(dbDesignation.OrgID.Bytes)
+		orgID = &id
+	}
+
 	return &domain.Designation{
 		ID:          dbDesignation.ID,
+		OrgID:       orgID,
 		Name:        dbDesignation.Name,
 		Description: dbDesignation.Description,
 		CreatedAt:   dbDesignation.CreatedAt.Time,

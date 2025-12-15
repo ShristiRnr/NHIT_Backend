@@ -2,26 +2,26 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/ShristiRnr/NHIT_Backend/services/auth-service/internal/core/domain"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type emailVerificationRepository struct {
-	db *sql.DB
+	db *pgxpool.Pool
 }
 
-func NewEmailVerificationRepository(db *sql.DB) *emailVerificationRepository {
+func NewEmailVerificationRepository(db *pgxpool.Pool) *emailVerificationRepository {
 	return &emailVerificationRepository{db: db}
 }
 
 func (r *emailVerificationRepository) Create(ctx context.Context, userID uuid.UUID, expiresAt time.Time) (*domain.EmailVerificationToken, error) {
 	// First, delete any existing verification token for this user
 	deleteQuery := `DELETE FROM email_verification_tokens WHERE user_id = $1`
-	_, err := r.db.ExecContext(ctx, deleteQuery, userID)
+	_, err := r.db.Exec(ctx, deleteQuery, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to delete existing verification token: %w", err)
 	}
@@ -35,7 +35,7 @@ func (r *emailVerificationRepository) Create(ctx context.Context, userID uuid.UU
 	`
 
 	verification := &domain.EmailVerificationToken{}
-	err = r.db.QueryRowContext(
+	err = r.db.QueryRow(
 		ctx,
 		query,
 		token,
@@ -64,7 +64,7 @@ func (r *emailVerificationRepository) Verify(ctx context.Context, userID uuid.UU
 	`
 
 	var count int
-	err := r.db.QueryRowContext(ctx, query, userID, token).Scan(&count)
+	err := r.db.QueryRow(ctx, query, userID, token).Scan(&count)
 	if err != nil {
 		return false, fmt.Errorf("failed to verify email token: %w", err)
 	}
@@ -75,7 +75,7 @@ func (r *emailVerificationRepository) Verify(ctx context.Context, userID uuid.UU
 func (r *emailVerificationRepository) Delete(ctx context.Context, userID uuid.UUID) error {
 	query := `DELETE FROM email_verification_tokens WHERE user_id = $1`
 
-	_, err := r.db.ExecContext(ctx, query, userID)
+	_, err := r.db.Exec(ctx, query, userID)
 	if err != nil {
 		return fmt.Errorf("failed to delete email verification token: %w", err)
 	}

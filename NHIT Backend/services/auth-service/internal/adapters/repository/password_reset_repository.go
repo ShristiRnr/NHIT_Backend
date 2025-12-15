@@ -2,20 +2,21 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"time"
 
 	"github.com/ShristiRnr/NHIT_Backend/services/auth-service/internal/core/domain"
 	"github.com/ShristiRnr/NHIT_Backend/services/auth-service/internal/core/ports"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type passwordResetRepository struct {
-	db *sql.DB
+	db *pgxpool.Pool
 }
 
-func NewPasswordResetRepository(db *sql.DB) ports.PasswordResetRepository {
+func NewPasswordResetRepository(db *pgxpool.Pool) ports.PasswordResetRepository {
 	return &passwordResetRepository{db: db}
 }
 
@@ -31,7 +32,7 @@ func (r *passwordResetRepository) Create(ctx context.Context, userID uuid.UUID, 
 	used := false
 	reset := &domain.PasswordReset{}
 
-	err := r.db.QueryRowContext(
+	err := r.db.QueryRow(
 		ctx,
 		query,
 		resetID,
@@ -66,7 +67,7 @@ func (r *passwordResetRepository) GetByToken(ctx context.Context, token uuid.UUI
 	`
 
 	reset := &domain.PasswordReset{}
-	err := r.db.QueryRowContext(ctx, query, token).Scan(
+	err := r.db.QueryRow(ctx, query, token).Scan(
 		&reset.ID,
 		&reset.Token,
 		&reset.UserID,
@@ -76,7 +77,7 @@ func (r *passwordResetRepository) GetByToken(ctx context.Context, token uuid.UUI
 		&reset.Used,
 	)
 
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		return nil, fmt.Errorf("password reset token not found or expired")
 	}
 	if err != nil {
@@ -89,7 +90,7 @@ func (r *passwordResetRepository) GetByToken(ctx context.Context, token uuid.UUI
 func (r *passwordResetRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	query := `DELETE FROM password_resets WHERE id = $1`
 
-	_, err := r.db.ExecContext(ctx, query, id)
+	_, err := r.db.Exec(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete password reset: %w", err)
 	}

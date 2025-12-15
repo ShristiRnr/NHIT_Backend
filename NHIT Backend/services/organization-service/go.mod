@@ -5,6 +5,8 @@ go 1.24.2
 require (
 	github.com/ShristiRnr/NHIT_Backend/api/pb/authpb v0.0.0
 	github.com/ShristiRnr/NHIT_Backend/api/pb/organizationpb v0.0.0
+	github.com/ShristiRnr/NHIT_Backend/api/pb/projectpb v0.0.0
+	github.com/ShristiRnr/NHIT_Backend/pkg/middleware v0.0.0
 	github.com/ShristiRnr/NHIT_Backend/services/shared v0.0.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.7.6
@@ -13,12 +15,6 @@ require (
 	google.golang.org/grpc v1.77.0
 	google.golang.org/protobuf v1.36.10
 )
-
-replace github.com/ShristiRnr/NHIT_Backend/api/pb/organizationpb => ../../api/pb/organizationpb
-
-replace github.com/ShristiRnr/NHIT_Backend/api/pb/authpb => ../../api/pb/authpb
-
-replace github.com/ShristiRnr/NHIT_Backend/services/shared => ../shared
 
 require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.3 // indirect
@@ -33,4 +29,12 @@ require (
 	golang.org/x/text v0.30.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20251124214823-79d6a2a48846 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251111163417-95abcf5c77ba // indirect
+)
+
+replace (
+	github.com/ShristiRnr/NHIT_Backend/api/pb/authpb => ../../api/pb/authpb
+	github.com/ShristiRnr/NHIT_Backend/api/pb/organizationpb => ../../api/pb/organizationpb
+	github.com/ShristiRnr/NHIT_Backend/pkg/middleware => ../../pkg/middleware
+	github.com/ShristiRnr/NHIT_Backend/services/shared => ../shared
+	github.com/ShristiRnr/NHIT_Backend/api/pb/projectpb => ../../api/pb/projectpb
 )

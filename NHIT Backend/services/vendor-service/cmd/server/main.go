@@ -9,10 +9,19 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
+	authpb "github.com/ShristiRnr/NHIT_Backend/api/pb/authpb"
 	vendorpb "github.com/ShristiRnr/NHIT_Backend/api/pb/vendorpb"
-	"github.com/ShristiRnr/NHIT_Backend/services/vendor-service/internal/handlers"
+	"github.com/ShristiRnr/NHIT_Backend/pkg/middleware"
+	"github.com/ShristiRnr/NHIT_Backend/services/vendor-service/internal/adapters"
+	grpcAdapter "github.com/ShristiRnr/NHIT_Backend/services/vendor-service/internal/adapters/grpc"
+	"github.com/ShristiRnr/NHIT_Backend/services/vendor-service/internal/adapters/repository"
+	"github.com/ShristiRnr/NHIT_Backend/services/vendor-service/internal/config"
+	"github.com/ShristiRnr/NHIT_Backend/services/vendor-service/internal/core/ports"
+	"github.com/ShristiRnr/NHIT_Backend/services/vendor-service/internal/core/services"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/jackc/pgx/v5/pgxpool"
 	grpcLib "google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
@@ -26,8 +35,54 @@ const (
 func main() {
 	ctx := context.Background()
 
-	// Initialize production-level handler
-	vendorHandler := handlers.NewVendorHandler()
+	// Database connection with optimized pool configuration
+	dbURL := getEnv("DATABASE_URL", "postgres://postgres:shristi@localhost:5433/nhit_db?sslmode=disable")
+	log.Printf("🔌 Connecting to database: %s", dbURL)
+	
+	poolConfig, err := pgxpool.ParseConfig(dbURL)
+	if err != nil {
+		log.Fatalf("Failed to parse database config: %v", err)
+	}
+
+	// ✅ Optimized connection pool limits
+	poolConfig.MaxConns = 5                       // Medium traffic service
+	poolConfig.MinConns = 2                       // Maintain warm connections
+	poolConfig.MaxConnLifetime = time.Hour        // Recycle connections hourly
+	poolConfig.MaxConnIdleTime = 30 * time.Minute // Close idle connections
+	poolConfig.HealthCheckPeriod = 1 * time.Minute
+
+	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	defer pool.Close()
+
+	// Test database connection
+	if err := pool.Ping(ctx); err != nil {
+		log.Fatalf("Failed to ping database: %v", err)
+	}
+	log.Println("✅ Connected to PostgreSQL database (Pool: Max=25, Min=8)")
+
+	// Initialize dependencies
+	logger := adapters.NewSimpleLogger()
+	publisher := adapters.NewNoOpEventPublisher()
+	serviceConfig := ports.VendorServiceConfig{
+		EnableCodeGeneration: true,
+		DefaultVendorType:    "EXTERNAL",
+		MaxAccountsPerVendor: 10,
+	}
+
+	// Initialize repository
+	vendorRepo := repository.NewVendorRepository(pool)
+	log.Println("✅ Repository initialized")
+
+	// Initialize service
+	vendorService := services.NewVendorService(vendorRepo, logger, publisher, serviceConfig)
+	log.Println("✅ Vendor service initialized")
+
+	// Initialize gRPC handler
+	vendorHandler := grpcAdapter.NewVendorGRPCHandler(vendorService)
+	log.Println("✅ gRPC handler initialized")
 
 	// Start gRPC server
 	go func() {
@@ -51,22 +106,51 @@ func main() {
 	log.Println("🛑 Shutting down servers...")
 }
 
-func startGRPCServer(vendorHandler *handlers.VendorHandler) error {
+func startGRPCServer(vendorHandler vendorpb.VendorServiceServer) error {
 	listener, err := net.Listen("tcp", grpcPort)
 	if err != nil {
 		return fmt.Errorf("failed to listen on port %s: %w", grpcPort, err)
 	}
 
-	server := grpcLib.NewServer()
+	// Connect to auth-service for RBAC
+	authConn, err := grpcLib.Dial("localhost:50052", grpcLib.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Printf("⚠️  Failed to connect to auth-service: %v (RBAC disabled)", err)
+		// Continue without RBAC if auth service is down
+		server := grpcLib.NewServer()
+		vendorpb.RegisterVendorServiceServer(server, vendorHandler)
+		reflection.Register(server)
+		log.Printf("🚀 gRPC server listening on %s (NO RBAC)", grpcPort)
+		return server.Serve(listener)
+	}
+	defer authConn.Close()
+	authClient := authpb.NewAuthServiceClient(authConn)
+	log.Println("✅ Connected to Auth Service")
 
-	// Register vendor handler - handles all vendor and account operations
+	// Initialize RBAC interceptor
+	rbac := middleware.NewRBACInterceptor(authClient)
+	for method, perms := range config.GetPermissionMap() {
+		rbac.RegisterPermissions(method, perms)
+	}
+	for _, method := range config.GetPublicMethods() {
+		rbac.RegisterPublicMethod(method)
+	}
+	log.Println("✅ RBAC interceptor initialized")
+
+	// Create server with RBAC
+	server := grpcLib.NewServer(
+		grpcLib.UnaryInterceptor(rbac.UnaryServerInterceptor()),
+	)
+	
+	// Register vendor handler
 	vendorpb.RegisterVendorServiceServer(server, vendorHandler)
 
 	// Enable reflection for development
 	reflection.Register(server)
 
 	log.Printf("🚀 gRPC server listening on %s", grpcPort)
-	log.Printf("📋 Production-level vendor service with complete business logic")
+	log.Printf("✅ RBAC enabled with permissions")
+	log.Printf("📋 Database-backed vendor service ready")
 	return server.Serve(listener)
 }
 
@@ -85,22 +169,11 @@ func startHTTPGateway(ctx context.Context) error {
 	handler := corsMiddleware(mux)
 
 	log.Printf("🌐 HTTP gateway listening on %s", httpPort)
-	log.Printf("📋 Production-level API endpoints available:")
+	log.Printf("📋 API endpoints available:")
 	log.Printf("   - POST   /api/v1/vendors                    # Create vendor")
-	log.Printf("   - GET    /api/v1/vendors/{id}               # Get vendor by ID")
-	log.Printf("   - GET    /api/v1/vendors/code/{code}        # Get vendor by code")
-	log.Printf("   - PUT    /api/v1/vendors/{id}               # Update vendor")
-	log.Printf("   - DELETE /api/v1/vendors/{id}               # Delete vendor")
 	log.Printf("   - GET    /api/v1/vendors                    # List vendors")
 	log.Printf("   - POST   /api/v1/vendors/generate-code      # Generate vendor code")
-	log.Printf("   - PUT    /api/v1/vendors/{id}/code          # Update vendor code")
-	log.Printf("   - POST   /api/v1/vendors/{id}/regenerate-code # Regenerate vendor code")
-	log.Printf("   - POST   /api/v1/vendors/{id}/accounts      # Create vendor account")
-	log.Printf("   - GET    /api/v1/vendors/{id}/accounts      # Get vendor accounts")
-	log.Printf("   - GET    /api/v1/vendors/{id}/banking-details # Get banking details")
-	log.Printf("   - PUT    /api/v1/vendors/accounts/{id}      # Update vendor account")
-	log.Printf("   - DELETE /api/v1/vendors/accounts/{id}      # Delete vendor account")
-	log.Printf("   - POST   /api/v1/vendors/accounts/{id}/toggle-status # Toggle account status")
+	log.Printf("   - GET    /api/v1/vendors/dropdowns/projects # Get projects dropdown")
 
 	return http.ListenAndServe(httpPort, handler)
 }
@@ -118,4 +191,11 @@ func corsMiddleware(h http.Handler) http.Handler {
 
 		h.ServeHTTP(w, r)
 	})
+}
+
+func getEnv(key, fallback string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return fallback
 }

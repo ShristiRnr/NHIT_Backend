@@ -30,7 +30,7 @@ func (r *roleRepository) Create(ctx context.Context, role *domain.Role) (*domain
 		Description:  role.Description,
 		Permissions:  role.Permissions,
 		IsSystemRole: role.IsSystemRole,
-		CreatedBy:    role.CreatedBy,
+		CreatedBy:    &role.CreatedBy,
 	}
 
 	dbRole, err := r.queries.CreateRole(ctx, params)
@@ -135,6 +135,11 @@ func toDomainRole(dbRole *sqlc.Role) *domain.Role {
 		orgID = &id
 	}
 
+	var createdBy string
+	if dbRole.CreatedBy != nil {
+		createdBy = *dbRole.CreatedBy
+	}
+
 	return &domain.Role{
 		RoleID:       dbRole.RoleID,
 		TenantID:     dbRole.TenantID,
@@ -143,7 +148,7 @@ func toDomainRole(dbRole *sqlc.Role) *domain.Role {
 		Description:  dbRole.Description,
 		Permissions:  dbRole.Permissions,
 		IsSystemRole: dbRole.IsSystemRole,
-		CreatedBy:    dbRole.CreatedBy,
+		CreatedBy:    createdBy,
 		CreatedAt:    dbRole.CreatedAt.Time,
 		UpdatedAt:    dbRole.UpdatedAt.Time,
 	}

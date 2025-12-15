@@ -1,0 +1,22 @@
+﻿go : # github.com/ShristiRnr/NHIT_Bac
+kend/services/vendor-service/internal
+/adapters/grpc
+At line:1 char:1
++ go build -o build_error.log 
+./cmd/server/main.go 2>&1 | Out-File 
+buil ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpe 
+   cified: (# github.com/Sh...l/ada  
+  pters/grpc:String) [], RemoteExc   
+ eption
+    + FullyQualifiedErrorId : Native 
+   CommandError
+ 
+internal\adapters\grpc\vendor_grpc_ha
+ndler.go:750:26: cannot use convertSt
+ringToMSMEClassification(v.MSMEClassi
+fication) (value of int32 type 
+vendorpb.MSMEClassification) as 
+string value in struct literal

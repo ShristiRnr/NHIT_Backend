@@ -7,8 +7,12 @@ import (
 	"net/http"
 	"os"
 
+
+	"time"
+
 	authpb "github.com/ShristiRnr/NHIT_Backend/api/pb/authpb"
 	userpb "github.com/ShristiRnr/NHIT_Backend/api/pb/userpb"
+	"github.com/ShristiRnr/NHIT_Backend/pkg/middleware"
 	grpcHandler "github.com/ShristiRnr/NHIT_Backend/services/user-service/internal/adapters/grpc"
 	httpHandler "github.com/ShristiRnr/NHIT_Backend/services/user-service/internal/adapters/http"
 	"github.com/ShristiRnr/NHIT_Backend/services/user-service/internal/adapters/repository"
@@ -39,9 +43,21 @@ func main() {
 
 	log.Printf("🚀 Starting User Service - gRPC:%s, HTTP:%s", grpcPort, httpPort)
 
-	// Connect to database using pgxpool
+	// Connect to database using pgxpool with optimized configuration
 	ctx := context.Background()
-	pool, err := pgxpool.New(ctx, databaseURL)
+	poolConfig, err := pgxpool.ParseConfig(databaseURL)
+	if err != nil {
+		log.Fatalf("Failed to parse database config: %v", err)
+	}
+
+	// ✅ Optimized connection pool limits for horizontal scaling
+	poolConfig.MaxConns = 5                       // Increased for higher load
+	poolConfig.MinConns = 2                       // Maintain warm connections
+	poolConfig.MaxConnLifetime = time.Hour        // Recycle connections hourly
+	poolConfig.MaxConnIdleTime = 30 * time.Minute // Close idle connections
+	poolConfig.HealthCheckPeriod = 1 * time.Minute // Health check frequency
+
+	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
@@ -51,7 +67,7 @@ func main() {
 	if err := pool.Ping(ctx); err != nil {
 		log.Fatalf("Failed to ping database: %v", err)
 	}
-	log.Println("✅ Database connection established")
+	log.Println("✅ Database connection established (Pool: Max=30, Min=10)")
 
 	// Initialize sqlc queries with local SQLC
 	queries := sqlc.New(pool)
@@ -63,9 +79,10 @@ func main() {
 	roleRepo := repository.NewRoleRepository(queries)
 	permissionRepo := repository.NewPermissionRepository(queries)
 	loginHistoryRepo := repository.NewLoginHistoryRepository(queries)
+	activityLogRepo := repository.NewActivityLogRepository(queries)
 
 	// Initialize services
-	userService := services.NewUserService(userRepo, tenantRepo, userRoleRepo, roleRepo, permissionRepo, loginHistoryRepo)
+	userService := services.NewUserService(userRepo, tenantRepo, userRoleRepo, roleRepo, permissionRepo, loginHistoryRepo, activityLogRepo)
 
 	// Connect to Auth Service for token validation / context
 	authServiceURL := os.Getenv("AUTH_SERVICE_URL")
@@ -79,13 +96,50 @@ func main() {
 	defer authConn.Close()
 	authClient := authpb.NewAuthServiceClient(authConn)
 
+	// Connect to Department Service
+	departmentServiceURL := os.Getenv("DEPARTMENT_SERVICE_URL")
+	if departmentServiceURL == "" {
+		departmentServiceURL = "localhost:50054"
+	}
+	deptConn, err := grpc.Dial(departmentServiceURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("Failed to connect to department service at %s: %v", departmentServiceURL, err)
+	}
+	defer deptConn.Close()
+	log.Printf("✅ Connected to Department Service at %s", departmentServiceURL)
+
+	// Connect to Designation Service
+	designationServiceURL := os.Getenv("DESIGNATION_SERVICE_URL")
+	if designationServiceURL == "" {
+		designationServiceURL = "localhost:50055"
+	}
+	desigConn, err := grpc.Dial(designationServiceURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("Failed to connect to designation service at %s: %v", designationServiceURL, err)
+	}
+	defer desigConn.Close()
+	log.Printf("✅ Connected to Designation Service at %s", designationServiceURL)
+
 	// Initialize handlers (pass DB pool so handler can query user_organizations/organizations)
-	userGrpcHandler := grpcHandler.NewUserHandler(userService, pool, authClient)
+	userGrpcHandler := grpcHandler.NewUserHandler(userService, pool, authClient, deptConn, desigConn)
 	tenantHttpHandler := httpHandler.NewTenantHTTPHandler(userService)
 
+	// Initialize RBAC interceptor for gRPC
+	rbacInterceptor := middleware.NewRBACInterceptor(authClient)
+	
+	// Register public methods (methods that don't require authentication)
+	// These are needed for auth-service to fetch user data during login
+	rbacInterceptor.RegisterPublicMethod("/UserManagement/ListUserOrganizations")
+	rbacInterceptor.RegisterPublicMethod("/UserManagement/ListRolesOfUser")
+	rbacInterceptor.RegisterPublicMethod("/UserManagement/CreateUserLoginHistory")
+	rbacInterceptor.RegisterPublicMethod("/UserManagement/CreateActivityLog")
+	rbacInterceptor.RegisterPublicMethod("/UserManagement/CreateTenant")
+	
 	// Start gRPC server in goroutine
 	go func() {
-		grpcServer := grpc.NewServer()
+		grpcServer := grpc.NewServer(
+			grpc.UnaryInterceptor(rbacInterceptor.UnaryServerInterceptor()),
+		)
 		userpb.RegisterUserManagementServer(grpcServer, userGrpcHandler)
 
 		lis, err := net.Listen("tcp", ":"+grpcPort)

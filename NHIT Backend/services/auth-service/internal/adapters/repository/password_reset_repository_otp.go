@@ -2,13 +2,13 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"time"
 
 	"github.com/ShristiRnr/NHIT_Backend/services/auth-service/internal/core/domain"
 	"github.com/ShristiRnr/NHIT_Backend/services/auth-service/internal/core/ports"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 // This is a compile-time assertion to ensure passwordResetRepository implements the interface
@@ -32,7 +32,7 @@ func (r *passwordResetRepository) CreateWithOTP(
 	used := false
 	reset := &domain.PasswordReset{}
 
-	err := r.db.QueryRowContext(
+	err := r.db.QueryRow(
 		ctx,
 		query,
 		resetID,
@@ -72,7 +72,7 @@ func (r *passwordResetRepository) GetByUserIDAndOTP(
 	`
 
 	reset := &domain.PasswordReset{}
-	err := r.db.QueryRowContext(ctx, query, userID, otp).Scan(
+	err := r.db.QueryRow(ctx, query, userID, otp).Scan(
 		&reset.ID,
 		&reset.OTP,
 		&reset.UserID,
@@ -82,7 +82,7 @@ func (r *passwordResetRepository) GetByUserIDAndOTP(
 		&reset.Used,
 	)
 
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		return nil, fmt.Errorf("password reset OTP not found or expired")
 	}
 	if err != nil {

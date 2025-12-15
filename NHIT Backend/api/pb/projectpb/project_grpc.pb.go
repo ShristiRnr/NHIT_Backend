@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	ProjectService_GetProject_FullMethodName                 = "/project.ProjectService/GetProject"
 	ProjectService_ListProjectsByOrganization_FullMethodName = "/project.ProjectService/ListProjectsByOrganization"
+	ProjectService_CreateProject_FullMethodName              = "/project.ProjectService/CreateProject"
 )
 
 // ProjectServiceClient is the client API for ProjectService service.
@@ -33,6 +34,8 @@ type ProjectServiceClient interface {
 	GetProject(ctx context.Context, in *GetProjectRequest, opts ...grpc.CallOption) (*GetProjectResponse, error)
 	// List projects by organization
 	ListProjectsByOrganization(ctx context.Context, in *ListProjectsByOrganizationRequest, opts ...grpc.CallOption) (*ListProjectsByOrganizationResponse, error)
+	// Create project synchronously
+	CreateProject(ctx context.Context, in *CreateProjectRequest, opts ...grpc.CallOption) (*CreateProjectResponse, error)
 }
 
 type projectServiceClient struct {
@@ -63,6 +66,16 @@ func (c *projectServiceClient) ListProjectsByOrganization(ctx context.Context, i
 	return out, nil
 }
 
+func (c *projectServiceClient) CreateProject(ctx context.Context, in *CreateProjectRequest, opts ...grpc.CallOption) (*CreateProjectResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateProjectResponse)
+	err := c.cc.Invoke(ctx, ProjectService_CreateProject_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ProjectServiceServer is the server API for ProjectService service.
 // All implementations must embed UnimplementedProjectServiceServer
 // for forward compatibility.
@@ -73,6 +86,8 @@ type ProjectServiceServer interface {
 	GetProject(context.Context, *GetProjectRequest) (*GetProjectResponse, error)
 	// List projects by organization
 	ListProjectsByOrganization(context.Context, *ListProjectsByOrganizationRequest) (*ListProjectsByOrganizationResponse, error)
+	// Create project synchronously
+	CreateProject(context.Context, *CreateProjectRequest) (*CreateProjectResponse, error)
 	mustEmbedUnimplementedProjectServiceServer()
 }
 
@@ -88,6 +103,9 @@ func (UnimplementedProjectServiceServer) GetProject(context.Context, *GetProject
 }
 func (UnimplementedProjectServiceServer) ListProjectsByOrganization(context.Context, *ListProjectsByOrganizationRequest) (*ListProjectsByOrganizationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListProjectsByOrganization not implemented")
+}
+func (UnimplementedProjectServiceServer) CreateProject(context.Context, *CreateProjectRequest) (*CreateProjectResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateProject not implemented")
 }
 func (UnimplementedProjectServiceServer) mustEmbedUnimplementedProjectServiceServer() {}
 func (UnimplementedProjectServiceServer) testEmbeddedByValue()                        {}
@@ -146,6 +164,24 @@ func _ProjectService_ListProjectsByOrganization_Handler(srv interface{}, ctx con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ProjectService_CreateProject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateProjectRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProjectServiceServer).CreateProject(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProjectService_CreateProject_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProjectServiceServer).CreateProject(ctx, req.(*CreateProjectRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ProjectService_ServiceDesc is the grpc.ServiceDesc for ProjectService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -160,6 +196,10 @@ var ProjectService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListProjectsByOrganization",
 			Handler:    _ProjectService_ListProjectsByOrganization_Handler,
+		},
+		{
+			MethodName: "CreateProject",
+			Handler:    _ProjectService_CreateProject_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

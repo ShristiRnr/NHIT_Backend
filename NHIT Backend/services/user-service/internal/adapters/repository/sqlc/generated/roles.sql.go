@@ -25,7 +25,7 @@ type CreateRoleParams struct {
 	Description  string        `db:"description" json:"description"`
 	Permissions  []string      `db:"permissions" json:"permissions"`
 	IsSystemRole bool          `db:"is_system_role" json:"is_system_role"`
-	CreatedBy    string        `db:"created_by" json:"created_by"`
+	CreatedBy    *string       `db:"created_by" json:"created_by"`
 }
 
 func (q *Queries) CreateRole(ctx context.Context, arg CreateRoleParams) (*Role, error) {

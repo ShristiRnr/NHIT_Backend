@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package designations;
 
-option go_package = "api/designationpb;designationpb";
+option go_package = "github.com/ShristiRnr/NHIT_Backend/api/pb/designationpb;designationpb";
 
 import "google/protobuf/timestamp.proto";
 import "google/api/annotations.proto";

@@ -58,6 +58,15 @@ func (s *projectService) GetProject(ctx context.Context, projectID uuid.UUID) (*
 	return project, nil
 }
 
+// ListProjectsByOrganization lists all projects for an organization
+func (s *projectService) ListProjectsByOrganization(ctx context.Context, orgID uuid.UUID) ([]*domain.Project, error) {
+	projects, err := s.repo.ListByOrganization(ctx, orgID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list projects: %w", err)
+	}
+	return projects, nil
+}
+
 // HandleOrganizationCreatedEvent processes organization created events
 func (s *projectService) HandleOrganizationCreatedEvent(ctx context.Context, event *domain.OrganizationCreatedEvent) error {
 	if len(event.Projects) == 0 {

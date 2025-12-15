@@ -34,6 +34,12 @@ func (c *organizationClient) SetSuperAdmin(ctx context.Context, orgID, superAdmi
 }
 
 func (c *organizationClient) GetOrganization(ctx context.Context, orgID uuid.UUID) (*ports.OrganizationInfo, error) {
+	// Extract metadata from incoming context and propagate it
+	md, ok := metadata.FromIncomingContext(ctx)
+	if ok {
+		ctx = metadata.NewOutgoingContext(ctx, md)
+	}
+
 	resp, err := c.client.GetOrganization(ctx, &organizationpb.GetOrganizationRequest{
 		OrgId: orgID.String(),
 	})
@@ -55,6 +61,9 @@ func (c *organizationClient) ListUserOrganizations(ctx context.Context, userID u
 	if len(tenantIDs) == 0 {
 		return nil, fmt.Errorf("missing tenant_id in context")
 	}
+
+	// Propagate metadata to outgoing context
+	ctx = metadata.NewOutgoingContext(ctx, md)
 	
 	// Call ListOrganizationsByTenant
 	resp, err := c.client.ListOrganizationsByTenant(ctx, &organizationpb.ListOrganizationsByTenantRequest{

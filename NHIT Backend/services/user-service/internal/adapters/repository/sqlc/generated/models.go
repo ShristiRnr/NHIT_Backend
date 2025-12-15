@@ -9,6 +9,18 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+// Stores user activity logs for audit trail
+type ActivityLog struct {
+	// Auto-incrementing ID
+	ID int32 `db:"id" json:"id"`
+	// Activity name/title (e.g., "User Logged in with email-ID [user@example.com]")
+	Name string `db:"name" json:"name"`
+	// Activity description (e.g., "User successfully logged in")
+	Description string `db:"description" json:"description"`
+	// Timestamp when activity occurred
+	CreatedAt pgtype.Timestamp `db:"created_at" json:"created_at"`
+}
+
 // Catalog of allowed permission keys used by roles
 type Permission struct {
 	PermissionID       pgtype.UUID `db:"permission_id" json:"permission_id"`
@@ -28,7 +40,7 @@ type Role struct {
 	Description  string             `db:"description" json:"description"`
 	Permissions  []string           `db:"permissions" json:"permissions"`
 	IsSystemRole bool               `db:"is_system_role" json:"is_system_role"`
-	CreatedBy    string             `db:"created_by" json:"created_by"`
+	CreatedBy    *string            `db:"created_by" json:"created_by"`
 	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
@@ -64,6 +76,23 @@ type User struct {
 	DesignationID uuid.NullUUID      `db:"designation_id" json:"designation_id"`
 	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt     pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	// Bank account holder name
+	AccountHolderName *string `db:"account_holder_name" json:"account_holder_name"`
+	// Name of the bank
+	BankName *string `db:"bank_name" json:"bank_name"`
+	// Bank account number
+	BankAccountNumber *string `db:"bank_account_number" json:"bank_account_number"`
+	// IFSC code of the bank branch (11 characters)
+	IfscCode *string `db:"ifsc_code" json:"ifsc_code"`
+	// MinIO URL/path to user signature image
+	SignatureUrl *string `db:"signature_url" json:"signature_url"`
+	// Soft delete flag (TRUE = active, FALSE = deactivated)
+	IsActive bool `db:"is_active" json:"is_active"`
+	// When the user was deactivated
+	DeactivatedAt pgtype.Timestamptz `db:"deactivated_at" json:"deactivated_at"`
+	// Who deactivated the user
+	DeactivatedBy     pgtype.UUID `db:"deactivated_by" json:"deactivated_by"`
+	DeactivatedByName *string     `db:"deactivated_by_name" json:"deactivated_by_name"`
 }
 
 // Tracks user login history

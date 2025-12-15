@@ -1,137 +1,82 @@
--- Create vendors table with all fields from PHP model
+-- Create vendors table
 CREATE TABLE IF NOT EXISTS vendors (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY,
     tenant_id UUID NOT NULL,
-    vendor_code VARCHAR(100) NOT NULL,
+    vendor_code VARCHAR(100) UNIQUE NOT NULL,
     vendor_name VARCHAR(255) NOT NULL,
     vendor_email VARCHAR(255) NOT NULL,
     vendor_mobile VARCHAR(20),
-    vendor_type VARCHAR(50),
-    vendor_nick_name VARCHAR(255),
-    activity_type VARCHAR(255),
+    account_type INTEGER NOT NULL DEFAULT 2, -- 1=INTERNAL, 2=EXTERNAL
+    vendor_nick_name VARCHAR(100),
+    activity_type VARCHAR(100),
     email VARCHAR(255),
     mobile VARCHAR(20),
-    gstin VARCHAR(50),
-    pan VARCHAR(20) NOT NULL,
-    pin VARCHAR(20),
-    country_id VARCHAR(50),
-    state_id VARCHAR(50),
-    city_id VARCHAR(50),
-    country_name VARCHAR(255),
-    state_name VARCHAR(255),
-    city_name VARCHAR(255),
-    msme_classification VARCHAR(100),
-    msme VARCHAR(100),
+    gstin VARCHAR(20),
+    pan VARCHAR(10) NOT NULL,
+    pin VARCHAR(10),
+    country_name VARCHAR(100),
+    state_name VARCHAR(100),
+    city_name VARCHAR(100),
+    msme_classification INTEGER DEFAULT 0, -- 0=UNSPECIFIED, 1=MICRO, 2=SMALL, 3=MEDIUM
+    msme VARCHAR(50),
     msme_registration_number VARCHAR(100),
-    msme_start_date DATE,
-    msme_end_date DATE,
+    msme_start_date TIMESTAMP,
+    msme_end_date TIMESTAMP,
     material_nature VARCHAR(255),
-    gst_defaulted VARCHAR(10),
-    section_206ab_verified VARCHAR(10),
+    gst_defaulted VARCHAR(50),
+    section_206ab_verified VARCHAR(50),
     beneficiary_name VARCHAR(255) NOT NULL,
     remarks_address TEXT,
     common_bank_details TEXT,
-    income_tax_type VARCHAR(100),
+    income_tax_type VARCHAR(50),
     project VARCHAR(255),
-    status VARCHAR(50),
+    status INTEGER NOT NULL DEFAULT 1, -- 1=ACTIVE, 2=INACTIVE
     from_account_type VARCHAR(100),
     account_name VARCHAR(255),
     short_name VARCHAR(100),
     parent VARCHAR(255),
-    file_paths JSONB,
-    code_auto_generated BOOLEAN DEFAULT true,
-    is_active BOOLEAN DEFAULT true,
-    created_by UUID NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    file_paths TEXT[],
+    code_auto_generated BOOLEAN DEFAULT TRUE,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_by VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
-    -- Backward compatibility banking fields
+    -- Legacy banking fields (for backward compatibility)
     account_number VARCHAR(50),
     name_of_bank VARCHAR(255),
-    ifsc_code VARCHAR(20),
-    ifsc_code_id VARCHAR(50),
-    
-    -- Constraints
-    CONSTRAINT vendors_tenant_vendor_code_unique UNIQUE (tenant_id, vendor_code),
-    CONSTRAINT vendors_tenant_vendor_email_unique UNIQUE (tenant_id, vendor_email),
-    CONSTRAINT vendors_pan_check CHECK (pan ~ '^[A-Z]{5}[0-9]{4}[A-Z]{1}$'),
-    CONSTRAINT vendors_ifsc_check CHECK (ifsc_code IS NULL OR ifsc_code ~ '^[A-Z]{4}0[A-Z0-9]{6}$')
+    ifsc_code VARCHAR(15),
 );
 
 -- Create vendor_accounts table
 CREATE TABLE IF NOT EXISTS vendor_accounts (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY,
     vendor_id UUID NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
     account_name VARCHAR(255) NOT NULL,
     account_number VARCHAR(50) NOT NULL,
     account_type VARCHAR(50),
     name_of_bank VARCHAR(255) NOT NULL,
     branch_name VARCHAR(255),
-    ifsc_code VARCHAR(20) NOT NULL,
+    ifsc_code VARCHAR(15) NOT NULL,
     swift_code VARCHAR(20),
-    is_primary BOOLEAN DEFAULT false,
-    is_active BOOLEAN DEFAULT true,
+    is_primary BOOLEAN DEFAULT FALSE,
+    is_active BOOLEAN DEFAULT TRUE,
     remarks TEXT,
-    created_by UUID NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    
-    -- Constraints
-    CONSTRAINT vendor_accounts_ifsc_check CHECK (ifsc_code ~ '^[A-Z]{4}0[A-Z0-9]{6}$'),
-    CONSTRAINT vendor_accounts_account_number_check CHECK (account_number ~ '^[0-9]{9,18}$')
+    created_by VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Indexes for performance
-CREATE INDEX IF NOT EXISTS idx_vendors_tenant_id ON vendors(tenant_id);
-CREATE INDEX IF NOT EXISTS idx_vendors_vendor_code ON vendors(vendor_code);
-CREATE INDEX IF NOT EXISTS idx_vendors_vendor_email ON vendors(vendor_email);
-CREATE INDEX IF NOT EXISTS idx_vendors_is_active ON vendors(is_active);
-CREATE INDEX IF NOT EXISTS idx_vendors_project ON vendors(project);
-CREATE INDEX IF NOT EXISTS idx_vendors_vendor_type ON vendors(vendor_type);
-CREATE INDEX IF NOT EXISTS idx_vendors_created_at ON vendors(created_at);
+-- Create indexes for better query performance
+CREATE INDEX idx_vendors_tenant_id ON vendors(tenant_id);
+CREATE INDEX idx_vendors_vendor_code ON vendors(vendor_code);
+CREATE INDEX idx_vendors_vendor_email ON vendors(vendor_email);
+CREATE INDEX idx_vendors_account_type ON vendors(account_type);
+CREATE INDEX idx_vendors_is_active ON vendors(is_active);
+CREATE INDEX idx_vendor_accounts_vendor_id ON vendor_accounts(vendor_id);
+CREATE INDEX idx_vendor_accounts_is_primary ON vendor_accounts(is_primary);
 
-CREATE INDEX IF NOT EXISTS idx_vendor_accounts_vendor_id ON vendor_accounts(vendor_id);
-CREATE INDEX IF NOT EXISTS idx_vendor_accounts_is_primary ON vendor_accounts(is_primary);
-CREATE INDEX IF NOT EXISTS idx_vendor_accounts_is_active ON vendor_accounts(is_active);
-CREATE INDEX IF NOT EXISTS idx_vendor_accounts_created_at ON vendor_accounts(created_at);
-
--- Trigger to ensure only one primary account per vendor
-CREATE OR REPLACE FUNCTION ensure_single_primary_account()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF NEW.is_primary = true THEN
-        UPDATE vendor_accounts 
-        SET is_primary = false, updated_at = NOW()
-        WHERE vendor_id = NEW.vendor_id 
-        AND id != NEW.id 
-        AND is_primary = true;
-    END IF;
-    
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trigger_ensure_single_primary_account
-    BEFORE INSERT OR UPDATE ON vendor_accounts
-    FOR EACH ROW
-    EXECUTE FUNCTION ensure_single_primary_account();
-
--- Trigger to update updated_at timestamp
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trigger_vendors_updated_at
-    BEFORE UPDATE ON vendors
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER trigger_vendor_accounts_updated_at
-    BEFORE UPDATE ON vendor_accounts
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+-- Ensure only one primary account per vendor
+CREATE UNIQUE INDEX idx_vendor_accounts_unique_primary 
+ON vendor_accounts(vendor_id) 
+WHERE is_primary = TRUE AND is_active = TRUE;

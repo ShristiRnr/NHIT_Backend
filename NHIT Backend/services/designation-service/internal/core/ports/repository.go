@@ -22,5 +22,5 @@ type DesignationRepository interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 
 	// List retrieves designations with pagination and filters
-	List(ctx context.Context, page, pageSize int32) ([]*domain.Designation, error)
+	List(ctx context.Context, orgID *uuid.UUID, page, pageSize int32) ([]*domain.Designation, error)
 }

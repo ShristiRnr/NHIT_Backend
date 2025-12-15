@@ -293,6 +293,118 @@ func (x *ListProjectsByOrganizationResponse) GetProjects() []*Project {
 	return nil
 }
 
+type CreateProjectRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	OrgId         string                 `protobuf:"bytes,2,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	ProjectName   string                 `protobuf:"bytes,3,opt,name=project_name,json=projectName,proto3" json:"project_name,omitempty"`
+	CreatedBy     string                 `protobuf:"bytes,4,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateProjectRequest) Reset() {
+	*x = CreateProjectRequest{}
+	mi := &file_project_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateProjectRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateProjectRequest) ProtoMessage() {}
+
+func (x *CreateProjectRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_project_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateProjectRequest.ProtoReflect.Descriptor instead.
+func (*CreateProjectRequest) Descriptor() ([]byte, []int) {
+	return file_project_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *CreateProjectRequest) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
+func (x *CreateProjectRequest) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+func (x *CreateProjectRequest) GetProjectName() string {
+	if x != nil {
+		return x.ProjectName
+	}
+	return ""
+}
+
+func (x *CreateProjectRequest) GetCreatedBy() string {
+	if x != nil {
+		return x.CreatedBy
+	}
+	return ""
+}
+
+type CreateProjectResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Project       *Project               `protobuf:"bytes,1,opt,name=project,proto3" json:"project,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateProjectResponse) Reset() {
+	*x = CreateProjectResponse{}
+	mi := &file_project_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateProjectResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateProjectResponse) ProtoMessage() {}
+
+func (x *CreateProjectResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_project_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateProjectResponse.ProtoReflect.Descriptor instead.
+func (*CreateProjectResponse) Descriptor() ([]byte, []int) {
+	return file_project_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *CreateProjectResponse) GetProject() *Project {
+	if x != nil {
+		return x.Project
+	}
+	return nil
+}
+
 var File_project_proto protoreflect.FileDescriptor
 
 const file_project_proto_rawDesc = "" +
@@ -318,11 +430,20 @@ const file_project_proto_rawDesc = "" +
 	"!ListProjectsByOrganizationRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\"R\n" +
 	"\"ListProjectsByOrganizationResponse\x12,\n" +
-	"\bprojects\x18\x01 \x03(\v2\x10.project.ProjectR\bprojects2\xa7\x02\n" +
+	"\bprojects\x18\x01 \x03(\v2\x10.project.ProjectR\bprojects\"\x8c\x01\n" +
+	"\x14CreateProjectRequest\x12\x1b\n" +
+	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x15\n" +
+	"\x06org_id\x18\x02 \x01(\tR\x05orgId\x12!\n" +
+	"\fproject_name\x18\x03 \x01(\tR\vprojectName\x12\x1d\n" +
+	"\n" +
+	"created_by\x18\x04 \x01(\tR\tcreatedBy\"C\n" +
+	"\x15CreateProjectResponse\x12*\n" +
+	"\aproject\x18\x01 \x01(\v2\x10.project.ProjectR\aproject2\x94\x03\n" +
 	"\x0eProjectService\x12l\n" +
 	"\n" +
 	"GetProject\x12\x1a.project.GetProjectRequest\x1a\x1b.project.GetProjectResponse\"%\x82\xd3\xe4\x93\x02\x1f\x12\x1d/api/v1/projects/{project_id}\x12\xa6\x01\n" +
-	"\x1aListProjectsByOrganization\x12*.project.ListProjectsByOrganizationRequest\x1a+.project.ListProjectsByOrganizationResponse\"/\x82\xd3\xe4\x93\x02)\x12'/api/v1/organizations/{org_id}/projectsB5Z3github.com/ShristiRnr/NHIT_Backend/api/pb/projectpbb\x06proto3"
+	"\x1aListProjectsByOrganization\x12*.project.ListProjectsByOrganizationRequest\x1a+.project.ListProjectsByOrganizationResponse\"/\x82\xd3\xe4\x93\x02)\x12'/api/v1/organizations/{org_id}/projects\x12k\n" +
+	"\rCreateProject\x12\x1d.project.CreateProjectRequest\x1a\x1e.project.CreateProjectResponse\"\x1b\x82\xd3\xe4\x93\x02\x15:\x01*\"\x10/api/v1/projectsB5Z3github.com/ShristiRnr/NHIT_Backend/api/pb/projectpbb\x06proto3"
 
 var (
 	file_project_proto_rawDescOnce sync.Once
@@ -336,29 +457,34 @@ func file_project_proto_rawDescGZIP() []byte {
 	return file_project_proto_rawDescData
 }
 
-var file_project_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_project_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_project_proto_goTypes = []any{
 	(*Project)(nil),                            // 0: project.Project
 	(*GetProjectRequest)(nil),                  // 1: project.GetProjectRequest
 	(*GetProjectResponse)(nil),                 // 2: project.GetProjectResponse
 	(*ListProjectsByOrganizationRequest)(nil),  // 3: project.ListProjectsByOrganizationRequest
 	(*ListProjectsByOrganizationResponse)(nil), // 4: project.ListProjectsByOrganizationResponse
-	(*timestamppb.Timestamp)(nil),              // 5: google.protobuf.Timestamp
+	(*CreateProjectRequest)(nil),               // 5: project.CreateProjectRequest
+	(*CreateProjectResponse)(nil),              // 6: project.CreateProjectResponse
+	(*timestamppb.Timestamp)(nil),              // 7: google.protobuf.Timestamp
 }
 var file_project_proto_depIdxs = []int32{
-	5, // 0: project.Project.created_at:type_name -> google.protobuf.Timestamp
-	5, // 1: project.Project.updated_at:type_name -> google.protobuf.Timestamp
+	7, // 0: project.Project.created_at:type_name -> google.protobuf.Timestamp
+	7, // 1: project.Project.updated_at:type_name -> google.protobuf.Timestamp
 	0, // 2: project.GetProjectResponse.project:type_name -> project.Project
 	0, // 3: project.ListProjectsByOrganizationResponse.projects:type_name -> project.Project
-	1, // 4: project.ProjectService.GetProject:input_type -> project.GetProjectRequest
-	3, // 5: project.ProjectService.ListProjectsByOrganization:input_type -> project.ListProjectsByOrganizationRequest
-	2, // 6: project.ProjectService.GetProject:output_type -> project.GetProjectResponse
-	4, // 7: project.ProjectService.ListProjectsByOrganization:output_type -> project.ListProjectsByOrganizationResponse
-	6, // [6:8] is the sub-list for method output_type
-	4, // [4:6] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	0, // 4: project.CreateProjectResponse.project:type_name -> project.Project
+	1, // 5: project.ProjectService.GetProject:input_type -> project.GetProjectRequest
+	3, // 6: project.ProjectService.ListProjectsByOrganization:input_type -> project.ListProjectsByOrganizationRequest
+	5, // 7: project.ProjectService.CreateProject:input_type -> project.CreateProjectRequest
+	2, // 8: project.ProjectService.GetProject:output_type -> project.GetProjectResponse
+	4, // 9: project.ProjectService.ListProjectsByOrganization:output_type -> project.ListProjectsByOrganizationResponse
+	6, // 10: project.ProjectService.CreateProject:output_type -> project.CreateProjectResponse
+	8, // [8:11] is the sub-list for method output_type
+	5, // [5:8] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_project_proto_init() }
@@ -372,7 +498,7 @@ func file_project_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_project_proto_rawDesc), len(file_project_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

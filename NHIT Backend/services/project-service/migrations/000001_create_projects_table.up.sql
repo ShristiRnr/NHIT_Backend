@@ -1,6 +1,6 @@
 -- Create projects table
 CREATE TABLE IF NOT EXISTS projects (
-    project_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL,
     org_id UUID NOT NULL,
     project_name VARCHAR(255) NOT NULL,

@@ -4,9 +4,12 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	greennotepb "nhit-note/api/pb/greennotepb"
+	paymentnotepb "nhit-note/api/pb/paymentnotepb"
+	paymentpb "nhit-note/api/pb/paymentpb"
 
 	authpb "github.com/ShristiRnr/NHIT_Backend/api/pb/authpb"
 	departmentpb "github.com/ShristiRnr/NHIT_Backend/api/pb/departmentpb"
@@ -43,6 +46,12 @@ func metadataAnnotator(ctx context.Context, req *http.Request) metadata.MD {
 	if err != nil {
 		log.Printf("Failed to parse JWT: %v", err)
 		return md
+	}
+
+	// Extract User-Agent and add to metadata
+	if ua := req.Header.Get("User-Agent"); ua != "" {
+		md.Set("grpcgateway-user-agent", ua)
+		md.Set("x-user-agent", ua)
 	}
 
 	// Extract claims
@@ -83,14 +92,17 @@ func main() {
 	)
 
 	// gRPC service endpoints
-	userServiceEndpoint := "localhost:50051"
-	authServiceEndpoint := "localhost:50052"
-	organizationServiceEndpoint := "localhost:8082"
-	departmentServiceEndpoint := "localhost:50054"
-	designationServiceEndpoint := "localhost:50055"
-	vendorServiceEndpoint := "localhost:50058"
-	projectServiceEndpoint := "localhost:50057"
-	greennoteServiceEndpoint := "localhost:50059"
+	// gRPC service endpoints
+	userServiceEndpoint := getEnv("USER_SERVICE_URL", "localhost:50051")
+	authServiceEndpoint := getEnv("AUTH_SERVICE_URL", "localhost:50052")
+	organizationServiceEndpoint := getEnv("ORG_SERVICE_URL", "localhost:8082")
+	departmentServiceEndpoint := getEnv("DEPT_SERVICE_URL", "localhost:50054")
+	designationServiceEndpoint := getEnv("DESIGNATION_SERVICE_URL", "localhost:50055")
+	vendorServiceEndpoint := getEnv("VENDOR_SERVICE_URL", "localhost:50058")
+	projectServiceEndpoint := getEnv("PROJECT_SERVICE_URL", "localhost:50057")
+	greennoteServiceEndpoint := getEnv("GREENNOTE_SERVICE_URL", "localhost:50059")
+	paymentnoteServiceEndpoint := getEnv("PAYMENTNOTE_SERVICE_URL", "localhost:50053")
+	paymentServiceEndpoint := getEnv("PAYMENT_SERVICE_URL", "localhost:50054")
 
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 
@@ -149,6 +161,20 @@ func main() {
 	}
 	log.Printf("✅ Registered GreenNote Service -> %s", greennoteServiceEndpoint)
 
+	// Register Payment Note Service
+	err = paymentnotepb.RegisterPaymentNoteServiceHandlerFromEndpoint(ctx, mux, paymentnoteServiceEndpoint, opts)
+	if err != nil {
+		log.Fatalf("Failed to register PaymentNote service: %v", err)
+	}
+	log.Printf("✅ Registered PaymentNote Service -> %s", paymentnoteServiceEndpoint)
+
+	// Register Payment Service
+	err = paymentpb.RegisterPaymentServiceHandlerFromEndpoint(ctx, mux, paymentServiceEndpoint, opts)
+	if err != nil {
+		log.Fatalf("Failed to register Payment service: %v", err)
+	}
+	log.Printf("✅ Registered Payment Service -> %s", paymentServiceEndpoint)
+
 	// Add CORS middleware
 	handler := cors(mux)
 
@@ -165,6 +191,8 @@ func main() {
 	log.Printf("   - Projects: curl http://localhost%s/api/v1/projects", port)
 	log.Printf("   - Tenants: curl http://localhost%s/api/v1/tenants", port)
 	log.Printf("   - Green Notes: curl http://localhost%s/api/v1/green-notes", port)
+	log.Printf("   - Payment Notes: curl http://localhost%s/api/v1/payment-notes", port)
+	log.Printf("   - Payments: curl http://localhost%s/api/v1/payments", port)
 
 	if err := http.ListenAndServe(port, handler); err != nil {
 		log.Fatalf("Failed to serve: %v", err)
@@ -204,4 +232,11 @@ func cors(h http.Handler) http.Handler {
 		// Forward request to handler
 		h.ServeHTTP(w, r)
 	})
+}
+
+func getEnv(key, fallback string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return fallback
 }

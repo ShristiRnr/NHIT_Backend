@@ -18,11 +18,12 @@ type userService struct {
 	roleRepo           ports.RoleRepository
 	permissionRepo     ports.PermissionRepository
 	loginHistoryRepo   ports.LoginHistoryRepository
+	activityLogRepo    ports.ActivityLogRepository
 }
 
 // NewUserService creates a new user service instance
 
-func NewUserService(userRepo ports.UserRepository, tenantRepo ports.TenantRepository, userRoleRepo ports.UserRoleRepository, roleRepo ports.RoleRepository, permissionRepo ports.PermissionRepository, loginHistoryRepo ports.LoginHistoryRepository) ports.UserService {
+func NewUserService(userRepo ports.UserRepository, tenantRepo ports.TenantRepository, userRoleRepo ports.UserRoleRepository, roleRepo ports.RoleRepository, permissionRepo ports.PermissionRepository, loginHistoryRepo ports.LoginHistoryRepository, activityLogRepo ports.ActivityLogRepository) ports.UserService {
 	return &userService{
 		userRepo:         userRepo,
 		tenantRepo:       tenantRepo,
@@ -30,12 +31,24 @@ func NewUserService(userRepo ports.UserRepository, tenantRepo ports.TenantReposi
 		roleRepo:         roleRepo,
 		permissionRepo:   permissionRepo,
 		loginHistoryRepo: loginHistoryRepo,
+		activityLogRepo:  activityLogRepo,
 	}
 }
 
 func (s *userService) CreateUser(ctx context.Context, user *domain.User) (*domain.User, error) {
 	// TODO: Hash password before storing (add bcrypt after module setup)
 	// For now, store password as-is (NOT PRODUCTION READY)
+
+	// Default to active if not specified (or boolean default is false so force true)
+	// If caller explicitly wanted false, they would need a different flow or we check if it was set (but bool makes it hard).
+	// Requirement: "newly created user are active by default"
+	user.IsActive = true
+	
+	// Auto-verify email for admin-created users
+	now := time.Now()
+	if user.EmailVerifiedAt == nil {
+		user.EmailVerifiedAt = &now
+	}
 
 	// Create user in repository
 	createdUser, err := s.userRepo.Create(ctx, user)
@@ -259,11 +272,24 @@ func (s *userService) DeactivateUser(ctx context.Context, userID, deactivatedBy 
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
+	// Fetch the admin user who is deactivating
+	adminUser, err := s.userRepo.GetByID(ctx, deactivatedBy)
+	var adminName *string
+	if err == nil && adminUser != nil {
+		name := adminUser.Name
+		adminName = &name
+	} else {
+		// Log warning but proceed
+		fmt.Printf("⚠️ Failed to fetch info for deactivator %s: %v\n", deactivatedBy, err)
+	}
+
 	// Mark as inactive
 	user.IsActive = false
 	now := time.Now()
 	user.DeactivatedAt = &now
 	user.DeactivatedBy = &deactivatedBy
+	user.DeactivatedByName = adminName
+	
 
 	// Update user
 	updatedUser, err := s.userRepo.Update(ctx, user)
@@ -306,22 +332,21 @@ func (s *userService) ReactivateUser(ctx context.Context, userID, reactivatedBy 
 
 // CreateActivityLog creates an activity log entry
 func (s *userService) CreateActivityLog(ctx context.Context, log *domain.ActivityLog) (*domain.ActivityLog, error) {
-	// TODO: Implement activity log repository
-	log.LogID = uuid.New()
-	log.CreatedAt = time.Now()
-
-	// Mock implementation for now
-	fmt.Printf("Activity Log: User %s performed %s on %s %s\n",
-		log.UserID, log.Action, log.ResourceType, log.ResourceID)
-
-	return log, nil
+	created, err := s.activityLogRepo.Create(ctx, log)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create activity log: %w", err)
+	}
+	fmt.Printf("Activity Log: %s - %s\n", created.Name, created.Description)
+	return created, nil
 }
 
-// ListActivityLogs lists activity logs with optional filters
-func (s *userService) ListActivityLogs(ctx context.Context, userID *uuid.UUID, resourceType *string, limit, offset int32) ([]*domain.ActivityLog, error) {
-	// TODO: Implement activity log repository
-	// Mock implementation
-	return []*domain.ActivityLog{}, nil
+// ListActivityLogs lists activity logs
+func (s *userService) ListActivityLogs(ctx context.Context, limit, offset int32) ([]*domain.ActivityLog, error) {
+	logs, err := s.activityLogRepo.List(ctx, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list activity logs: %w", err)
+	}
+	return logs, nil
 }
 
 // CreateNotification creates a notification
@@ -363,6 +388,22 @@ func (s *userService) CreateLoginHistory(ctx context.Context, history *domain.Us
 		return nil, fmt.Errorf("failed to create login history: %w", err)
 	}
 	fmt.Printf("Login History: User %s logged in from %s\n", history.UserID, history.IPAddress)
+
+	// Also update the user's last_login_at and last_login_ip in the users table
+	ip := ""
+	if history.IPAddress != nil {
+		ip = *history.IPAddress
+	}
+	ua := ""
+	if history.UserAgent != nil {
+		ua = *history.UserAgent
+	}
+	
+	if err := s.userRepo.UpdateLastLogin(ctx, history.UserID, ip, ua); err != nil {
+		// Log error but don't fail the history creation
+		fmt.Printf("⚠️ Failed to update user last_login: %v\n", err)
+	}
+
 	return created, nil
 }
 

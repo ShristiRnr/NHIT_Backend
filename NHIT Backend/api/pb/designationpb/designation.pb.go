@@ -632,7 +632,7 @@ const file_designation_proto_rawDesc = "" +
 	"\x0eGetDesignation\x12#.designations.GetDesignationRequest\x1a!.designations.DesignationResponse\"!\x82\xd3\xe4\x93\x02\x1b\x12\x19/api/v1/designations/{id}\x12\x84\x01\n" +
 	"\x11UpdateDesignation\x12&.designations.UpdateDesignationRequest\x1a!.designations.DesignationResponse\"$\x82\xd3\xe4\x93\x02\x1e:\x01*\x1a\x19/api/v1/designations/{id}\x12\x87\x01\n" +
 	"\x11DeleteDesignation\x12&.designations.DeleteDesignationRequest\x1a'.designations.DeleteDesignationResponse\"!\x82\xd3\xe4\x93\x02\x1b*\x19/api/v1/designations/{id}\x12\x7f\n" +
-	"\x10ListDesignations\x12%.designations.ListDesignationsRequest\x1a&.designations.ListDesignationsResponse\"\x1c\x82\xd3\xe4\x93\x02\x16\x12\x14/api/v1/designationsB!Z\x1fapi/designationpb;designationpbb\x06proto3"
+	"\x10ListDesignations\x12%.designations.ListDesignationsRequest\x1a&.designations.ListDesignationsResponse\"\x1c\x82\xd3\xe4\x93\x02\x16\x12\x14/api/v1/designationsBGZEgithub.com/ShristiRnr/NHIT_Backend/api/pb/designationpb;designationpbb\x06proto3"
 
 var (
 	file_designation_proto_rawDescOnce sync.Once

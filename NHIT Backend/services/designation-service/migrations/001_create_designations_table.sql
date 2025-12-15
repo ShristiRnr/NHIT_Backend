@@ -16,6 +16,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_designations_name_lower ON designations (L
 CREATE INDEX IF NOT EXISTS idx_designations_name ON designations(name);
 
 -- Comments for documentation
-COMMENT ON TABLE designations IS 'Stores designation
+COMMENT ON TABLE designations IS 'Stores designation details';
 COMMENT ON COLUMN designations.id IS 'Unique identifier for the designation';
 COMMENT ON COLUMN designations.name IS 'Designation name';

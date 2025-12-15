@@ -2,22 +2,23 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"time"
 
 	"github.com/ShristiRnr/NHIT_Backend/services/auth-service/internal/core/ports"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type userRepository struct {
-	db *sql.DB
+	db *pgxpool.Pool
 }
 
 // Ensure userRepository implements ports.UserRepository at compile time
 var _ ports.UserRepository = (*userRepository)(nil)
 
-func NewUserRepository(db *sql.DB) ports.UserRepository {
+func NewUserRepository(db *pgxpool.Pool) ports.UserRepository {
 	return &userRepository{db: db}
 }
 
@@ -29,7 +30,7 @@ func (r *userRepository) GetByEmail(ctx context.Context, tenantID uuid.UUID, ema
 	`
 
 	user := &ports.UserData{}
-	err := r.db.QueryRowContext(ctx, query, tenantID, email).Scan(
+	err := r.db.QueryRow(ctx, query, tenantID, email).Scan(
 		&user.UserID,
 		&user.TenantID,
 		&user.Email,
@@ -38,7 +39,7 @@ func (r *userRepository) GetByEmail(ctx context.Context, tenantID uuid.UUID, ema
 		&user.EmailVerifiedAt,
 	)
 
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		return nil, fmt.Errorf("user not found")
 	}
 	if err != nil {
@@ -59,7 +60,7 @@ func (r *userRepository) Create(ctx context.Context, user *ports.UserData) (*por
 	now := time.Now()
 	createdUser := &ports.UserData{}
 
-	err := r.db.QueryRowContext(ctx, query,
+	err := r.db.QueryRow(ctx, query,
 		user.UserID,
 		user.TenantID,
 		user.Email,
@@ -95,7 +96,7 @@ func (r *userRepository) GetByEmailGlobal(ctx context.Context, email string) (*p
 	`
 
 	user := &ports.UserData{}
-	err := r.db.QueryRowContext(ctx, query, email).Scan(
+	err := r.db.QueryRow(ctx, query, email).Scan(
 		&user.UserID,
 		&user.TenantID,
 		&user.Email,
@@ -104,7 +105,7 @@ func (r *userRepository) GetByEmailGlobal(ctx context.Context, email string) (*p
 		&user.EmailVerifiedAt,
 	)
 
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		return nil, fmt.Errorf("user not found")
 	}
 	if err != nil {
@@ -121,15 +122,12 @@ func (r *userRepository) UpdatePassword(ctx context.Context, userID uuid.UUID, h
 		WHERE user_id = $3
 	`
 
-	result, err := r.db.ExecContext(ctx, query, hashedPassword, time.Now(), userID)
+	result, err := r.db.Exec(ctx, query, hashedPassword, time.Now(), userID)
 	if err != nil {
 		return fmt.Errorf("failed to update password: %w", err)
 	}
 
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
-	}
+	rows := result.RowsAffected()
 
 	if rows == 0 {
 		return fmt.Errorf("user not found")
@@ -145,9 +143,24 @@ func (r *userRepository) UpdateLastLogin(ctx context.Context, userID uuid.UUID, 
 		WHERE user_id = $4
 	`
 
-	_, err := r.db.ExecContext(ctx, query, time.Now(), ipAddress, time.Now(), userID)
+	_, err := r.db.Exec(ctx, query, time.Now(), ipAddress, time.Now(), userID)
 	if err != nil {
 		return fmt.Errorf("failed to update last login: %w", err)
+	}
+
+	return nil
+}
+
+func (r *userRepository) UpdateLastLogout(ctx context.Context, userID uuid.UUID) error {
+	query := `
+		UPDATE users
+		SET last_logout_at = $1, updated_at = $2
+		WHERE user_id = $3
+	`
+
+	_, err := r.db.Exec(ctx, query, time.Now(), time.Now(), userID)
+	if err != nil {
+		return fmt.Errorf("failed to update last logout: %w", err)
 	}
 
 	return nil
@@ -160,15 +173,12 @@ func (r *userRepository) VerifyEmail(ctx context.Context, userID uuid.UUID) erro
 		WHERE user_id = $3
 	`
 
-	result, err := r.db.ExecContext(ctx, query, time.Now(), time.Now(), userID)
+	result, err := r.db.Exec(ctx, query, time.Now(), time.Now(), userID)
 	if err != nil {
 		return fmt.Errorf("failed to verify email: %w", err)
 	}
 
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
-	}
+	rows := result.RowsAffected()
 
 	if rows == 0 {
 		return fmt.Errorf("user not found")
@@ -180,15 +190,12 @@ func (r *userRepository) VerifyEmail(ctx context.Context, userID uuid.UUID) erro
 func (r *userRepository) Delete(ctx context.Context, userID uuid.UUID) error {
 	query := `DELETE FROM users WHERE user_id = $1`
 
-	result, err := r.db.ExecContext(ctx, query, userID)
+	result, err := r.db.Exec(ctx, query, userID)
 	if err != nil {
 		return fmt.Errorf("failed to delete user: %w", err)
 	}
 
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
-	}
+	rows := result.RowsAffected()
 
 	if rows == 0 {
 		return fmt.Errorf("user not found")
@@ -205,7 +212,7 @@ func (r *userRepository) GetByID(ctx context.Context, userID uuid.UUID) (*ports.
 	`
 
 	user := &ports.UserData{}
-	err := r.db.QueryRowContext(ctx, query, userID).Scan(
+	err := r.db.QueryRow(ctx, query, userID).Scan(
 		&user.UserID,
 		&user.TenantID,
 		&user.Email,
@@ -214,7 +221,7 @@ func (r *userRepository) GetByID(ctx context.Context, userID uuid.UUID) (*ports.
 		&user.EmailVerifiedAt,
 	)
 
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		return nil, fmt.Errorf("user not found")
 	}
 	if err != nil {

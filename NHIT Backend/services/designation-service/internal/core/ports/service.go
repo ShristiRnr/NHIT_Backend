@@ -10,7 +10,7 @@ import (
 // DesignationService defines the interface for designation business logic
 type DesignationService interface {
 	// CreateDesignation creates a new designation with validation
-	CreateDesignation(ctx context.Context, name, description string) (*domain.Designation, error)
+	CreateDesignation(ctx context.Context, name, description string, orgID *uuid.UUID) (*domain.Designation, error)
 
 	// GetDesignation retrieves a designation by ID
 	GetDesignation(ctx context.Context, id uuid.UUID) (*domain.Designation, error)
@@ -22,6 +22,6 @@ type DesignationService interface {
 	DeleteDesignation(ctx context.Context, id uuid.UUID) error
 
 	// ListDesignations retrieves designations with pagination and filters
-	ListDesignations(ctx context.Context, page, pageSize int32) ([]*domain.Designation, error)
+	ListDesignations(ctx context.Context, orgID *uuid.UUID, page, pageSize int32) ([]*domain.Designation, error)
 
 }

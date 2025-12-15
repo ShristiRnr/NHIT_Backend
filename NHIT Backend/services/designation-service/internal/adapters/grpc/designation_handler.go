@@ -4,11 +4,14 @@ import (
 	"context"
 	"log"
 
+	"strings"
+
 	designationpb "github.com/ShristiRnr/NHIT_Backend/api/pb/designationpb"
 	"github.com/ShristiRnr/NHIT_Backend/services/designation-service/internal/core/domain"
 	"github.com/ShristiRnr/NHIT_Backend/services/designation-service/internal/core/ports"
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -22,6 +25,35 @@ func NewDesignationHandler(service ports.DesignationService) *DesignationHandler
 	return &DesignationHandler{service: service}
 }
 
+// helper to get first non-empty metadata value by keys
+func firstMetadataValue(md metadata.MD, keys ...string) string {
+	for _, k := range keys {
+		if vals := md[strings.ToLower(k)]; len(vals) > 0 && vals[0] != "" {
+			return vals[0]
+		}
+	}
+	return ""
+}
+
+// getOrgIDFromContext extracts org_id from metadata
+func getOrgIDFromContext(ctx context.Context) *uuid.UUID {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil
+	}
+	// Check headers first (if context switching)
+	orgIDStr := firstMetadataValue(md, "x-org-id", "org-id", "orgId", "org_id")
+	if orgIDStr == "" {
+		return nil
+	}
+
+	id, err := uuid.Parse(orgIDStr)
+	if err != nil {
+		return nil
+	}
+	return &id
+}
+
 func (h *DesignationHandler) CreateDesignation(ctx context.Context, req *designationpb.CreateDesignationRequest) (*designationpb.DesignationResponse, error) {
 	log.Printf("gRPC CreateDesignation: name=%s", req.Name)
 
@@ -32,7 +64,9 @@ func (h *DesignationHandler) CreateDesignation(ctx context.Context, req *designa
 		return nil, status.Error(codes.InvalidArgument, "description is required")
 	}
 
-	designation, err := h.service.CreateDesignation(ctx, req.Name, req.Description)
+	orgID := getOrgIDFromContext(ctx)
+
+	designation, err := h.service.CreateDesignation(ctx, req.Name, req.Description, orgID)
 	if err != nil {
 		return nil, handleError(err)
 	}
@@ -110,7 +144,9 @@ func (h *DesignationHandler) ListDesignations(
         req.PageSize = 10
     }
 
-    list, err := h.service.ListDesignations(ctx, req.Page, req.PageSize)
+    orgID := getOrgIDFromContext(ctx)
+
+    list, err := h.service.ListDesignations(ctx, orgID, req.Page, req.PageSize)
     if err != nil {
         return nil, handleError(err)
     }

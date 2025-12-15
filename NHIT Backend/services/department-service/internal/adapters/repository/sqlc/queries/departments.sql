@@ -1,6 +1,6 @@
 -- name: CreateDepartment :one
-INSERT INTO departments (name, description)
-VALUES ($1, $2)
+INSERT INTO departments (name, description, org_id)
+VALUES ($1, $2, $3)
 RETURNING *;
 
 -- name: GetDepartmentByID :one
@@ -20,8 +20,9 @@ DELETE FROM departments WHERE id = $1;
 
 -- name: ListDepartments :many
 SELECT * FROM departments 
+WHERE ($1::uuid IS NULL OR org_id = $1)
 ORDER BY created_at DESC 
-LIMIT $1 OFFSET $2;
+LIMIT $2 OFFSET $3;
 
 -- name: CountDepartments :one
 SELECT COUNT(*) FROM departments;

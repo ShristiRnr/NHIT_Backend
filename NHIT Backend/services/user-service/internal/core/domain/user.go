@@ -18,9 +18,22 @@ type User struct {
 	LastLogoutAt    *time.Time
 	LastLoginIP     string
 	UserAgent       string
+	DepartmentID    *uuid.UUID // Department assignment
+	DesignationID   *uuid.UUID // Designation assignment
+	
+	// Banking Information
+	AccountHolderName  *string
+	BankName           *string
+	BankAccountNumber  *string
+	IFSCCode           *string
+	
+	// Signature
+	SignatureURL       *string
+	
 	IsActive        bool       // For soft delete
 	DeactivatedAt   *time.Time // When user was deactivated
 	DeactivatedBy   *uuid.UUID // Who deactivated the user
+	DeactivatedByName *string  // Name of the user who deactivated
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 }
@@ -66,18 +79,6 @@ type UserOrganizationRole struct {
 	UpdatedAt        time.Time
 }
 
-// ActivityLog represents system activity logging
-type ActivityLog struct {
-	LogID        uuid.UUID
-	UserID       uuid.UUID
-	Action       string // e.g., "CREATE_USER", "UPDATE_ROLE", "DEACTIVATE_USER"
-	ResourceType string // e.g., "USER", "ORGANIZATION", "ROLE"
-	ResourceID   string // ID of the affected resource
-	Details      string // JSON string with additional details
-	IPAddress    string
-	UserAgent    string
-	CreatedAt    time.Time
-}
 
 // Notification represents system notifications
 type Notification struct {
@@ -98,6 +99,14 @@ type UserLoginHistory struct {
 	IPAddress *string
 	UserAgent *string
 	LoginTime time.Time
+}
+
+// ActivityLog represents user activity tracking for audit trail
+type ActivityLog struct {
+	ID          int32
+	Name        string
+	Description string
+	CreatedAt   time.Time
 }
 
 // Tenant represents a tenant in the multi-tenant system

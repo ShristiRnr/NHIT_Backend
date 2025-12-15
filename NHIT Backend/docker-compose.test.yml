@@ -75,7 +75,7 @@ services:
     container_name: nhit-organization-service-test
     environment:
       SERVER_PORT: "50053"
-      DATABASE_URL: "postgres://postgres:shristi@postgres-test:5432/nhit_db?sslmode=disable"
+      DATABASE_URL: "postgres://postgres:shristi@postgres-test:5433/nhit_db?sslmode=disable"
       USER_SERVICE_URL: "user-service-test:50051"
       ENVIRONMENT: "test"
       DEBUG: "true"
@@ -96,7 +96,7 @@ services:
     container_name: nhit-department-service-test
     environment:
       SERVER_PORT: "50054"
-      DATABASE_URL: "postgres://postgres:shristi@postgres-test:5432/nhit_db?sslmode=disable"
+      DATABASE_URL: "postgres://postgres:shristi@postgres-test:5433/nhit_db?sslmode=disable"
       USER_SERVICE_URL: "user-service-test:50051"
       ENVIRONMENT: "test"
       DEBUG: "true"
@@ -116,7 +116,7 @@ services:
       dockerfile: services/designation-service/Dockerfile
     container_name: nhit-designation-service-test
     environment:
-      DATABASE_URL: "postgres://postgres:shristi@postgres-test:5432/nhit_db?sslmode=disable"
+      DATABASE_URL: "postgres://postgres:shristi@postgres-test:5433/nhit_db?sslmode=disable"
       PORT: "50055"
       ENVIRONMENT: "test"
       DEBUG: "true"

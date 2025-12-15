@@ -36,16 +36,27 @@ func (q *Queries) CountUsersByTenant(ctx context.Context, tenantID uuid.UUID) (i
 }
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (tenant_id, name, email, password)
-VALUES ($1, $2, $3, $4)
-RETURNING user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at
+INSERT INTO users (
+    tenant_id, name, email, password, department_id, designation_id,
+    account_holder_name, bank_name, bank_account_number, ifsc_code, signature_url, is_active
+)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+RETURNING user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at, account_holder_name, bank_name, bank_account_number, ifsc_code, signature_url, is_active, deactivated_at, deactivated_by, deactivated_by_name
 `
 
 type CreateUserParams struct {
-	TenantID uuid.UUID `db:"tenant_id" json:"tenant_id"`
-	Name     string    `db:"name" json:"name"`
-	Email    string    `db:"email" json:"email"`
-	Password string    `db:"password" json:"password"`
+	TenantID          uuid.UUID     `db:"tenant_id" json:"tenant_id"`
+	Name              string        `db:"name" json:"name"`
+	Email             string        `db:"email" json:"email"`
+	Password          string        `db:"password" json:"password"`
+	DepartmentID      uuid.NullUUID `db:"department_id" json:"department_id"`
+	DesignationID     uuid.NullUUID `db:"designation_id" json:"designation_id"`
+	AccountHolderName *string       `db:"account_holder_name" json:"account_holder_name"`
+	BankName          *string       `db:"bank_name" json:"bank_name"`
+	BankAccountNumber *string       `db:"bank_account_number" json:"bank_account_number"`
+	IfscCode          *string       `db:"ifsc_code" json:"ifsc_code"`
+	SignatureUrl      *string       `db:"signature_url" json:"signature_url"`
+	IsActive          bool          `db:"is_active" json:"is_active"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (*User, error) {
@@ -54,6 +65,14 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (*User, 
 		arg.Name,
 		arg.Email,
 		arg.Password,
+		arg.DepartmentID,
+		arg.DesignationID,
+		arg.AccountHolderName,
+		arg.BankName,
+		arg.BankAccountNumber,
+		arg.IfscCode,
+		arg.SignatureUrl,
+		arg.IsActive,
 	)
 	var i User
 	err := row.Scan(
@@ -71,22 +90,42 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (*User, 
 		&i.DesignationID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.AccountHolderName,
+		&i.BankName,
+		&i.BankAccountNumber,
+		&i.IfscCode,
+		&i.SignatureUrl,
+		&i.IsActive,
+		&i.DeactivatedAt,
+		&i.DeactivatedBy,
+		&i.DeactivatedByName,
 	)
 	return &i, err
 }
 
 const createUserWithVerification = `-- name: CreateUserWithVerification :one
-INSERT INTO users (tenant_id, name, email, password, email_verified_at)
-VALUES ($1, $2, $3, $4, $5)
-RETURNING user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at
+INSERT INTO users (
+    tenant_id, name, email, password, email_verified_at, department_id, designation_id,
+    account_holder_name, bank_name, bank_account_number, ifsc_code, signature_url, is_active
+)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+RETURNING user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at, account_holder_name, bank_name, bank_account_number, ifsc_code, signature_url, is_active, deactivated_at, deactivated_by, deactivated_by_name
 `
 
 type CreateUserWithVerificationParams struct {
-	TenantID        uuid.UUID          `db:"tenant_id" json:"tenant_id"`
-	Name            string             `db:"name" json:"name"`
-	Email           string             `db:"email" json:"email"`
-	Password        string             `db:"password" json:"password"`
-	EmailVerifiedAt pgtype.Timestamptz `db:"email_verified_at" json:"email_verified_at"`
+	TenantID          uuid.UUID          `db:"tenant_id" json:"tenant_id"`
+	Name              string             `db:"name" json:"name"`
+	Email             string             `db:"email" json:"email"`
+	Password          string             `db:"password" json:"password"`
+	EmailVerifiedAt   pgtype.Timestamptz `db:"email_verified_at" json:"email_verified_at"`
+	DepartmentID      uuid.NullUUID      `db:"department_id" json:"department_id"`
+	DesignationID     uuid.NullUUID      `db:"designation_id" json:"designation_id"`
+	AccountHolderName *string            `db:"account_holder_name" json:"account_holder_name"`
+	BankName          *string            `db:"bank_name" json:"bank_name"`
+	BankAccountNumber *string            `db:"bank_account_number" json:"bank_account_number"`
+	IfscCode          *string            `db:"ifsc_code" json:"ifsc_code"`
+	SignatureUrl      *string            `db:"signature_url" json:"signature_url"`
+	IsActive          bool               `db:"is_active" json:"is_active"`
 }
 
 func (q *Queries) CreateUserWithVerification(ctx context.Context, arg CreateUserWithVerificationParams) (*User, error) {
@@ -96,6 +135,14 @@ func (q *Queries) CreateUserWithVerification(ctx context.Context, arg CreateUser
 		arg.Email,
 		arg.Password,
 		arg.EmailVerifiedAt,
+		arg.DepartmentID,
+		arg.DesignationID,
+		arg.AccountHolderName,
+		arg.BankName,
+		arg.BankAccountNumber,
+		arg.IfscCode,
+		arg.SignatureUrl,
+		arg.IsActive,
 	)
 	var i User
 	err := row.Scan(
@@ -113,6 +160,15 @@ func (q *Queries) CreateUserWithVerification(ctx context.Context, arg CreateUser
 		&i.DesignationID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.AccountHolderName,
+		&i.BankName,
+		&i.BankAccountNumber,
+		&i.IfscCode,
+		&i.SignatureUrl,
+		&i.IsActive,
+		&i.DeactivatedAt,
+		&i.DeactivatedBy,
+		&i.DeactivatedByName,
 	)
 	return &i, err
 }
@@ -128,7 +184,7 @@ func (q *Queries) DeleteUser(ctx context.Context, userID uuid.UUID) error {
 }
 
 const getUser = `-- name: GetUser :one
-SELECT user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at FROM users
+SELECT user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at, account_holder_name, bank_name, bank_account_number, ifsc_code, signature_url, is_active, deactivated_at, deactivated_by, deactivated_by_name FROM users
 WHERE user_id = $1
 `
 
@@ -150,12 +206,21 @@ func (q *Queries) GetUser(ctx context.Context, userID uuid.UUID) (*User, error) 
 		&i.DesignationID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.AccountHolderName,
+		&i.BankName,
+		&i.BankAccountNumber,
+		&i.IfscCode,
+		&i.SignatureUrl,
+		&i.IsActive,
+		&i.DeactivatedAt,
+		&i.DeactivatedBy,
+		&i.DeactivatedByName,
 	)
 	return &i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at FROM users
+SELECT user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at, account_holder_name, bank_name, bank_account_number, ifsc_code, signature_url, is_active, deactivated_at, deactivated_by, deactivated_by_name FROM users
 WHERE email = $1
 `
 
@@ -177,12 +242,21 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (*User, erro
 		&i.DesignationID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.AccountHolderName,
+		&i.BankName,
+		&i.BankAccountNumber,
+		&i.IfscCode,
+		&i.SignatureUrl,
+		&i.IsActive,
+		&i.DeactivatedAt,
+		&i.DeactivatedBy,
+		&i.DeactivatedByName,
 	)
 	return &i, err
 }
 
 const getUserByEmailAndTenant = `-- name: GetUserByEmailAndTenant :one
-SELECT user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at FROM users
+SELECT user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at, account_holder_name, bank_name, bank_account_number, ifsc_code, signature_url, is_active, deactivated_at, deactivated_by, deactivated_by_name FROM users
 WHERE tenant_id = $1 AND email = $2
 `
 
@@ -209,12 +283,21 @@ func (q *Queries) GetUserByEmailAndTenant(ctx context.Context, arg GetUserByEmai
 		&i.DesignationID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.AccountHolderName,
+		&i.BankName,
+		&i.BankAccountNumber,
+		&i.IfscCode,
+		&i.SignatureUrl,
+		&i.IsActive,
+		&i.DeactivatedAt,
+		&i.DeactivatedBy,
+		&i.DeactivatedByName,
 	)
 	return &i, err
 }
 
 const listAllUsers = `-- name: ListAllUsers :many
-SELECT user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at FROM users
+SELECT user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at, account_holder_name, bank_name, bank_account_number, ifsc_code, signature_url, is_active, deactivated_at, deactivated_by, deactivated_by_name FROM users
 ORDER BY created_at DESC
 LIMIT $1 OFFSET $2
 `
@@ -248,6 +331,15 @@ func (q *Queries) ListAllUsers(ctx context.Context, arg ListAllUsersParams) ([]*
 			&i.DesignationID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.AccountHolderName,
+			&i.BankName,
+			&i.BankAccountNumber,
+			&i.IfscCode,
+			&i.SignatureUrl,
+			&i.IsActive,
+			&i.DeactivatedAt,
+			&i.DeactivatedBy,
+			&i.DeactivatedByName,
 		); err != nil {
 			return nil, err
 		}
@@ -260,7 +352,7 @@ func (q *Queries) ListAllUsers(ctx context.Context, arg ListAllUsersParams) ([]*
 }
 
 const listUsersByDepartment = `-- name: ListUsersByDepartment :many
-SELECT user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at FROM users
+SELECT user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at, account_holder_name, bank_name, bank_account_number, ifsc_code, signature_url, is_active, deactivated_at, deactivated_by, deactivated_by_name FROM users
 WHERE department_id = $1
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
@@ -296,6 +388,15 @@ func (q *Queries) ListUsersByDepartment(ctx context.Context, arg ListUsersByDepa
 			&i.DesignationID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.AccountHolderName,
+			&i.BankName,
+			&i.BankAccountNumber,
+			&i.IfscCode,
+			&i.SignatureUrl,
+			&i.IsActive,
+			&i.DeactivatedAt,
+			&i.DeactivatedBy,
+			&i.DeactivatedByName,
 		); err != nil {
 			return nil, err
 		}
@@ -308,7 +409,7 @@ func (q *Queries) ListUsersByDepartment(ctx context.Context, arg ListUsersByDepa
 }
 
 const listUsersByDesignation = `-- name: ListUsersByDesignation :many
-SELECT user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at FROM users
+SELECT user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at, account_holder_name, bank_name, bank_account_number, ifsc_code, signature_url, is_active, deactivated_at, deactivated_by, deactivated_by_name FROM users
 WHERE designation_id = $1
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
@@ -344,6 +445,15 @@ func (q *Queries) ListUsersByDesignation(ctx context.Context, arg ListUsersByDes
 			&i.DesignationID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.AccountHolderName,
+			&i.BankName,
+			&i.BankAccountNumber,
+			&i.IfscCode,
+			&i.SignatureUrl,
+			&i.IsActive,
+			&i.DeactivatedAt,
+			&i.DeactivatedBy,
+			&i.DeactivatedByName,
 		); err != nil {
 			return nil, err
 		}
@@ -356,7 +466,7 @@ func (q *Queries) ListUsersByDesignation(ctx context.Context, arg ListUsersByDes
 }
 
 const listUsersByTenant = `-- name: ListUsersByTenant :many
-SELECT user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at FROM users
+SELECT user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at, account_holder_name, bank_name, bank_account_number, ifsc_code, signature_url, is_active, deactivated_at, deactivated_by, deactivated_by_name FROM users
 WHERE tenant_id = $1
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
@@ -392,6 +502,15 @@ func (q *Queries) ListUsersByTenant(ctx context.Context, arg ListUsersByTenantPa
 			&i.DesignationID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.AccountHolderName,
+			&i.BankName,
+			&i.BankAccountNumber,
+			&i.IfscCode,
+			&i.SignatureUrl,
+			&i.IsActive,
+			&i.DeactivatedAt,
+			&i.DeactivatedBy,
+			&i.DeactivatedByName,
 		); err != nil {
 			return nil, err
 		}
@@ -404,7 +523,7 @@ func (q *Queries) ListUsersByTenant(ctx context.Context, arg ListUsersByTenantPa
 }
 
 const searchUsersByEmail = `-- name: SearchUsersByEmail :many
-SELECT user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at FROM users
+SELECT user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at, account_holder_name, bank_name, bank_account_number, ifsc_code, signature_url, is_active, deactivated_at, deactivated_by, deactivated_by_name FROM users
 WHERE LOWER(email) LIKE LOWER('%' || $1 || '%')
 ORDER BY email ASC
 LIMIT $2 OFFSET $3
@@ -440,6 +559,15 @@ func (q *Queries) SearchUsersByEmail(ctx context.Context, arg SearchUsersByEmail
 			&i.DesignationID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.AccountHolderName,
+			&i.BankName,
+			&i.BankAccountNumber,
+			&i.IfscCode,
+			&i.SignatureUrl,
+			&i.IsActive,
+			&i.DeactivatedAt,
+			&i.DeactivatedBy,
+			&i.DeactivatedByName,
 		); err != nil {
 			return nil, err
 		}
@@ -452,7 +580,7 @@ func (q *Queries) SearchUsersByEmail(ctx context.Context, arg SearchUsersByEmail
 }
 
 const searchUsersByName = `-- name: SearchUsersByName :many
-SELECT user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at FROM users
+SELECT user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at, account_holder_name, bank_name, bank_account_number, ifsc_code, signature_url, is_active, deactivated_at, deactivated_by, deactivated_by_name FROM users
 WHERE LOWER(name) LIKE LOWER('%' || $1 || '%')
 ORDER BY name ASC
 LIMIT $2 OFFSET $3
@@ -488,6 +616,15 @@ func (q *Queries) SearchUsersByName(ctx context.Context, arg SearchUsersByNamePa
 			&i.DesignationID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.AccountHolderName,
+			&i.BankName,
+			&i.BankAccountNumber,
+			&i.IfscCode,
+			&i.SignatureUrl,
+			&i.IsActive,
+			&i.DeactivatedAt,
+			&i.DeactivatedBy,
+			&i.DeactivatedByName,
 		); err != nil {
 			return nil, err
 		}
@@ -501,16 +638,42 @@ func (q *Queries) SearchUsersByName(ctx context.Context, arg SearchUsersByNamePa
 
 const updateUser = `-- name: UpdateUser :one
 UPDATE users
-SET name = $2, email = $3, password = $4, updated_at = NOW()
+SET 
+    name = $2, 
+    email = $3, 
+    password = $4, 
+    department_id = $5,
+    designation_id = $6,
+    account_holder_name = $7,
+    bank_name = $8,
+    bank_account_number = $9,
+    ifsc_code = $10,
+    signature_url = $11,
+    is_active = $12,
+    deactivated_at = $13,
+    deactivated_by = $14,
+    deactivated_by_name = $15,
+    updated_at = NOW()
 WHERE user_id = $1
-RETURNING user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at
+RETURNING user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at, account_holder_name, bank_name, bank_account_number, ifsc_code, signature_url, is_active, deactivated_at, deactivated_by, deactivated_by_name
 `
 
 type UpdateUserParams struct {
-	UserID   uuid.UUID `db:"user_id" json:"user_id"`
-	Name     string    `db:"name" json:"name"`
-	Email    string    `db:"email" json:"email"`
-	Password string    `db:"password" json:"password"`
+	UserID            uuid.UUID          `db:"user_id" json:"user_id"`
+	Name              string             `db:"name" json:"name"`
+	Email             string             `db:"email" json:"email"`
+	Password          string             `db:"password" json:"password"`
+	DepartmentID      uuid.NullUUID      `db:"department_id" json:"department_id"`
+	DesignationID     uuid.NullUUID      `db:"designation_id" json:"designation_id"`
+	AccountHolderName *string            `db:"account_holder_name" json:"account_holder_name"`
+	BankName          *string            `db:"bank_name" json:"bank_name"`
+	BankAccountNumber *string            `db:"bank_account_number" json:"bank_account_number"`
+	IfscCode          *string            `db:"ifsc_code" json:"ifsc_code"`
+	SignatureUrl      *string            `db:"signature_url" json:"signature_url"`
+	IsActive          bool               `db:"is_active" json:"is_active"`
+	DeactivatedAt     pgtype.Timestamptz `db:"deactivated_at" json:"deactivated_at"`
+	DeactivatedBy     pgtype.UUID        `db:"deactivated_by" json:"deactivated_by"`
+	DeactivatedByName *string            `db:"deactivated_by_name" json:"deactivated_by_name"`
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (*User, error) {
@@ -519,6 +682,17 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (*User, 
 		arg.Name,
 		arg.Email,
 		arg.Password,
+		arg.DepartmentID,
+		arg.DesignationID,
+		arg.AccountHolderName,
+		arg.BankName,
+		arg.BankAccountNumber,
+		arg.IfscCode,
+		arg.SignatureUrl,
+		arg.IsActive,
+		arg.DeactivatedAt,
+		arg.DeactivatedBy,
+		arg.DeactivatedByName,
 	)
 	var i User
 	err := row.Scan(
@@ -536,6 +710,15 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (*User, 
 		&i.DesignationID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.AccountHolderName,
+		&i.BankName,
+		&i.BankAccountNumber,
+		&i.IfscCode,
+		&i.SignatureUrl,
+		&i.IsActive,
+		&i.DeactivatedAt,
+		&i.DeactivatedBy,
+		&i.DeactivatedByName,
 	)
 	return &i, err
 }
@@ -544,7 +727,7 @@ const updateUserDepartment = `-- name: UpdateUserDepartment :one
 UPDATE users
 SET department_id = $2, updated_at = NOW()
 WHERE user_id = $1
-RETURNING user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at
+RETURNING user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at, account_holder_name, bank_name, bank_account_number, ifsc_code, signature_url, is_active, deactivated_at, deactivated_by, deactivated_by_name
 `
 
 type UpdateUserDepartmentParams struct {
@@ -570,6 +753,15 @@ func (q *Queries) UpdateUserDepartment(ctx context.Context, arg UpdateUserDepart
 		&i.DesignationID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.AccountHolderName,
+		&i.BankName,
+		&i.BankAccountNumber,
+		&i.IfscCode,
+		&i.SignatureUrl,
+		&i.IsActive,
+		&i.DeactivatedAt,
+		&i.DeactivatedBy,
+		&i.DeactivatedByName,
 	)
 	return &i, err
 }
@@ -578,7 +770,7 @@ const updateUserDesignation = `-- name: UpdateUserDesignation :one
 UPDATE users
 SET designation_id = $2, updated_at = NOW()
 WHERE user_id = $1
-RETURNING user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at
+RETURNING user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at, account_holder_name, bank_name, bank_account_number, ifsc_code, signature_url, is_active, deactivated_at, deactivated_by, deactivated_by_name
 `
 
 type UpdateUserDesignationParams struct {
@@ -604,6 +796,15 @@ func (q *Queries) UpdateUserDesignation(ctx context.Context, arg UpdateUserDesig
 		&i.DesignationID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.AccountHolderName,
+		&i.BankName,
+		&i.BankAccountNumber,
+		&i.IfscCode,
+		&i.SignatureUrl,
+		&i.IsActive,
+		&i.DeactivatedAt,
+		&i.DeactivatedBy,
+		&i.DeactivatedByName,
 	)
 	return &i, err
 }
@@ -612,7 +813,7 @@ const updateUserEmailVerification = `-- name: UpdateUserEmailVerification :one
 UPDATE users
 SET email_verified_at = $2, updated_at = NOW()
 WHERE user_id = $1
-RETURNING user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at
+RETURNING user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at, account_holder_name, bank_name, bank_account_number, ifsc_code, signature_url, is_active, deactivated_at, deactivated_by, deactivated_by_name
 `
 
 type UpdateUserEmailVerificationParams struct {
@@ -638,6 +839,15 @@ func (q *Queries) UpdateUserEmailVerification(ctx context.Context, arg UpdateUse
 		&i.DesignationID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.AccountHolderName,
+		&i.BankName,
+		&i.BankAccountNumber,
+		&i.IfscCode,
+		&i.SignatureUrl,
+		&i.IsActive,
+		&i.DeactivatedAt,
+		&i.DeactivatedBy,
+		&i.DeactivatedByName,
 	)
 	return &i, err
 }
@@ -646,7 +856,7 @@ const updateUserLastLogin = `-- name: UpdateUserLastLogin :one
 UPDATE users
 SET last_login_at = $2, last_login_ip = $3, user_agent = $4, updated_at = NOW()
 WHERE user_id = $1
-RETURNING user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at
+RETURNING user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at, account_holder_name, bank_name, bank_account_number, ifsc_code, signature_url, is_active, deactivated_at, deactivated_by, deactivated_by_name
 `
 
 type UpdateUserLastLoginParams struct {
@@ -679,6 +889,15 @@ func (q *Queries) UpdateUserLastLogin(ctx context.Context, arg UpdateUserLastLog
 		&i.DesignationID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.AccountHolderName,
+		&i.BankName,
+		&i.BankAccountNumber,
+		&i.IfscCode,
+		&i.SignatureUrl,
+		&i.IsActive,
+		&i.DeactivatedAt,
+		&i.DeactivatedBy,
+		&i.DeactivatedByName,
 	)
 	return &i, err
 }
@@ -687,7 +906,7 @@ const updateUserLastLogout = `-- name: UpdateUserLastLogout :one
 UPDATE users
 SET last_logout_at = $2, updated_at = NOW()
 WHERE user_id = $1
-RETURNING user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at
+RETURNING user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at, account_holder_name, bank_name, bank_account_number, ifsc_code, signature_url, is_active, deactivated_at, deactivated_by, deactivated_by_name
 `
 
 type UpdateUserLastLogoutParams struct {
@@ -713,6 +932,15 @@ func (q *Queries) UpdateUserLastLogout(ctx context.Context, arg UpdateUserLastLo
 		&i.DesignationID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.AccountHolderName,
+		&i.BankName,
+		&i.BankAccountNumber,
+		&i.IfscCode,
+		&i.SignatureUrl,
+		&i.IsActive,
+		&i.DeactivatedAt,
+		&i.DeactivatedBy,
+		&i.DeactivatedByName,
 	)
 	return &i, err
 }
@@ -721,7 +949,7 @@ const updateUserPassword = `-- name: UpdateUserPassword :one
 UPDATE users
 SET password = $2, updated_at = NOW()
 WHERE user_id = $1
-RETURNING user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at
+RETURNING user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at, account_holder_name, bank_name, bank_account_number, ifsc_code, signature_url, is_active, deactivated_at, deactivated_by, deactivated_by_name
 `
 
 type UpdateUserPasswordParams struct {
@@ -747,6 +975,15 @@ func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPassword
 		&i.DesignationID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.AccountHolderName,
+		&i.BankName,
+		&i.BankAccountNumber,
+		&i.IfscCode,
+		&i.SignatureUrl,
+		&i.IsActive,
+		&i.DeactivatedAt,
+		&i.DeactivatedBy,
+		&i.DeactivatedByName,
 	)
 	return &i, err
 }
@@ -755,7 +992,7 @@ const updateUserProfile = `-- name: UpdateUserProfile :one
 UPDATE users
 SET name = $2, email = $3, updated_at = NOW()
 WHERE user_id = $1
-RETURNING user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at
+RETURNING user_id, tenant_id, name, email, password, email_verified_at, last_login_at, last_logout_at, last_login_ip, user_agent, department_id, designation_id, created_at, updated_at, account_holder_name, bank_name, bank_account_number, ifsc_code, signature_url, is_active, deactivated_at, deactivated_by, deactivated_by_name
 `
 
 type UpdateUserProfileParams struct {
@@ -782,6 +1019,15 @@ func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfilePa
 		&i.DesignationID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.AccountHolderName,
+		&i.BankName,
+		&i.BankAccountNumber,
+		&i.IfscCode,
+		&i.SignatureUrl,
+		&i.IsActive,
+		&i.DeactivatedAt,
+		&i.DeactivatedBy,
+		&i.DeactivatedByName,
 	)
 	return &i, err
 }

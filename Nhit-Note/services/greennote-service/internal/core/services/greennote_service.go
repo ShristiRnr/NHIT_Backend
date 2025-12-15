@@ -11,6 +11,10 @@ import (
 
 	greennotepb "nhit-note/api/pb/greennotepb"
 
+	departmentpb "github.com/ShristiRnr/NHIT_Backend/api/pb/departmentpb"
+	projectpb "github.com/ShristiRnr/NHIT_Backend/api/pb/projectpb"
+	vendorpb "github.com/ShristiRnr/NHIT_Backend/api/pb/vendorpb"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -18,9 +22,12 @@ import (
 
 // GreenNoteService encapsulates business rules around GreenNotes.
 type GreenNoteService struct {
-	repo   ports.GreenNoteRepository
-	events ports.EventPublisher
-	clock  func() time.Time
+	repo           ports.GreenNoteRepository
+	events         ports.EventPublisher
+	clock          func() time.Time
+	projectClient  projectpb.ProjectServiceClient
+	vendorClient   vendorpb.VendorServiceClient
+	deptClient     departmentpb.DepartmentServiceClient
 }
 
 const (
@@ -31,15 +38,25 @@ const (
 )
 
 // NewGreenNoteService constructs a GreenNoteService from its required ports.
-func NewGreenNoteService(repo ports.GreenNoteRepository, events ports.EventPublisher) *GreenNoteService {
+func NewGreenNoteService(repo ports.GreenNoteRepository, events ports.EventPublisher, projectClient projectpb.ProjectServiceClient, vendorClient vendorpb.VendorServiceClient, deptClient departmentpb.DepartmentServiceClient) *GreenNoteService {
 	if events == nil {
 		// Guard with internal no-op publisher when none is provided.
-		return &GreenNoteService{repo: repo, events: noopEventPublisher{}, clock: time.Now}
+		return &GreenNoteService{
+			repo:           repo,
+			events:         noopEventPublisher{},
+			clock:          time.Now,
+			projectClient:  projectClient,
+			vendorClient:   vendorClient,
+			deptClient:     deptClient,
+		}
 	}
 	return &GreenNoteService{
-		repo:   repo,
-		events: events,
-		clock:  time.Now,
+		repo:           repo,
+		events:         events,
+		clock:          time.Now,
+		projectClient:  projectClient,
+		vendorClient:   vendorClient,
+		deptClient:     deptClient,
 	}
 }
 
@@ -106,6 +123,15 @@ func (s *GreenNoteService) validateJWT(ctx context.Context) (*UserContext, error
 		Roles:    roles,
 		UserType: userType,
 	}, nil
+}
+
+// ensureOutgoingContext propagates incoming metadata to outgoing context
+func (s *GreenNoteService) ensureOutgoingContext(ctx context.Context) context.Context {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return ctx
+	}
+	return metadata.NewOutgoingContext(ctx, md)
 }
 
 // getStringValue safely returns string from slice or default
@@ -260,12 +286,33 @@ func (s *GreenNoteService) GetOrganizationProjects(ctx context.Context, req *gre
 		return nil, err
 	}
 
+	// Propagate metadata to outgoing context
+	ctx = s.ensureOutgoingContext(ctx)
+
 	fmt.Printf("🔐 GetOrganizationProjects - User ID: %s, Type: %s, Org: %s\n",
 		userCtx.UserID, userCtx.UserType, userCtx.OrgID)
 
-	// TODO: Implement actual project service call
-	// For now, return empty list
-	projects := []*greennotepb.Project{}
+	// Call Project Service
+	resp, err := s.projectClient.ListProjectsByOrganization(ctx, &projectpb.ListProjectsByOrganizationRequest{
+		OrgId: userCtx.OrgID,
+	})
+	if err != nil {
+		fmt.Printf("⚠️ Failed to fetch projects from external service: %v\n", err)
+		// Fallback to empty list instead of failing hard, or return error depending on requirements
+		return nil, status.Errorf(codes.Internal, "failed to fetch projects: %v", err)
+	}
+
+	// Map external projects to local proto
+	projects := make([]*greennotepb.Project, len(resp.Projects))
+	for i, p := range resp.Projects {
+		projects[i] = &greennotepb.Project{
+			Id:          p.ProjectId,
+			Name:        p.ProjectName,
+			Code:        "", // Not available in project-service
+			Status:      "Active", // Default
+			Description: "", // Not available in project-service
+		}
+	}
 
 	return &greennotepb.GetOrganizationProjectsResponse{
 		Projects: projects,
@@ -281,12 +328,47 @@ func (s *GreenNoteService) GetOrganizationVendors(ctx context.Context, req *gree
 		return nil, err
 	}
 
+	// Propagate metadata to outgoing context
+	ctx = s.ensureOutgoingContext(ctx)
+
 	fmt.Printf("🔐 GetOrganizationVendors - User ID: %s, Type: %s, Org: %s\n",
 		userCtx.UserID, userCtx.UserType, userCtx.OrgID)
 
-	// TODO: Implement actual vendor service call
-	// For now, return empty list
-	vendors := []*greennotepb.Vendor{}
+	// Call Vendor Service
+	// vendor-service ListVendors supports filtering by IDs in proto, but we need OrgID filter.
+	// As per previous context, vendor service's ListVendors checks metadata for org_id.
+	// So we just need to pass the context through.
+	// Wait, we need to map the response format.
+	resp, err := s.vendorClient.ListVendors(ctx, &vendorpb.ListVendorsRequest{
+		TenantId: userCtx.TenantID,
+		// Filters might be needed here if proto requires them
+	})
+	if err != nil {
+		fmt.Printf("⚠️ Failed to fetch vendors from external service: %v\n", err)
+		return nil, status.Errorf(codes.Internal, "failed to fetch vendors: %v", err)
+	}
+
+	// Map external vendors to local proto
+	vendors := make([]*greennotepb.Vendor, len(resp.Vendors))
+	for i, v := range resp.Vendors {
+		msmeClass := v.MsmeClassification
+		if msmeClass == "" && v.GetMsme() != "" {
+			msmeClass = v.GetMsme()
+		}
+
+		vendors[i] = &greennotepb.Vendor{
+			Id:                 v.Id,
+			Name:               v.VendorName,
+			Code:               v.VendorCode,
+			Email:              v.VendorEmail,
+			Phone:              v.GetVendorMobile(), // Using getter for optional string
+			ContactPerson:      v.BeneficiaryName,
+			Status:             v.Status,
+			MsmeClassification: msmeClass,
+			ActivityType:       v.GetActivityType(),
+		}
+		fmt.Printf("Mapping Vendor: %s, MSME: %s -> %s, Activity: %s\n", v.VendorName, v.MsmeClassification, msmeClass, v.GetActivityType())
+	}
 
 	return &greennotepb.GetOrganizationVendorsResponse{
 		Vendors: vendors,
@@ -302,12 +384,34 @@ func (s *GreenNoteService) GetOrganizationDepartments(ctx context.Context, req *
 		return nil, err
 	}
 
+	// Propagate metadata to outgoing context
+	ctx = s.ensureOutgoingContext(ctx)
+
 	fmt.Printf("🔐 GetOrganizationDepartments - User ID: %s, Type: %s, Org: %s\n",
 		userCtx.UserID, userCtx.UserType, userCtx.OrgID)
 
-	// TODO: Implement actual department service call
-	// For now, return empty list
-	departments := []*greennotepb.Department{}
+	// Call Department Service
+	resp, err := s.deptClient.ListDepartments(ctx, &departmentpb.ListDepartmentsRequest{
+		Page:     1,    // Default to page 1
+		PageSize: 1000, // Fetch logical all for dropdown
+	})
+	if err != nil {
+		fmt.Printf("⚠️ Failed to fetch departments from external service: %v\n", err)
+		return nil, status.Errorf(codes.Internal, "failed to fetch departments: %v", err)
+	}
+
+	// Map external departments to local proto
+	departments := make([]*greennotepb.Department, len(resp.Departments))
+	for i, d := range resp.Departments {
+		departments[i] = &greennotepb.Department{
+			Id:          d.Id,
+			Name:        d.Name,
+			Code:        "", // Not available in department-service
+			Description: d.Description,
+			HeadName:    "", // Not available in department-service
+			Status:      "Active",
+		}
+	}
 
 	return &greennotepb.GetOrganizationDepartmentsResponse{
 		Departments: departments,

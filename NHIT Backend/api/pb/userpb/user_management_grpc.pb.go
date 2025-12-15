@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v6.32.0
-// source: api/proto/user_management.proto
+// source: user_management.proto
 
 package userpb
 
@@ -51,6 +51,10 @@ const (
 	UserManagement_AddUserToOrganization_FullMethodName      = "/UserManagement/AddUserToOrganization"
 	UserManagement_RemoveUserFromOrganization_FullMethodName = "/UserManagement/RemoveUserFromOrganization"
 	UserManagement_ListUserOrganizations_FullMethodName      = "/UserManagement/ListUserOrganizations"
+	UserManagement_GetDepartmentsDropdown_FullMethodName     = "/UserManagement/GetDepartmentsDropdown"
+	UserManagement_GetDesignationsDropdown_FullMethodName    = "/UserManagement/GetDesignationsDropdown"
+	UserManagement_GetRolesDropdown_FullMethodName           = "/UserManagement/GetRolesDropdown"
+	UserManagement_UploadUserSignature_FullMethodName        = "/UserManagement/UploadUserSignature"
 	UserManagement_ListUsersPaginated_FullMethodName         = "/UserManagement/ListUsersPaginated"
 	UserManagement_CountUsersByTenant_FullMethodName         = "/UserManagement/CountUsersByTenant"
 )
@@ -106,6 +110,12 @@ type UserManagementClient interface {
 	AddUserToOrganization(ctx context.Context, in *AddUserToOrganizationRequest, opts ...grpc.CallOption) (*UserResponse, error)
 	RemoveUserFromOrganization(ctx context.Context, in *RemoveUserFromOrganizationRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	ListUserOrganizations(ctx context.Context, in *ListUserOrganizationsRequest, opts ...grpc.CallOption) (*ListUserOrganizationsResponse, error)
+	// Dropdown endpoints for Create User form
+	GetDepartmentsDropdown(ctx context.Context, in *GetDropdownRequest, opts ...grpc.CallOption) (*DepartmentsDropdownResponse, error)
+	GetDesignationsDropdown(ctx context.Context, in *GetDropdownRequest, opts ...grpc.CallOption) (*DesignationsDropdownResponse, error)
+	GetRolesDropdown(ctx context.Context, in *GetDropdownRequest, opts ...grpc.CallOption) (*RolesDropdownResponse, error)
+	// Signature Upload
+	UploadUserSignature(ctx context.Context, in *UploadSignatureRequest, opts ...grpc.CallOption) (*UploadSignatureResponse, error)
 	// Pagination & Count
 	ListUsersPaginated(ctx context.Context, in *ListUsersPaginatedRequest, opts ...grpc.CallOption) (*ListUsersPaginatedResponse, error)
 	CountUsersByTenant(ctx context.Context, in *CountUsersByTenantRequest, opts ...grpc.CallOption) (*CountUsersByTenantResponse, error)
@@ -429,6 +439,46 @@ func (c *userManagementClient) ListUserOrganizations(ctx context.Context, in *Li
 	return out, nil
 }
 
+func (c *userManagementClient) GetDepartmentsDropdown(ctx context.Context, in *GetDropdownRequest, opts ...grpc.CallOption) (*DepartmentsDropdownResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DepartmentsDropdownResponse)
+	err := c.cc.Invoke(ctx, UserManagement_GetDepartmentsDropdown_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userManagementClient) GetDesignationsDropdown(ctx context.Context, in *GetDropdownRequest, opts ...grpc.CallOption) (*DesignationsDropdownResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DesignationsDropdownResponse)
+	err := c.cc.Invoke(ctx, UserManagement_GetDesignationsDropdown_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userManagementClient) GetRolesDropdown(ctx context.Context, in *GetDropdownRequest, opts ...grpc.CallOption) (*RolesDropdownResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RolesDropdownResponse)
+	err := c.cc.Invoke(ctx, UserManagement_GetRolesDropdown_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userManagementClient) UploadUserSignature(ctx context.Context, in *UploadSignatureRequest, opts ...grpc.CallOption) (*UploadSignatureResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UploadSignatureResponse)
+	err := c.cc.Invoke(ctx, UserManagement_UploadUserSignature_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *userManagementClient) ListUsersPaginated(ctx context.Context, in *ListUsersPaginatedRequest, opts ...grpc.CallOption) (*ListUsersPaginatedResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListUsersPaginatedResponse)
@@ -500,6 +550,12 @@ type UserManagementServer interface {
 	AddUserToOrganization(context.Context, *AddUserToOrganizationRequest) (*UserResponse, error)
 	RemoveUserFromOrganization(context.Context, *RemoveUserFromOrganizationRequest) (*emptypb.Empty, error)
 	ListUserOrganizations(context.Context, *ListUserOrganizationsRequest) (*ListUserOrganizationsResponse, error)
+	// Dropdown endpoints for Create User form
+	GetDepartmentsDropdown(context.Context, *GetDropdownRequest) (*DepartmentsDropdownResponse, error)
+	GetDesignationsDropdown(context.Context, *GetDropdownRequest) (*DesignationsDropdownResponse, error)
+	GetRolesDropdown(context.Context, *GetDropdownRequest) (*RolesDropdownResponse, error)
+	// Signature Upload
+	UploadUserSignature(context.Context, *UploadSignatureRequest) (*UploadSignatureResponse, error)
 	// Pagination & Count
 	ListUsersPaginated(context.Context, *ListUsersPaginatedRequest) (*ListUsersPaginatedResponse, error)
 	CountUsersByTenant(context.Context, *CountUsersByTenantRequest) (*CountUsersByTenantResponse, error)
@@ -605,6 +661,18 @@ func (UnimplementedUserManagementServer) RemoveUserFromOrganization(context.Cont
 }
 func (UnimplementedUserManagementServer) ListUserOrganizations(context.Context, *ListUserOrganizationsRequest) (*ListUserOrganizationsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListUserOrganizations not implemented")
+}
+func (UnimplementedUserManagementServer) GetDepartmentsDropdown(context.Context, *GetDropdownRequest) (*DepartmentsDropdownResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetDepartmentsDropdown not implemented")
+}
+func (UnimplementedUserManagementServer) GetDesignationsDropdown(context.Context, *GetDropdownRequest) (*DesignationsDropdownResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetDesignationsDropdown not implemented")
+}
+func (UnimplementedUserManagementServer) GetRolesDropdown(context.Context, *GetDropdownRequest) (*RolesDropdownResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRolesDropdown not implemented")
+}
+func (UnimplementedUserManagementServer) UploadUserSignature(context.Context, *UploadSignatureRequest) (*UploadSignatureResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UploadUserSignature not implemented")
 }
 func (UnimplementedUserManagementServer) ListUsersPaginated(context.Context, *ListUsersPaginatedRequest) (*ListUsersPaginatedResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListUsersPaginated not implemented")
@@ -1191,6 +1259,78 @@ func _UserManagement_ListUserOrganizations_Handler(srv interface{}, ctx context.
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserManagement_GetDepartmentsDropdown_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetDropdownRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserManagementServer).GetDepartmentsDropdown(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserManagement_GetDepartmentsDropdown_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserManagementServer).GetDepartmentsDropdown(ctx, req.(*GetDropdownRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserManagement_GetDesignationsDropdown_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetDropdownRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserManagementServer).GetDesignationsDropdown(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserManagement_GetDesignationsDropdown_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserManagementServer).GetDesignationsDropdown(ctx, req.(*GetDropdownRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserManagement_GetRolesDropdown_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetDropdownRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserManagementServer).GetRolesDropdown(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserManagement_GetRolesDropdown_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserManagementServer).GetRolesDropdown(ctx, req.(*GetDropdownRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserManagement_UploadUserSignature_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UploadSignatureRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserManagementServer).UploadUserSignature(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserManagement_UploadUserSignature_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserManagementServer).UploadUserSignature(ctx, req.(*UploadSignatureRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _UserManagement_ListUsersPaginated_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListUsersPaginatedRequest)
 	if err := dec(in); err != nil {
@@ -1359,6 +1499,22 @@ var UserManagement_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _UserManagement_ListUserOrganizations_Handler,
 		},
 		{
+			MethodName: "GetDepartmentsDropdown",
+			Handler:    _UserManagement_GetDepartmentsDropdown_Handler,
+		},
+		{
+			MethodName: "GetDesignationsDropdown",
+			Handler:    _UserManagement_GetDesignationsDropdown_Handler,
+		},
+		{
+			MethodName: "GetRolesDropdown",
+			Handler:    _UserManagement_GetRolesDropdown_Handler,
+		},
+		{
+			MethodName: "UploadUserSignature",
+			Handler:    _UserManagement_UploadUserSignature_Handler,
+		},
+		{
 			MethodName: "ListUsersPaginated",
 			Handler:    _UserManagement_ListUsersPaginated_Handler,
 		},
@@ -1368,5 +1524,5 @@ var UserManagement_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "api/proto/user_management.proto",
+	Metadata: "user_management.proto",
 }

@@ -53,7 +53,7 @@ services:
     environment:
       GREENNOTE_GRPC_PORT: "50051"
       GREENNOTE_HTTP_PORT: "8080"
-      GREENNOTE_DATABASE_URL: "postgres://greennote:greennote@greennote-db:5432/greennote?sslmode=disable"
+      GREENNOTE_DATABASE_URL: "postgres://greennote:greennote@greennote-db:5433/greennote?sslmode=disable"
       KAFKA_BROKERS: "greennote-kafka:9092"
       GREENNOTE_KAFKA_TOPIC_APPROVED: "greennote.approved"
       MINIO_ENDPOINT: "greennote-minio:9000"

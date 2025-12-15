@@ -319,7 +319,7 @@ func (s *authService) LoginGlobal(ctx context.Context, email, password string, o
 		// Extract IP and User-Agent from context metadata
 		md, _ := metadata.FromIncomingContext(ctx)
 		ipAddress := firstMetadataValue(md, "x-forwarded-for", "x-real-ip", "remote-addr")
-		userAgent := firstMetadataValue(md, "user-agent")
+		userAgent := firstMetadataValue(md, "grpcgateway-user-agent", "x-user-agent", "user-agent")
 		_, err = s.userServiceClient.CreateUserLoginHistory(ctx, &userpb.CreateUserLoginHistoryRequest{
 			UserId:    user.UserID.String(),
 			IpAddress: ipAddress,
@@ -328,6 +328,16 @@ func (s *authService) LoginGlobal(ctx context.Context, email, password string, o
 		if err != nil {
 			fmt.Printf("⚠️  Failed to create login history: %v\n", err)
 			// Don't fail login if history creation fails
+		}
+
+		// Create activity log for login
+		_, err = s.userServiceClient.CreateActivityLog(ctx, &userpb.CreateActivityLogRequest{
+			Name:        fmt.Sprintf("User Logged in with email-ID [%s]", user.Email),
+			Description: "User successfully logged in",
+		})
+		if err != nil {
+			fmt.Printf("⚠️  Failed to create activity log: %v\n", err)
+			// Don't fail login if activity log creation fails
 		}
 	}
 
@@ -490,7 +500,7 @@ func (s *authService) Login(ctx context.Context, email, password string, tenantI
 		// Extract IP and User-Agent from context metadata
 		md, _ := metadata.FromIncomingContext(ctx)
 		ipAddress := firstMetadataValue(md, "x-forwarded-for", "x-real-ip", "remote-addr")
-		userAgent := firstMetadataValue(md, "user-agent")
+		userAgent := firstMetadataValue(md, "grpcgateway-user-agent", "x-user-agent", "user-agent")
 		_, err = s.userServiceClient.CreateUserLoginHistory(ctx, &userpb.CreateUserLoginHistoryRequest{
 			UserId:    user.UserID.String(),
 			IpAddress: ipAddress,
@@ -499,6 +509,16 @@ func (s *authService) Login(ctx context.Context, email, password string, tenantI
 		if err != nil {
 			fmt.Printf("⚠️  Failed to create login history: %v\n", err)
 			// Don't fail login if history creation fails
+		}
+
+		// Create activity log for login
+		_, err = s.userServiceClient.CreateActivityLog(ctx, &userpb.CreateActivityLogRequest{
+			Name:        fmt.Sprintf("User Logged in with email-ID [%s]", user.Email),
+			Description: "User successfully logged in",
+		})
+		if err != nil {
+			fmt.Printf("⚠️  Failed to create activity log: %v\n", err)
+			// Don't fail login if activity log creation fails
 		}
 	}
 
@@ -555,6 +575,12 @@ func (s *authService) Logout(ctx context.Context, userID uuid.UUID, refreshToken
 	}
 
 	fmt.Printf("Logout complete for user %s: Invalidated %d session(s)\n", userID, invalidatedSessions)
+	
+	// Update last logout time
+	if err := s.userRepo.UpdateLastLogout(ctx, userID); err != nil {
+		fmt.Printf("⚠️  Failed to update last logout: %v\n", err)
+	}
+
 	return nil
 }
 
@@ -970,6 +996,41 @@ func (s *authService) SwitchOrganization(ctx context.Context, userID uuid.UUID, 
 		log.Printf("⚠️  Failed to invalidate sessions for user %s: %v", userID, err)
 	}
 
+	// Fetch roles and permissions for the new organization context
+	rolesResp, err := s.userServiceClient.ListRolesOfUser(ctx, &userpb.GetUserRequest{
+		UserId: userID.String(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch user roles for token: %w", err)
+	}
+
+	roleNames := make([]string, 0)
+	permSet := make(map[string]struct{})
+	newOrgIDStr := newOrgID.String()
+
+	for _, r := range rolesResp.Roles {
+		// Include roles that belong to this org OR are tenant-level (empty org_id)
+		if r.OrgId == "" || r.OrgId == newOrgIDStr {
+			if r.Name != "" {
+				roleNames = append(roleNames, r.Name)
+			}
+			for _, p := range r.Permissions {
+				permSet[p] = struct{}{}
+			}
+		}
+	}
+	permissions := make([]string, 0, len(permSet))
+	for p := range permSet {
+		permissions = append(permissions, p)
+	}
+
+	// Generate new tokens for the new organization context
+	// We must do this BEFORE creating the session so we can store the token in the session
+	token, err := s.jwtManager.GenerateToken(userID, user.Email, user.Name, tenantID, &newOrgID, roleNames, permissions)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate token: %w", err)
+	}
+
 	// Create new session with the new organization context
 	sessionID := uuid.New()
 	expiresAt := time.Now().Add(24 * time.Hour) // 24 hour session
@@ -977,7 +1038,7 @@ func (s *authService) SwitchOrganization(ctx context.Context, userID uuid.UUID, 
 	session := &domain.Session{
 		SessionID:    sessionID,
 		UserID:       userID,
-		SessionToken: "", // Will be set by repository
+		SessionToken: token, // Store the actual token!
 		CreatedAt:    time.Now(),
 		ExpiresAt:    expiresAt,
 	}
@@ -985,13 +1046,6 @@ func (s *authService) SwitchOrganization(ctx context.Context, userID uuid.UUID, 
 	createdSession, err := s.sessionRepo.Create(ctx, session)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create session: %w", err)
-	}
-
-	// Generate new tokens for the new organization context
-	// Note: UserData doesn't have Roles/Permissions fields, so we'll use empty arrays for now
-	token, err := s.jwtManager.GenerateToken(userID, user.Email, user.Name, tenantID, &newOrgID, []string{}, []string{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate token: %w", err)
 	}
 
 	refreshToken, refreshExpiresAt, err := s.jwtManager.GenerateRefreshToken(userID.String(), tenantID.String())
@@ -1017,8 +1071,8 @@ func (s *authService) SwitchOrganization(ctx context.Context, userID uuid.UUID, 
 		UserID:           userID,
 		Email:            user.Email,
 		Name:             user.Name,
-		Roles:            []string{}, // UserData doesn't have roles, using empty array
-		Permissions:      []string{}, // UserData doesn't have permissions, using empty array
+		Roles:            roleNames,
+		Permissions:      permissions,
 		TenantID:         tenantID,
 		OrgID:            &newOrgID,
 		Token:            token,

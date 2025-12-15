@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const countDepartments = `-- name: CountDepartments :one
@@ -23,18 +24,19 @@ func (q *Queries) CountDepartments(ctx context.Context) (int64, error) {
 }
 
 const createDepartment = `-- name: CreateDepartment :one
-INSERT INTO departments (name, description)
-VALUES ($1, $2)
-RETURNING id, name, description, created_at, updated_at
+INSERT INTO departments (name, description, org_id)
+VALUES ($1, $2, $3)
+RETURNING id, name, description, created_at, updated_at, org_id
 `
 
 type CreateDepartmentParams struct {
-	Name        string `db:"name" json:"name"`
-	Description string `db:"description" json:"description"`
+	Name        string      `db:"name" json:"name"`
+	Description string      `db:"description" json:"description"`
+	OrgID       pgtype.UUID `db:"org_id" json:"org_id"`
 }
 
 func (q *Queries) CreateDepartment(ctx context.Context, arg CreateDepartmentParams) (*Department, error) {
-	row := q.db.QueryRow(ctx, createDepartment, arg.Name, arg.Description)
+	row := q.db.QueryRow(ctx, createDepartment, arg.Name, arg.Description, arg.OrgID)
 	var i Department
 	err := row.Scan(
 		&i.ID,
@@ -42,6 +44,7 @@ func (q *Queries) CreateDepartment(ctx context.Context, arg CreateDepartmentPara
 		&i.Description,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OrgID,
 	)
 	return &i, err
 }
@@ -78,7 +81,7 @@ func (q *Queries) DepartmentExistsByID(ctx context.Context, id uuid.UUID) (bool,
 }
 
 const getDepartmentByID = `-- name: GetDepartmentByID :one
-SELECT id, name, description, created_at, updated_at FROM departments WHERE id = $1
+SELECT id, name, description, created_at, updated_at, org_id FROM departments WHERE id = $1
 `
 
 func (q *Queries) GetDepartmentByID(ctx context.Context, id uuid.UUID) (*Department, error) {
@@ -90,12 +93,13 @@ func (q *Queries) GetDepartmentByID(ctx context.Context, id uuid.UUID) (*Departm
 		&i.Description,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OrgID,
 	)
 	return &i, err
 }
 
 const getDepartmentByName = `-- name: GetDepartmentByName :one
-SELECT id, name, description, created_at, updated_at FROM departments WHERE name = $1
+SELECT id, name, description, created_at, updated_at, org_id FROM departments WHERE name = $1
 `
 
 func (q *Queries) GetDepartmentByName(ctx context.Context, name string) (*Department, error) {
@@ -107,23 +111,26 @@ func (q *Queries) GetDepartmentByName(ctx context.Context, name string) (*Depart
 		&i.Description,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OrgID,
 	)
 	return &i, err
 }
 
 const listDepartments = `-- name: ListDepartments :many
-SELECT id, name, description, created_at, updated_at FROM departments 
+SELECT id, name, description, created_at, updated_at, org_id FROM departments 
+WHERE ($1::uuid IS NULL OR org_id = $1)
 ORDER BY created_at DESC 
-LIMIT $1 OFFSET $2
+LIMIT $2 OFFSET $3
 `
 
 type ListDepartmentsParams struct {
-	Limit  int32 `db:"limit" json:"limit"`
-	Offset int32 `db:"offset" json:"offset"`
+	Column1 pgtype.UUID `db:"column_1" json:"column_1"`
+	Limit   int32       `db:"limit" json:"limit"`
+	Offset  int32       `db:"offset" json:"offset"`
 }
 
 func (q *Queries) ListDepartments(ctx context.Context, arg ListDepartmentsParams) ([]*Department, error) {
-	rows, err := q.db.Query(ctx, listDepartments, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, listDepartments, arg.Column1, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -137,6 +144,7 @@ func (q *Queries) ListDepartments(ctx context.Context, arg ListDepartmentsParams
 			&i.Description,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.OrgID,
 		); err != nil {
 			return nil, err
 		}
@@ -152,7 +160,7 @@ const updateDepartment = `-- name: UpdateDepartment :one
 UPDATE departments
 SET name = $2, description = $3, updated_at = NOW()
 WHERE id = $1
-RETURNING id, name, description, created_at, updated_at
+RETURNING id, name, description, created_at, updated_at, org_id
 `
 
 type UpdateDepartmentParams struct {
@@ -170,6 +178,7 @@ func (q *Queries) UpdateDepartment(ctx context.Context, arg UpdateDepartmentPara
 		&i.Description,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OrgID,
 	)
 	return &i, err
 }

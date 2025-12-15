@@ -59,15 +59,15 @@ func (r *Repository) List(ctx context.Context, req *greennotepb.ListGreenNotesRe
 
 	// Total count for pagination
 	var total int64
-	countQuery := `SELECT COUNT(*) FROM green_notes WHERE ($1 = '' OR status = $1)`
+	countQuery := `SELECT COUNT(*) FROM green_notes WHERE ($1 = '' OR status::text = $1)`
 	if err := r.db.QueryRowContext(ctx, countQuery, statusFilter).Scan(&total); err != nil {
 		return nil, err
 	}
 
 	query := `
-		SELECT id, brief_of_goods_services, total_amount, created_at, status
+		SELECT id, project_name, supplier_name, total_amount, created_at, status
 		FROM green_notes
-		WHERE ($1 = '' OR status = $1)
+		WHERE ($1 = '' OR status::text = $1)
 		ORDER BY id DESC
 		LIMIT $2 OFFSET $3
 	`
@@ -80,20 +80,21 @@ func (r *Repository) List(ctx context.Context, req *greennotepb.ListGreenNotesRe
 	items := make([]*greennotepb.GreenNoteListItem, 0)
 	for rows.Next() {
 		var (
-			id      string
-			title   sql.NullString
-			amount  float64
-			created time.Time
-			status  string
+			id          string
+			projectName sql.NullString
+			vendorName  sql.NullString
+			amount      float64
+			created     time.Time
+			status      string
 		)
-		if err := rows.Scan(&id, &title, &amount, &created, &status); err != nil {
+		if err := rows.Scan(&id, &projectName, &vendorName, &amount, &created, &status); err != nil {
 			return nil, err
 		}
 		idStr := id
 		item := &greennotepb.GreenNoteListItem{
 			Id:          idStr,
-			ProjectName: title.String,
-			VendorName:  "",
+			ProjectName: projectName.String,
+			VendorName:  vendorName.String,
 			Amount:      amount,
 			Date:        created.Format(time.RFC3339),
 			Status:      status,

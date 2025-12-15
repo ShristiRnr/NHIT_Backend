@@ -14,23 +14,23 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.3
 	google.golang.org/grpc v1.77.0
 	nhit-note v0.0.0
+	nhit-note/api/pb/paymentnotepb v0.0.0-00010101000000-000000000000
 )
 
-replace github.com/ShristiRnr/NHIT_Backend/api/pb/authpb => ../../api/pb/authpb
-
-replace github.com/ShristiRnr/NHIT_Backend/api/pb/projectpb => ../../api/pb/projectpb
-
-replace github.com/ShristiRnr/NHIT_Backend/api/pb/userpb => ../../api/pb/userpb
-
-replace github.com/ShristiRnr/NHIT_Backend/api/pb/departmentpb => ../../api/pb/departmentpb
-
-replace github.com/ShristiRnr/NHIT_Backend/api/pb/designationpb => ../../api/pb/designationpb
-
-replace github.com/ShristiRnr/NHIT_Backend/api/pb/organizationpb => ../../api/pb/organizationpb
-
-replace github.com/ShristiRnr/NHIT_Backend/api/pb/vendorpb => ../../api/pb/vendorpb
-
-replace nhit-note => ../../../Nhit-Note
+replace (
+	github.com/ShristiRnr/NHIT_Backend/api/pb/authpb => ../../api/pb/authpb
+	github.com/ShristiRnr/NHIT_Backend/api/pb/departmentpb => ../../api/pb/departmentpb
+	github.com/ShristiRnr/NHIT_Backend/api/pb/designationpb => ../../api/pb/designationpb
+	github.com/ShristiRnr/NHIT_Backend/api/pb/organizationpb => ../../api/pb/organizationpb
+	github.com/ShristiRnr/NHIT_Backend/api/pb/projectpb => ../../api/pb/projectpb
+	github.com/ShristiRnr/NHIT_Backend/api/pb/userpb => ../../api/pb/userpb
+	github.com/ShristiRnr/NHIT_Backend/api/pb/vendorpb => ../../api/pb/vendorpb
+	nhit-note => ../../../Nhit-Note
+	nhit-note/api/pb/common => ../../../Nhit-Note/api/pb/common
+	nhit-note/api/pb/greennotepb => ../../../Nhit-Note/api/pb/greennotepb
+	nhit-note/api/pb/paymentnotepb => ../../../Nhit-Note/api/pb/paymentnotepb
+	nhit-note/api/pb/paymentpb => ../../../Nhit-Note/api/pb/paymentpb
+)
 
 require (
 	golang.org/x/net v0.46.1-0.20251013234738-63d1a5100f82 // indirect

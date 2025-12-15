@@ -37,12 +37,14 @@ type VendorRepository interface {
 
 // VendorListFilters represents filters for listing vendors
 type VendorListFilters struct {
-	IsActive    *bool
-	VendorType  *string
-	Project     *string
-	Search      *string
-	Limit       int
-	Offset      int
+	IsActive       *bool
+	VendorType     *string
+	OrganizationID *string   // Filter by organization (meta-filter)
+	ProjectIDs     []string  // List of project IDs belonging to the organization
+	Project        *string   // Specific project filter
+	Search         *string
+	Limit          int
+	Offset         int
 }
 
 // DatabaseRepository defines database-specific operations

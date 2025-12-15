@@ -1,11 +1,17 @@
 -- name: CreateUser :one
-INSERT INTO users (tenant_id, name, email, password)
-VALUES ($1, $2, $3, $4)
+INSERT INTO users (
+    tenant_id, name, email, password, department_id, designation_id,
+    account_holder_name, bank_name, bank_account_number, ifsc_code, signature_url, is_active
+)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 RETURNING *;
 
 -- name: CreateUserWithVerification :one
-INSERT INTO users (tenant_id, name, email, password, email_verified_at)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO users (
+    tenant_id, name, email, password, email_verified_at, department_id, designation_id,
+    account_holder_name, bank_name, bank_account_number, ifsc_code, signature_url, is_active
+)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 RETURNING *;
 
 -- name: GetUser :one
@@ -22,10 +28,24 @@ WHERE tenant_id = $1 AND email = $2;
 
 -- name: UpdateUser :one
 UPDATE users
-SET name = $2, email = $3, password = $4, updated_at = NOW()
+SET 
+    name = $2, 
+    email = $3, 
+    password = $4, 
+    department_id = $5,
+    designation_id = $6,
+    account_holder_name = $7,
+    bank_name = $8,
+    bank_account_number = $9,
+    ifsc_code = $10,
+    signature_url = $11,
+    is_active = $12,
+    deactivated_at = $13,
+    deactivated_by = $14,
+    deactivated_by_name = $15,
+    updated_at = NOW()
 WHERE user_id = $1
 RETURNING *;
-
 -- name: UpdateUserProfile :one
 UPDATE users
 SET name = $2, email = $3, updated_at = NOW()

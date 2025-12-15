@@ -13,9 +13,9 @@ import (
 )
 
 const createDesignation = `-- name: CreateDesignation :one
-INSERT INTO designations (id, name, description, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, name, description, created_at, updated_at
+INSERT INTO designations (id, name, description, created_at, updated_at, org_id)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, name, description, created_at, updated_at, org_id
 `
 
 type CreateDesignationParams struct {
@@ -24,6 +24,7 @@ type CreateDesignationParams struct {
 	Description string             `db:"description" json:"description"`
 	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	OrgID       pgtype.UUID        `db:"org_id" json:"org_id"`
 }
 
 func (q *Queries) CreateDesignation(ctx context.Context, arg CreateDesignationParams) (*Designation, error) {
@@ -33,6 +34,7 @@ func (q *Queries) CreateDesignation(ctx context.Context, arg CreateDesignationPa
 		arg.Description,
 		arg.CreatedAt,
 		arg.UpdatedAt,
+		arg.OrgID,
 	)
 	var i Designation
 	err := row.Scan(
@@ -41,6 +43,7 @@ func (q *Queries) CreateDesignation(ctx context.Context, arg CreateDesignationPa
 		&i.Description,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OrgID,
 	)
 	return &i, err
 }
@@ -55,7 +58,7 @@ func (q *Queries) DeleteDesignation(ctx context.Context, id uuid.UUID) error {
 }
 
 const getDesignationByID = `-- name: GetDesignationByID :one
-SELECT id, name, description, created_at, updated_at FROM designations WHERE id = $1
+SELECT id, name, description, created_at, updated_at, org_id FROM designations WHERE id = $1
 `
 
 func (q *Queries) GetDesignationByID(ctx context.Context, id uuid.UUID) (*Designation, error) {
@@ -67,24 +70,27 @@ func (q *Queries) GetDesignationByID(ctx context.Context, id uuid.UUID) (*Design
 		&i.Description,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OrgID,
 	)
 	return &i, err
 }
 
 const listDesignations = `-- name: ListDesignations :many
-SELECT id, name, description, created_at, updated_at
+SELECT id, name, description, created_at, updated_at, org_id
 FROM designations
+WHERE ($1::uuid IS NULL OR org_id = $1)
 ORDER BY name ASC
-LIMIT $1 OFFSET $2
+LIMIT $2 OFFSET $3
 `
 
 type ListDesignationsParams struct {
-	Limit  int32 `db:"limit" json:"limit"`
-	Offset int32 `db:"offset" json:"offset"`
+	Column1 pgtype.UUID `db:"column_1" json:"column_1"`
+	Limit   int32       `db:"limit" json:"limit"`
+	Offset  int32       `db:"offset" json:"offset"`
 }
 
 func (q *Queries) ListDesignations(ctx context.Context, arg ListDesignationsParams) ([]*Designation, error) {
-	rows, err := q.db.Query(ctx, listDesignations, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, listDesignations, arg.Column1, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -98,6 +104,7 @@ func (q *Queries) ListDesignations(ctx context.Context, arg ListDesignationsPara
 			&i.Description,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.OrgID,
 		); err != nil {
 			return nil, err
 		}
@@ -113,7 +120,7 @@ const updateDesignation = `-- name: UpdateDesignation :one
 UPDATE designations
 SET name = $2, description = $3, updated_at = $4
 WHERE id = $1
-RETURNING id, name, description, created_at, updated_at
+RETURNING id, name, description, created_at, updated_at, org_id
 `
 
 type UpdateDesignationParams struct {
@@ -137,6 +144,7 @@ func (q *Queries) UpdateDesignation(ctx context.Context, arg UpdateDesignationPa
 		&i.Description,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OrgID,
 	)
 	return &i, err
 }

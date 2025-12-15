@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-// Stores designation/position information with hierarchical structure
+// Stores designation details
 type Designation struct {
 	// Unique identifier for the designation
 	ID uuid.UUID `db:"id" json:"id"`
@@ -18,4 +18,6 @@ type Designation struct {
 	Description string             `db:"description" json:"description"`
 	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	// Organization ID for organization-specific designations (NULL for global designations)
+	OrgID pgtype.UUID `db:"org_id" json:"org_id"`
 }

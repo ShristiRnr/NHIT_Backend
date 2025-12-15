@@ -6,9 +6,11 @@ import (
 
 	authpb "github.com/ShristiRnr/NHIT_Backend/api/pb/authpb"
 	organizationpb "github.com/ShristiRnr/NHIT_Backend/api/pb/organizationpb"
+	"github.com/ShristiRnr/NHIT_Backend/pkg/middleware"
 	grpcHandler "github.com/ShristiRnr/NHIT_Backend/services/organization-service/internal/adapters/grpc"
 	"github.com/ShristiRnr/NHIT_Backend/services/organization-service/internal/adapters/kafka"
 	"github.com/ShristiRnr/NHIT_Backend/services/organization-service/internal/adapters/repository"
+	orgConfig "github.com/ShristiRnr/NHIT_Backend/services/organization-service/internal/config"
 	"github.com/ShristiRnr/NHIT_Backend/services/shared/config"
 	"github.com/ShristiRnr/NHIT_Backend/services/shared/database"
 	"google.golang.org/grpc"
@@ -59,8 +61,23 @@ func main() {
 	orgHandler := grpcHandler.NewOrganizationHandler(orgRepo, conn, authClient, kafkaPublisher)
 	log.Println("✅ gRPC handlers initialized")
 
-	// Create gRPC server with options
+	// Initialize RBAC interceptor
+	rbac := middleware.NewRBACInterceptor(authClient)
+	
+	// Register permissions
+	for method, perms := range orgConfig.GetPermissionMap() {
+		rbac.RegisterPermissions(method, perms)
+	}
+	
+	// Register public methods
+	for _, method := range orgConfig.GetPublicMethods() {
+		rbac.RegisterPublicMethod(method)
+	}
+	log.Println("✅ RBAC interceptor initialized with permissions")
+
+	// Create gRPC server with RBAC interceptor
 	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(rbac.UnaryServerInterceptor()),
 		grpc.MaxRecvMsgSize(10*1024*1024), // 10MB
 		grpc.MaxSendMsgSize(10*1024*1024), // 10MB
 	)

@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log"
 	"net"
@@ -13,15 +12,18 @@ import (
 	"time"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	_ "github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
 
+	authpb "github.com/ShristiRnr/NHIT_Backend/api/pb/authpb"
 	pb "github.com/ShristiRnr/NHIT_Backend/api/pb/projectpb"
+	"github.com/ShristiRnr/NHIT_Backend/pkg/middleware"
 	"github.com/ShristiRnr/NHIT_Backend/services/project-service/internal/adapters/grpc/handler"
 	kafkaAdapter "github.com/ShristiRnr/NHIT_Backend/services/project-service/internal/adapters/kafka"
 	"github.com/ShristiRnr/NHIT_Backend/services/project-service/internal/adapters/repository"
+	"github.com/ShristiRnr/NHIT_Backend/services/project-service/internal/config"
 	"github.com/ShristiRnr/NHIT_Backend/services/project-service/internal/core/services"
 )
 
@@ -31,24 +33,37 @@ func main() {
 	httpPort := getEnv("HTTP_PORT", "8057")
 	dbURL := getEnv("DATABASE_URL", "postgres://postgres:shristi@localhost:5433/nhit_db?sslmode=disable")
 
-	// Connect to database
-	db, err := sql.Open("postgres", dbURL)
+	// Connect to database with connection pooling
+	ctx := context.Background()
+	poolConfig, err := pgxpool.ParseConfig(dbURL)
+	if err != nil {
+		log.Fatalf("Failed to parse database config: %v", err)
+	}
+
+	// Configure connection pool
+	poolConfig.MaxConns = 5               // Max connections for project-service
+	poolConfig.MinConns = 2               // Warm connections
+	poolConfig.MaxConnLifetime = time.Hour
+	poolConfig.MaxConnIdleTime = 30 * time.Minute
+	poolConfig.HealthCheckPeriod = 1 * time.Minute
+
+	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
-	defer db.Close()
+	defer pool.Close()
 
 	// Test database connection
-	if err := db.Ping(); err != nil {
+	if err := pool.Ping(ctx); err != nil {
 		log.Fatalf("Failed to ping database: %v", err)
 	}
-	log.Println("✅ Connected to PostgreSQL database")
+	log.Println("✅ Connected to PostgreSQL with pgxpool (Max: 20, Min: 5)")
 
 	// Initialize repository
-	projectRepo := repository.NewProjectRepository(db)
+	projectRepo := repository.NewProjectRepository(pool)
 
 	// Initialize Kafka consumer (real implementation)
-	kafkaBrokers := []string{"localhost:9092"}
+	kafkaBrokers := []string{"127.0.0.1:9092"}
 	kafkaTopic := "organization.events"
 	kafkaGroupID := "project-service-group"
 
@@ -104,11 +119,39 @@ func startGRPCServer(port string, handler pb.ProjectServiceServer) error {
 		return fmt.Errorf("failed to listen: %w", err)
 	}
 
-	grpcServer := grpc.NewServer()
+	// Connect to auth-service for RBAC
+	authConn, err := grpc.Dial("localhost:50052", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Printf("⚠️  Failed to connect to auth-service: %v (RBAC disabled)", err)
+		// Continue without RBAC if auth service down
+		grpcServer := grpc.NewServer()
+		pb.RegisterProjectServiceServer(grpcServer, handler)
+		reflection.Register(grpcServer)
+		log.Printf("🚀 gRPC server listening on port %s", port)
+		return grpcServer.Serve(lis)
+	}
+	defer authConn.Close()
+	authClient := authpb.NewAuthServiceClient(authConn)
+	log.Println("✅ Connected to Auth Service")
+
+	// Initialize RBAC
+	rbac := middleware.NewRBACInterceptor(authClient)
+	for method, perms := range config.GetPermissionMap() {
+		rbac.RegisterPermissions(method, perms)
+	}
+	for _, method := range config.GetPublicMethods() {
+		rbac.RegisterPublicMethod(method)
+	}
+	log.Println("✅ RBAC interceptor initialized")
+
+	// Create server with RBAC
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(rbac.UnaryServerInterceptor()),
+	)
 	pb.RegisterProjectServiceServer(grpcServer, handler)
 	reflection.Register(grpcServer)
 
-	log.Printf("🚀 gRPC server listening on port %s", port)
+	log.Printf("🚀 gRPC server listening on port %s with RBAC", port)
 	return grpcServer.Serve(lis)
 }
 

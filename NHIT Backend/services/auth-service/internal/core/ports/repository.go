@@ -55,6 +55,7 @@ type UserRepository interface {
 	GetByID(ctx context.Context, userID uuid.UUID) (*UserData, error)
 	UpdatePassword(ctx context.Context, userID uuid.UUID, hashedPassword string) error
 	UpdateLastLogin(ctx context.Context, userID uuid.UUID, ipAddress, userAgent string) error
+	UpdateLastLogout(ctx context.Context, userID uuid.UUID) error
 	VerifyEmail(ctx context.Context, userID uuid.UUID) error
 	Delete(ctx context.Context, userID uuid.UUID) error
 }

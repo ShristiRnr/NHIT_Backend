@@ -136,8 +136,17 @@ service UserManagement {
   }
 
   // Activity Logs
-  rpc CreateActivityLog(CreateActivityLogRequest) returns (ActivityLogResponse);
-  rpc ListActivityLogs(ListActivityLogsRequest) returns (ListActivityLogsResponse);
+  rpc CreateActivityLog(CreateActivityLogRequest) returns (ActivityLogResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/activity-logs"
+      body: "*"
+    };
+  }
+  rpc ListActivityLogs(ListActivityLogsRequest) returns (ListActivityLogsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/activity-logs"
+    };
+  }
 
   // Notifications
   rpc CreateNotification(CreateNotificationRequest) returns (NotificationResponse);
@@ -159,6 +168,31 @@ service UserManagement {
   rpc ListUserOrganizations(ListUserOrganizationsRequest) returns (ListUserOrganizationsResponse) {
     option (google.api.http) = {
       get: "/api/v1/users/{user_id}/organizations"
+    };
+  }
+
+  // Dropdown endpoints for Create User form
+  rpc GetDepartmentsDropdown(GetDropdownRequest) returns (DepartmentsDropdownResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/users/dropdowns/departments"
+    };
+  }
+  rpc GetDesignationsDropdown(GetDropdownRequest) returns (DesignationsDropdownResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/users/dropdowns/designations"
+    };
+  }
+  rpc GetRolesDropdown(GetDropdownRequest) returns (RolesDropdownResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/users/dropdowns/roles"
+    };
+  }
+
+  // Signature Upload
+  rpc UploadUserSignature(UploadSignatureRequest) returns (UploadSignatureResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/users/{user_id}/signature"
+      body: "*"
     };
   }
 
@@ -242,6 +276,8 @@ message User {
   string user_id = 1;
   string name = 2;
   string email = 3;
+  string department_name = 16;
+  string designation_name = 17;
   google.protobuf.Timestamp email_verified_at = 4;
   google.protobuf.Timestamp last_login_at = 5;
   google.protobuf.Timestamp last_logout_at = 6;
@@ -254,6 +290,7 @@ message User {
   bool is_active = 13;             // User active status (for soft delete)
   google.protobuf.Timestamp deactivated_at = 14; // When user was deactivated
   string deactivated_by = 15;      // Who deactivated the user
+  string deactivated_by_name = 18; // Name of the user who deactivated
 }
 
 message CreateUserRequest {
@@ -267,6 +304,16 @@ message CreateUserRequest {
   string designation_id = 8;            // Designation assignment
   repeated string project_ids = 9;      // Projects assigned to user
   string created_by = 10;               // Super admin creating the user
+  
+  // Banking Information
+  string account_holder_name = 11;      // Bank account holder name
+  string bank_name = 12;                // Name of the bank
+  string bank_account_number = 13;      // Bank account number
+  string ifsc_code = 14;                // IFSC code (11 characters)
+  
+  // Signature
+  bytes signature_file = 15;            // Signature image file (for gRPC)
+  string signature_filename = 16;       // Original filename
 }
 
 message UpdateUserRequest {
@@ -287,7 +334,8 @@ message GetUserRequest {
 
 message ListUsersRequest {
   string tenant_id = 1;
-  PageRequest page = 2;
+  int32 page = 2;
+  int32 page_size = 3;
 }
 
 message ListUsersResponse {
@@ -412,41 +460,26 @@ message ReactivateUserRequest {
 // Activity Logs
 // ====================
 message ActivityLog {
-  string log_id = 1;
-  string user_id = 2;
-  string action = 3;          // e.g., "CREATE_USER", "UPDATE_ROLE", "DEACTIVATE_USER"
-  string resource_type = 4;   // e.g., "USER", "ORGANIZATION", "ROLE"
-  string resource_id = 5;     // ID of the affected resource
-  string details = 6;         // JSON string with additional details
-  google.protobuf.Timestamp created_at = 7;
-  string ip_address = 8;
-  string user_agent = 9;
+  int32 id = 1;
+  string name = 2;            // e.g., "User Logged in with email-ID [user@example.com]"
+  string description = 3;     // e.g., "User successfully logged in"
+  google.protobuf.Timestamp created_at = 4;
 }
 
 message CreateActivityLogRequest {
-  string user_id = 1;
-  string action = 2;
-  string resource_type = 3;
-  string resource_id = 4;
-  string details = 5;
-  string ip_address = 6;
-  string user_agent = 7;
+  string name = 1;
+  string description = 2;
 }
 
 message ActivityLogResponse {
-  string log_id = 1;
-  string user_id = 2;
-  string action = 3;
-  string resource_type = 4;
-  string resource_id = 5;
-  string details = 6;
-  google.protobuf.Timestamp created_at = 7;
+  int32 id = 1;
+  string name = 2;
+  string description = 3;
+  google.protobuf.Timestamp created_at = 4;
 }
 
 message ListActivityLogsRequest {
-  string user_id = 1;         // Optional: filter by user
-  string resource_type = 2;   // Optional: filter by resource type
-  PageRequest page = 3;
+  PageRequest page = 1;
 }
 
 message ListActivityLogsResponse {
@@ -583,4 +616,42 @@ message UserOrganizationInfo {
   repeated string project_names = 6;
   bool is_current_context = 7;          // Currently active organization
   google.protobuf.Timestamp joined_at = 8;
+}
+
+// ====================
+// Dropdown Messages for Create User Form
+// ====================
+message GetDropdownRequest {
+  string org_id = 1;  // Organization ID to filter by (from JWT context)
+}
+
+message DropdownItem {
+  string id = 1;
+  string name = 2;
+}
+
+message DepartmentsDropdownResponse {
+  repeated DropdownItem departments = 1;
+}
+
+message DesignationsDropdownResponse {
+  repeated DropdownItem designations = 1;
+}
+
+message RolesDropdownResponse {
+  repeated DropdownItem roles = 1;
+}
+
+// ====================
+// Signature Upload Messages
+// ====================
+message UploadSignatureRequest {
+  string user_id = 1;                   // User ID for signature upload
+  bytes signature_file = 2;             // Signature image file data
+  string filename = 3;                  // Original filename
+}
+
+message UploadSignatureResponse {
+  string signature_url = 1;             // MinIO URL/path to uploaded signature
+  string message = 2;                   // Success/error message
 }

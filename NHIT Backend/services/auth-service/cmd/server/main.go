@@ -1,7 +1,7 @@
 package main
 
 import (
-	"database/sql"
+	"context"
 	"log"
 	"net"
 	"os"
@@ -18,7 +18,7 @@ import (
 	"github.com/ShristiRnr/NHIT_Backend/services/auth-service/internal/middleware"
 	"github.com/ShristiRnr/NHIT_Backend/services/auth-service/internal/utils"
 
-	_ "github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgxpool"
 	grpcMiddleware "google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -38,18 +38,31 @@ func main() {
 
 	log.Printf("🚀 Starting %s on port %s", serviceName, serverPort)
 
-	// Connect to database
-	conn, err := sql.Open("postgres", databaseURL)
+	// Connect to database with connection pooling
+	ctx := context.Background()
+	poolConfig, err := pgxpool.ParseConfig(databaseURL)
+	if err != nil {
+		log.Fatalf("Failed to parse database config: %v", err)
+	}
+
+	// Configure connection pool
+	poolConfig.MaxConns = 5               // Max connections for auth-service
+	poolConfig.MinConns = 2               // Warm connections
+	poolConfig.MaxConnLifetime = time.Hour
+	poolConfig.MaxConnIdleTime = 30 * time.Minute
+	poolConfig.HealthCheckPeriod = 1 * time.Minute
+
+	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
-	defer conn.Close()
+	defer pool.Close()
 
 	// Test connection
-	if err := conn.Ping(); err != nil {
+	if err := pool.Ping(ctx); err != nil {
 		log.Fatalf("Failed to ping database: %v", err)
 	}
-	log.Println("✅ Database connected")
+	log.Println("✅ Database connected with pgxpool (Max: 25, Min: 5)")
 
 	// Connect to User Service
 	userServiceAddr := os.Getenv("USER_SERVICE_ADDR")
@@ -82,12 +95,12 @@ func main() {
 	orgClientAdapter := organization.NewOrganizationClient(orgServiceClient)
 	log.Printf("✅ Connected to Organization Service at %s", orgServiceAddr)
 
-	// Initialize repositories
-	sessionRepo := repository.NewSessionRepository(conn)
-	refreshTokenRepo := repository.NewRefreshTokenRepository(conn)
-	passwordResetRepo := repository.NewPasswordResetRepository(conn)
-	emailVerificationRepo := repository.NewEmailVerificationRepository(conn)
-	userRepo := repository.NewUserRepository(conn)
+	// Initialize repositories with pgxpool
+	sessionRepo := repository.NewSessionRepository(pool)
+	refreshTokenRepo := repository.NewRefreshTokenRepository(pool)
+	passwordResetRepo := repository.NewPasswordResetRepository(pool)
+	emailVerificationRepo := repository.NewEmailVerificationRepository(pool)
+	userRepo := repository.NewUserRepository(pool)
 
 	// Initialize JWT manager
 	jwtSecret := os.Getenv("JWT_SECRET")

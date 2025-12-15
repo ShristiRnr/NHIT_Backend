@@ -220,22 +220,78 @@ message PaymentNotePayload {
   int64 user_id = 1;
   int64 green_note_id = 2;
   int64 reimbursement_note_id = 3;
-  double net_payable_round_off = 4;
+  
+  // Payment Note Details
+  string note_no = 4;
   string subject = 5;
-  string note_no = 6;
-  string recommendation_of_payment = 7;
-  repeated PaymentParticular add_particulars = 8;
-  repeated PaymentParticular less_particulars = 9;
-  string status = 10;                 // D, P, A, R, S, PD, etc.
-  bool is_draft = 11;
-  bool auto_created = 12;
-  int64 created_by = 13;
-  string hold_reason = 14;
-  string hold_date = 15;
-  int64 hold_by = 16;
-  string utr_no = 17;
-  string utr_date = 18;
-  bool send_notifications = 19;
+  string date = 6;                    // ISO-8601 date
+  string department = 7;
+  
+  // Green Note Reference
+  string green_note_no = 8;
+  string green_note_approver = 9;
+  string green_note_app_date = 10;
+  
+  // Vendor Details
+  string vendor_code = 11;
+  string vendor_name = 12;
+  
+  // Project Details
+  string project_name = 13;
+  
+  // Invoice Details
+  string invoice_no = 14;
+  string invoice_date = 15;
+  double invoice_amount = 16;
+  string invoice_approved_by = 17;
+  
+  // LOA/PO Details
+  string loa_po_no = 18;
+  double loa_po_amount = 19;
+  string loa_po_date = 20;
+  
+  // Financial Calculations
+  double gross_amount = 21;
+  double total_additions = 22;
+  double total_deductions = 23;
+  double net_payable_amount = 24;
+  double net_payable_round_off = 25;
+  string net_payable_words = 26;
+  
+  // TDS Details
+  double tds_percentage = 27;         // e.g., 2.00 for 2%
+  string tds_section = 28;            // e.g., "194C"
+  double tds_amount = 29;
+  
+  // Bank Details
+  string account_holder_name = 30;
+  string bank_name = 31;
+  string account_number = 32;
+  string ifsc_code = 33;
+  
+  // Particulars and Recommendation
+  repeated PaymentParticular add_particulars = 34;
+  repeated PaymentParticular less_particulars = 35;
+  string recommendation_of_payment = 36;
+  
+  // Status and Flags
+  string status = 37;                 // D, P, A, R, S, PD, etc.
+  bool is_draft = 38;
+  bool auto_created = 39;
+  int64 created_by = 40;
+  
+  // Hold Information
+  string hold_reason = 41;
+  string hold_date = 42;
+  int64 hold_by = 43;
+  
+  // UTR Information
+  string utr_no = 44;
+  string utr_date = 45;
+  bool send_notifications = 46;
+  
+  // Supporting Documents
+  repeated PaymentNoteDocumentUpload new_documents = 47;
 }
 
 message PaymentParticular {
@@ -292,25 +348,81 @@ message PaymentNote {
   int64 reimbursement_note_id = 4;
   string note_no = 5;
   string subject = 6;
-  string recommendation_of_payment = 7;
-  double net_payable_round_off = 8;
-  repeated PaymentParticular add_particulars = 9;
-  repeated PaymentParticular less_particulars = 10;
-  string status = 11;
-  bool is_draft = 12;
-  bool auto_created = 13;
-  int64 created_by = 14;
-  common.HoldDetails hold = 15;
-  string utr_no = 16;
-  string utr_date = 17;
-  repeated PaymentApprovalLog approval_logs = 18;
-  repeated PaymentNoteComment comments = 19;
-  common.PaymentGreenNoteReference green_note = 20;
-  common.PaymentReimbursementNoteReference reimbursement_note = 21;
-  common.RelatedUser owner = 22;
-  common.RelatedUser created_by_user = 23;
-  string created_at = 24;
-  string updated_at = 25;
+  string date = 7;
+  string department = 8;
+  
+  // Green Note Reference
+  string green_note_no = 9;
+  string green_note_approver = 10;
+  string green_note_app_date = 11;
+  
+  // Vendor Details
+  string vendor_code = 12;
+  string vendor_name = 13;
+  
+  // Project Details
+  string project_name = 14;
+  
+  // Invoice Details
+  string invoice_no = 15;
+  string invoice_date = 16;
+  double invoice_amount = 17;
+  string invoice_approved_by = 18;
+  
+  // LOA/PO Details
+  string loa_po_no = 19;
+  double loa_po_amount = 20;
+  string loa_po_date = 21;
+  
+  // Financial Calculations
+  double gross_amount = 22;
+  double total_additions = 23;
+  double total_deductions = 24;
+  double net_payable_amount = 25;
+  double net_payable_round_off = 26;
+  string net_payable_words = 27;
+  
+  // TDS Details
+  double tds_percentage = 28;
+  string tds_section = 29;
+  double tds_amount = 30;
+  
+  // Bank Details
+  string account_holder_name = 31;
+  string bank_name = 32;
+  string account_number = 33;
+  string ifsc_code = 34;
+  
+  // Particulars and Recommendation
+  repeated PaymentParticular add_particulars = 35;
+  repeated PaymentParticular less_particulars = 36;
+  string recommendation_of_payment = 37;
+  
+  // Status and Flags
+  string status = 38;
+  bool is_draft = 39;
+  bool auto_created = 40;
+  int64 created_by = 41;
+  
+  // Hold Details
+  common.HoldDetails hold = 42;
+  
+  // UTR Information
+  string utr_no = 43;
+  string utr_date = 44;
+  
+  // Related Entities
+  repeated PaymentApprovalLog approval_logs = 45;
+  repeated PaymentNoteComment comments = 46;
+  repeated PaymentNoteDocument documents = 47;
+  common.PaymentGreenNoteReference green_note = 48;
+  common.PaymentReimbursementNoteReference reimbursement_note = 49;
+  common.RelatedUser owner = 50;
+  common.RelatedUser created_by_user = 51;
+  
+  // Timestamps
+  string created_at = 52;
+  string updated_at = 53;
 }
 
 message PaymentApprovalLog {
@@ -322,16 +434,29 @@ message PaymentApprovalLog {
   repeated common.PaymentApprovalPriority priorities = 6;
 }
 
-message PaymentApprovalPriority {
-  int64 id = 1;
-  int32 approver_level = 2;
-  common.RelatedUser reviewer = 3;
-}
-
 message PaymentNoteComment {
   int64 id = 1;
   string comment = 2;
   string status = 3;
   common.RelatedUser user = 4;
   string created_at = 5;
+}
+
+message PaymentNoteDocument {
+  int64 id = 1;
+  string file_name = 2;
+  string original_filename = 3;
+  string mime_type = 4;
+  int64 file_size = 5;
+  string object_key = 6;
+  int64 uploaded_by = 7;
+  string uploaded_by_name = 8;
+  string created_at = 9;
+}
+
+message PaymentNoteDocumentUpload {
+  string file_name = 1;
+  string original_filename = 2;
+  string mime_type = 3;
+  bytes file_content = 4;
 }

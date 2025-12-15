@@ -6,6 +6,8 @@ WORKDIR /app
 COPY go.mod go.sum ./
 COPY services/department-service/go.mod services/department-service/go.sum ./services/department-service/
 COPY api/pb/departmentpb/go.mod ./api/pb/departmentpb/
+COPY api/pb/authpb/go.mod ./api/pb/authpb/
+COPY pkg/middleware/go.mod ./pkg/middleware/
 
 # Download dependencies
 RUN cd services/department-service && go mod download
