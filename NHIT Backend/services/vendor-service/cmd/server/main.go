@@ -20,6 +20,7 @@ import (
 	"github.com/ShristiRnr/NHIT_Backend/services/vendor-service/internal/config"
 	"github.com/ShristiRnr/NHIT_Backend/services/vendor-service/internal/core/ports"
 	"github.com/ShristiRnr/NHIT_Backend/services/vendor-service/internal/core/services"
+	"github.com/ShristiRnr/NHIT_Backend/services/vendor-service/internal/storage"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/jackc/pgx/v5/pgxpool"
 	grpcLib "google.golang.org/grpc"
@@ -80,8 +81,32 @@ func main() {
 	vendorService := services.NewVendorService(vendorRepo, logger, publisher, serviceConfig)
 	log.Println("✅ Vendor service initialized")
 
+	// Initialize MinIO client for vendor documents
+	minioEndpoint := os.Getenv("MINIO_ENDPOINT")
+	if minioEndpoint == "" {
+		minioEndpoint = "localhost:9000"
+	}
+	minioAccessKey := os.Getenv("MINIO_ACCESS_KEY")
+	if minioAccessKey == "" {
+		minioAccessKey = "minioadmin"
+	}
+	minioSecretKey := os.Getenv("MINIO_SECRET_KEY")
+	if minioSecretKey == "" {
+		minioSecretKey = "minioadmin"
+	}
+	minioBucket := os.Getenv("MINIO_BUCKET_VENDORS")
+	if minioBucket == "" {
+		minioBucket = "vendor-docs"
+	}
+	useSSL := os.Getenv("MINIO_USE_SSL") == "true"
+
+	minioClient, err := storage.NewMinIOClient(minioEndpoint, minioAccessKey, minioSecretKey, minioBucket, useSSL)
+	if err != nil {
+		log.Printf("⚠️ Failed to initialize MinIO client for vendors: %v", err)
+	}
+
 	// Initialize gRPC handler
-	vendorHandler := grpcAdapter.NewVendorGRPCHandler(vendorService)
+	vendorHandler := grpcAdapter.NewVendorGRPCHandler(vendorService, minioClient)
 	log.Println("✅ gRPC handler initialized")
 
 	// Start gRPC server

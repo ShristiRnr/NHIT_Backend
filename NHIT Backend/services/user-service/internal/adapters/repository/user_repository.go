@@ -9,15 +9,17 @@ import (
 	"github.com/ShristiRnr/NHIT_Backend/services/user-service/internal/adapters/repository/sqlc/generated"
 	"github.com/ShristiRnr/NHIT_Backend/services/user-service/internal/core/domain"
 	"github.com/ShristiRnr/NHIT_Backend/services/user-service/internal/core/ports"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type userRepository struct {
 	queries *sqlc.Queries
+	db      *pgxpool.Pool
 }
 
 // NewUserRepository creates a new user repository
-func NewUserRepository(queries *sqlc.Queries) ports.UserRepository {
-	return &userRepository{queries: queries}
+func NewUserRepository(queries *sqlc.Queries, db *pgxpool.Pool) ports.UserRepository {
+	return &userRepository{queries: queries, db: db}
 }
 
 func (r *userRepository) Create(ctx context.Context, user *domain.User) (*domain.User, error) {
@@ -148,7 +150,13 @@ func (r *userRepository) Delete(ctx context.Context, userID uuid.UUID) error {
 	return r.queries.DeleteUser(ctx, userID)
 }
 
-func (r *userRepository) ListByTenant(ctx context.Context, tenantID uuid.UUID, limit, offset int32) ([]*domain.User, error) {
+func (r *userRepository) ListByTenant(ctx context.Context, tenantID uuid.UUID, limit, offset int32) ([]*domain.User, int64, error) {
+	// Get total count
+	total, err := r.queries.CountUsersByTenant(ctx, tenantID)
+	if err != nil {
+		return nil, 0, err
+	}
+
 	params := sqlc.ListUsersByTenantParams{
 		TenantID: tenantID,
 		Limit:    limit,
@@ -157,7 +165,7 @@ func (r *userRepository) ListByTenant(ctx context.Context, tenantID uuid.UUID, l
 
 	dbUsers, err := r.queries.ListUsersByTenant(ctx, params)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	users := make([]*domain.User, len(dbUsers))
@@ -165,7 +173,61 @@ func (r *userRepository) ListByTenant(ctx context.Context, tenantID uuid.UUID, l
 		users[i] = toDomainUser(dbUser)
 	}
 
-	return users, nil
+	return users, total, nil
+}
+
+func (r *userRepository) ListByOrganization(ctx context.Context, tenantID, orgID uuid.UUID, limit, offset int32) ([]*domain.User, int64, error) {
+	// Get total count
+	countQuery := `
+		SELECT COUNT(*)
+		FROM users u
+		JOIN user_organizations uo ON u.user_id = uo.user_id
+		WHERE u.tenant_id = $1 AND uo.org_id = $2`
+	
+	var total int64
+	err := r.db.QueryRow(ctx, countQuery, tenantID, orgID).Scan(&total)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Manual query since we cannot regenerate SQLC
+	query := `
+		SELECT u.user_id, u.tenant_id, u.name, u.email, u.password, u.email_verified_at, 
+		       u.last_login_at, u.last_logout_at, u.last_login_ip, u.user_agent, 
+		       u.department_id, u.designation_id, u.created_at, u.updated_at, 
+		       u.account_holder_name, u.bank_name, u.bank_account_number, u.ifsc_code, 
+		       u.signature_url, u.is_active, u.deactivated_at, u.deactivated_by, u.deactivated_by_name
+		FROM users u
+		JOIN user_organizations uo ON u.user_id = uo.user_id
+		WHERE u.tenant_id = $1 AND uo.org_id = $2
+		ORDER BY u.created_at DESC
+		LIMIT $3 OFFSET $4`
+
+	rows, err := r.db.Query(ctx, query, tenantID, orgID, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var users []*domain.User
+	for rows.Next() {
+		var i sqlc.User
+		if err := rows.Scan(
+			&i.UserID, &i.TenantID, &i.Name, &i.Email, &i.Password, &i.EmailVerifiedAt,
+			&i.LastLoginAt, &i.LastLogoutAt, &i.LastLoginIp, &i.UserAgent,
+			&i.DepartmentID, &i.DesignationID, &i.CreatedAt, &i.UpdatedAt,
+			&i.AccountHolderName, &i.BankName, &i.BankAccountNumber, &i.IfscCode,
+			&i.SignatureUrl, &i.IsActive, &i.DeactivatedAt, &i.DeactivatedBy, &i.DeactivatedByName,
+		); err != nil {
+			return nil, 0, err
+		}
+		users = append(users, toDomainUser(&i))
+	}
+	
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+	return users, total, nil
 }
 
 func (r *userRepository) UpdateLastLogin(ctx context.Context, userID uuid.UUID, lastLoginIP, userAgent string) error {

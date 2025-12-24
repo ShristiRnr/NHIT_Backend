@@ -28,6 +28,7 @@ const (
 	OrganizationService_GetOrganizationByCode_FullMethodName       = "/organizations.OrganizationService/GetOrganizationByCode"
 	OrganizationService_UpdateOrganization_FullMethodName          = "/organizations.OrganizationService/UpdateOrganization"
 	OrganizationService_DeleteOrganization_FullMethodName          = "/organizations.OrganizationService/DeleteOrganization"
+	OrganizationService_UploadOrganizationLogo_FullMethodName      = "/organizations.OrganizationService/UploadOrganizationLogo"
 )
 
 // OrganizationServiceClient is the client API for OrganizationService service.
@@ -56,6 +57,8 @@ type OrganizationServiceClient interface {
 	GetOrganizationByCode(ctx context.Context, in *GetOrganizationByCodeRequest, opts ...grpc.CallOption) (*OrganizationResponse, error)
 	UpdateOrganization(ctx context.Context, in *UpdateOrganizationRequest, opts ...grpc.CallOption) (*OrganizationResponse, error)
 	DeleteOrganization(ctx context.Context, in *DeleteOrganizationRequest, opts ...grpc.CallOption) (*DeleteOrganizationResponse, error)
+	// Upload Organization Logo
+	UploadOrganizationLogo(ctx context.Context, in *UploadLogoRequest, opts ...grpc.CallOption) (*UploadLogoResponse, error)
 }
 
 type organizationServiceClient struct {
@@ -156,6 +159,16 @@ func (c *organizationServiceClient) DeleteOrganization(ctx context.Context, in *
 	return out, nil
 }
 
+func (c *organizationServiceClient) UploadOrganizationLogo(ctx context.Context, in *UploadLogoRequest, opts ...grpc.CallOption) (*UploadLogoResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UploadLogoResponse)
+	err := c.cc.Invoke(ctx, OrganizationService_UploadOrganizationLogo_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // OrganizationServiceServer is the server API for OrganizationService service.
 // All implementations must embed UnimplementedOrganizationServiceServer
 // for forward compatibility.
@@ -182,6 +195,8 @@ type OrganizationServiceServer interface {
 	GetOrganizationByCode(context.Context, *GetOrganizationByCodeRequest) (*OrganizationResponse, error)
 	UpdateOrganization(context.Context, *UpdateOrganizationRequest) (*OrganizationResponse, error)
 	DeleteOrganization(context.Context, *DeleteOrganizationRequest) (*DeleteOrganizationResponse, error)
+	// Upload Organization Logo
+	UploadOrganizationLogo(context.Context, *UploadLogoRequest) (*UploadLogoResponse, error)
 	mustEmbedUnimplementedOrganizationServiceServer()
 }
 
@@ -218,6 +233,9 @@ func (UnimplementedOrganizationServiceServer) UpdateOrganization(context.Context
 }
 func (UnimplementedOrganizationServiceServer) DeleteOrganization(context.Context, *DeleteOrganizationRequest) (*DeleteOrganizationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteOrganization not implemented")
+}
+func (UnimplementedOrganizationServiceServer) UploadOrganizationLogo(context.Context, *UploadLogoRequest) (*UploadLogoResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UploadOrganizationLogo not implemented")
 }
 func (UnimplementedOrganizationServiceServer) mustEmbedUnimplementedOrganizationServiceServer() {}
 func (UnimplementedOrganizationServiceServer) testEmbeddedByValue()                             {}
@@ -402,6 +420,24 @@ func _OrganizationService_DeleteOrganization_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _OrganizationService_UploadOrganizationLogo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UploadLogoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OrganizationServiceServer).UploadOrganizationLogo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OrganizationService_UploadOrganizationLogo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OrganizationServiceServer).UploadOrganizationLogo(ctx, req.(*UploadLogoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // OrganizationService_ServiceDesc is the grpc.ServiceDesc for OrganizationService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -444,6 +480,10 @@ var OrganizationService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteOrganization",
 			Handler:    _OrganizationService_DeleteOrganization_Handler,
+		},
+		{
+			MethodName: "UploadOrganizationLogo",
+			Handler:    _OrganizationService_UploadOrganizationLogo_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

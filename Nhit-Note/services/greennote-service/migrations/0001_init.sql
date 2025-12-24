@@ -69,8 +69,8 @@ CREATE TABLE IF NOT EXISTS green_notes (
     enable_multiple_invoices BOOLEAN NOT NULL DEFAULT FALSE,
     
     -- Status and type
-    status status_enum DEFAULT 'STATUS_DRAFT',
-    approval_for approval_for DEFAULT 'APPROVAL_FOR_UNSPECIFIED',
+    status TEXT DEFAULT 'pending',
+    approval_for TEXT,
     
     -- Project details
     department_name TEXT,
@@ -79,14 +79,14 @@ CREATE TABLE IF NOT EXISTS green_notes (
     work_order_date TEXT,
     
     -- Expense and classification
-    expense_category_type expense_category_type DEFAULT 'EXPENSE_CATEGORY_UNSPECIFIED',
+    expense_category_type TEXT,
     msme_classification TEXT,
     activity_type TEXT,
     
     -- Additional information
     brief_of_goods_services TEXT,
     delayed_damages TEXT,
-    nature_of_expenses nature_of_expenses DEFAULT 'NATURE_OF_EXPENSES_UNSPECIFIED',
+    nature_of_expenses TEXT,
     
     -- Budget information
     budget_expenditure DECIMAL(20, 2) DEFAULT 0,

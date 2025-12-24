@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.10
 // 	protoc        v6.32.0
-// source: common.proto
+// source: api/proto/common.proto
 
 package common
 
@@ -32,7 +32,7 @@ type RelatedUser struct {
 
 func (x *RelatedUser) Reset() {
 	*x = RelatedUser{}
-	mi := &file_common_proto_msgTypes[0]
+	mi := &file_api_proto_common_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -44,7 +44,7 @@ func (x *RelatedUser) String() string {
 func (*RelatedUser) ProtoMessage() {}
 
 func (x *RelatedUser) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[0]
+	mi := &file_api_proto_common_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -57,7 +57,7 @@ func (x *RelatedUser) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RelatedUser.ProtoReflect.Descriptor instead.
 func (*RelatedUser) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{0}
+	return file_api_proto_common_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *RelatedUser) GetId() int64 {
@@ -93,7 +93,7 @@ type Pagination struct {
 
 func (x *Pagination) Reset() {
 	*x = Pagination{}
-	mi := &file_common_proto_msgTypes[1]
+	mi := &file_api_proto_common_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -105,7 +105,7 @@ func (x *Pagination) String() string {
 func (*Pagination) ProtoMessage() {}
 
 func (x *Pagination) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[1]
+	mi := &file_api_proto_common_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -118,7 +118,7 @@ func (x *Pagination) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Pagination.ProtoReflect.Descriptor instead.
 func (*Pagination) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{1}
+	return file_api_proto_common_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *Pagination) GetPage() int32 {
@@ -160,7 +160,7 @@ type RelatedVendor struct {
 
 func (x *RelatedVendor) Reset() {
 	*x = RelatedVendor{}
-	mi := &file_common_proto_msgTypes[2]
+	mi := &file_api_proto_common_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -172,7 +172,7 @@ func (x *RelatedVendor) String() string {
 func (*RelatedVendor) ProtoMessage() {}
 
 func (x *RelatedVendor) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[2]
+	mi := &file_api_proto_common_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -185,7 +185,7 @@ func (x *RelatedVendor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RelatedVendor.ProtoReflect.Descriptor instead.
 func (*RelatedVendor) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{2}
+	return file_api_proto_common_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *RelatedVendor) GetId() int64 {
@@ -220,7 +220,7 @@ type RelatedSupplier struct {
 
 func (x *RelatedSupplier) Reset() {
 	*x = RelatedSupplier{}
-	mi := &file_common_proto_msgTypes[3]
+	mi := &file_api_proto_common_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -232,7 +232,7 @@ func (x *RelatedSupplier) String() string {
 func (*RelatedSupplier) ProtoMessage() {}
 
 func (x *RelatedSupplier) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[3]
+	mi := &file_api_proto_common_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -245,7 +245,7 @@ func (x *RelatedSupplier) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RelatedSupplier.ProtoReflect.Descriptor instead.
 func (*RelatedSupplier) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{3}
+	return file_api_proto_common_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *RelatedSupplier) GetId() int64 {
@@ -283,7 +283,7 @@ type PaymentGreenNoteReference struct {
 
 func (x *PaymentGreenNoteReference) Reset() {
 	*x = PaymentGreenNoteReference{}
-	mi := &file_common_proto_msgTypes[4]
+	mi := &file_api_proto_common_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -295,7 +295,7 @@ func (x *PaymentGreenNoteReference) String() string {
 func (*PaymentGreenNoteReference) ProtoMessage() {}
 
 func (x *PaymentGreenNoteReference) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[4]
+	mi := &file_api_proto_common_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -308,7 +308,7 @@ func (x *PaymentGreenNoteReference) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PaymentGreenNoteReference.ProtoReflect.Descriptor instead.
 func (*PaymentGreenNoteReference) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{4}
+	return file_api_proto_common_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *PaymentGreenNoteReference) GetId() int64 {
@@ -368,7 +368,7 @@ type PaymentReimbursementNoteReference struct {
 
 func (x *PaymentReimbursementNoteReference) Reset() {
 	*x = PaymentReimbursementNoteReference{}
-	mi := &file_common_proto_msgTypes[5]
+	mi := &file_api_proto_common_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -380,7 +380,7 @@ func (x *PaymentReimbursementNoteReference) String() string {
 func (*PaymentReimbursementNoteReference) ProtoMessage() {}
 
 func (x *PaymentReimbursementNoteReference) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[5]
+	mi := &file_api_proto_common_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -393,7 +393,7 @@ func (x *PaymentReimbursementNoteReference) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use PaymentReimbursementNoteReference.ProtoReflect.Descriptor instead.
 func (*PaymentReimbursementNoteReference) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{5}
+	return file_api_proto_common_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *PaymentReimbursementNoteReference) GetId() int64 {
@@ -456,7 +456,7 @@ type PaymentApprovalPriority struct {
 
 func (x *PaymentApprovalPriority) Reset() {
 	*x = PaymentApprovalPriority{}
-	mi := &file_common_proto_msgTypes[6]
+	mi := &file_api_proto_common_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -468,7 +468,7 @@ func (x *PaymentApprovalPriority) String() string {
 func (*PaymentApprovalPriority) ProtoMessage() {}
 
 func (x *PaymentApprovalPriority) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[6]
+	mi := &file_api_proto_common_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -481,7 +481,7 @@ func (x *PaymentApprovalPriority) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PaymentApprovalPriority.ProtoReflect.Descriptor instead.
 func (*PaymentApprovalPriority) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{6}
+	return file_api_proto_common_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *PaymentApprovalPriority) GetId() int64 {
@@ -505,6 +505,90 @@ func (x *PaymentApprovalPriority) GetReviewer() *RelatedUser {
 	return nil
 }
 
+type PaymentNoteReference struct {
+	state              protoimpl.MessageState             `protogen:"open.v1"`
+	Id                 int64                              `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	NoteNo             string                             `protobuf:"bytes,2,opt,name=note_no,json=noteNo,proto3" json:"note_no,omitempty"`
+	NetPayableRoundOff float64                            `protobuf:"fixed64,3,opt,name=net_payable_round_off,json=netPayableRoundOff,proto3" json:"net_payable_round_off,omitempty"`
+	Status             string                             `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
+	GreenNote          *PaymentGreenNoteReference         `protobuf:"bytes,5,opt,name=green_note,json=greenNote,proto3" json:"green_note,omitempty"`
+	ReimbursementNote  *PaymentReimbursementNoteReference `protobuf:"bytes,6,opt,name=reimbursement_note,json=reimbursementNote,proto3" json:"reimbursement_note,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *PaymentNoteReference) Reset() {
+	*x = PaymentNoteReference{}
+	mi := &file_api_proto_common_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PaymentNoteReference) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PaymentNoteReference) ProtoMessage() {}
+
+func (x *PaymentNoteReference) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_common_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PaymentNoteReference.ProtoReflect.Descriptor instead.
+func (*PaymentNoteReference) Descriptor() ([]byte, []int) {
+	return file_api_proto_common_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *PaymentNoteReference) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *PaymentNoteReference) GetNoteNo() string {
+	if x != nil {
+		return x.NoteNo
+	}
+	return ""
+}
+
+func (x *PaymentNoteReference) GetNetPayableRoundOff() float64 {
+	if x != nil {
+		return x.NetPayableRoundOff
+	}
+	return 0
+}
+
+func (x *PaymentNoteReference) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *PaymentNoteReference) GetGreenNote() *PaymentGreenNoteReference {
+	if x != nil {
+		return x.GreenNote
+	}
+	return nil
+}
+
+func (x *PaymentNoteReference) GetReimbursementNote() *PaymentReimbursementNoteReference {
+	if x != nil {
+		return x.ReimbursementNote
+	}
+	return nil
+}
+
 type HoldDetails struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Active        bool                   `protobuf:"varint,1,opt,name=active,proto3" json:"active,omitempty"`
@@ -517,7 +601,7 @@ type HoldDetails struct {
 
 func (x *HoldDetails) Reset() {
 	*x = HoldDetails{}
-	mi := &file_common_proto_msgTypes[7]
+	mi := &file_api_proto_common_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -529,7 +613,7 @@ func (x *HoldDetails) String() string {
 func (*HoldDetails) ProtoMessage() {}
 
 func (x *HoldDetails) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[7]
+	mi := &file_api_proto_common_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -542,7 +626,7 @@ func (x *HoldDetails) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HoldDetails.ProtoReflect.Descriptor instead.
 func (*HoldDetails) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{7}
+	return file_api_proto_common_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *HoldDetails) GetActive() bool {
@@ -573,11 +657,11 @@ func (x *HoldDetails) GetAppliedAt() string {
 	return ""
 }
 
-var File_common_proto protoreflect.FileDescriptor
+var File_api_proto_common_proto protoreflect.FileDescriptor
 
-const file_common_proto_rawDesc = "" +
+const file_api_proto_common_proto_rawDesc = "" +
 	"\n" +
-	"\fcommon.proto\x12\x06common\"G\n" +
+	"\x16api/proto/common.proto\x12\x06common\"G\n" +
 	"\vRelatedUser\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
@@ -619,7 +703,15 @@ const file_common_proto_rawDesc = "" +
 	"\x17PaymentApprovalPriority\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12%\n" +
 	"\x0eapprover_level\x18\x02 \x01(\x05R\rapproverLevel\x12/\n" +
-	"\breviewer\x18\x03 \x01(\v2\x13.common.RelatedUserR\breviewer\"\x90\x01\n" +
+	"\breviewer\x18\x03 \x01(\v2\x13.common.RelatedUserR\breviewer\"\xa6\x02\n" +
+	"\x14PaymentNoteReference\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x17\n" +
+	"\anote_no\x18\x02 \x01(\tR\x06noteNo\x121\n" +
+	"\x15net_payable_round_off\x18\x03 \x01(\x01R\x12netPayableRoundOff\x12\x16\n" +
+	"\x06status\x18\x04 \x01(\tR\x06status\x12@\n" +
+	"\n" +
+	"green_note\x18\x05 \x01(\v2!.common.PaymentGreenNoteReferenceR\tgreenNote\x12X\n" +
+	"\x12reimbursement_note\x18\x06 \x01(\v2).common.PaymentReimbursementNoteReferenceR\x11reimbursementNote\"\x90\x01\n" +
 	"\vHoldDetails\x12\x16\n" +
 	"\x06active\x18\x01 \x01(\bR\x06active\x12\x16\n" +
 	"\x06reason\x18\x02 \x01(\tR\x06reason\x122\n" +
@@ -629,19 +721,19 @@ const file_common_proto_rawDesc = "" +
 	"applied_at\x18\x04 \x01(\tR\tappliedAtB\x1dZ\x1bnhit/services/common;commonb\x06proto3"
 
 var (
-	file_common_proto_rawDescOnce sync.Once
-	file_common_proto_rawDescData []byte
+	file_api_proto_common_proto_rawDescOnce sync.Once
+	file_api_proto_common_proto_rawDescData []byte
 )
 
-func file_common_proto_rawDescGZIP() []byte {
-	file_common_proto_rawDescOnce.Do(func() {
-		file_common_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_common_proto_rawDesc), len(file_common_proto_rawDesc)))
+func file_api_proto_common_proto_rawDescGZIP() []byte {
+	file_api_proto_common_proto_rawDescOnce.Do(func() {
+		file_api_proto_common_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_api_proto_common_proto_rawDesc), len(file_api_proto_common_proto_rawDesc)))
 	})
-	return file_common_proto_rawDescData
+	return file_api_proto_common_proto_rawDescData
 }
 
-var file_common_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
-var file_common_proto_goTypes = []any{
+var file_api_proto_common_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_api_proto_common_proto_goTypes = []any{
 	(*RelatedUser)(nil),                       // 0: common.RelatedUser
 	(*Pagination)(nil),                        // 1: common.Pagination
 	(*RelatedVendor)(nil),                     // 2: common.RelatedVendor
@@ -649,42 +741,45 @@ var file_common_proto_goTypes = []any{
 	(*PaymentGreenNoteReference)(nil),         // 4: common.PaymentGreenNoteReference
 	(*PaymentReimbursementNoteReference)(nil), // 5: common.PaymentReimbursementNoteReference
 	(*PaymentApprovalPriority)(nil),           // 6: common.PaymentApprovalPriority
-	(*HoldDetails)(nil),                       // 7: common.HoldDetails
+	(*PaymentNoteReference)(nil),              // 7: common.PaymentNoteReference
+	(*HoldDetails)(nil),                       // 8: common.HoldDetails
 }
-var file_common_proto_depIdxs = []int32{
+var file_api_proto_common_proto_depIdxs = []int32{
 	2, // 0: common.PaymentGreenNoteReference.vendor:type_name -> common.RelatedVendor
 	3, // 1: common.PaymentGreenNoteReference.supplier:type_name -> common.RelatedSupplier
 	0, // 2: common.PaymentReimbursementNoteReference.select_user:type_name -> common.RelatedUser
 	0, // 3: common.PaymentReimbursementNoteReference.owner:type_name -> common.RelatedUser
 	0, // 4: common.PaymentApprovalPriority.reviewer:type_name -> common.RelatedUser
-	0, // 5: common.HoldDetails.applied_by:type_name -> common.RelatedUser
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	4, // 5: common.PaymentNoteReference.green_note:type_name -> common.PaymentGreenNoteReference
+	5, // 6: common.PaymentNoteReference.reimbursement_note:type_name -> common.PaymentReimbursementNoteReference
+	0, // 7: common.HoldDetails.applied_by:type_name -> common.RelatedUser
+	8, // [8:8] is the sub-list for method output_type
+	8, // [8:8] is the sub-list for method input_type
+	8, // [8:8] is the sub-list for extension type_name
+	8, // [8:8] is the sub-list for extension extendee
+	0, // [0:8] is the sub-list for field type_name
 }
 
-func init() { file_common_proto_init() }
-func file_common_proto_init() {
-	if File_common_proto != nil {
+func init() { file_api_proto_common_proto_init() }
+func file_api_proto_common_proto_init() {
+	if File_api_proto_common_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_common_proto_rawDesc), len(file_common_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_common_proto_rawDesc), len(file_api_proto_common_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_common_proto_goTypes,
-		DependencyIndexes: file_common_proto_depIdxs,
-		MessageInfos:      file_common_proto_msgTypes,
+		GoTypes:           file_api_proto_common_proto_goTypes,
+		DependencyIndexes: file_api_proto_common_proto_depIdxs,
+		MessageInfos:      file_api_proto_common_proto_msgTypes,
 	}.Build()
-	File_common_proto = out.File
-	file_common_proto_goTypes = nil
-	file_common_proto_depIdxs = nil
+	File_api_proto_common_proto = out.File
+	file_api_proto_common_proto_goTypes = nil
+	file_api_proto_common_proto_depIdxs = nil
 }

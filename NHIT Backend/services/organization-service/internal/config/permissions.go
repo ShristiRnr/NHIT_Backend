@@ -8,12 +8,12 @@ func GetPermissionMap() map[string][]string {
 		"/organizations.OrganizationService/GetOrganization":          {"view-organizations"},
 		"/organizations.OrganizationService/ListOrganizations":        {"view-organizations"},
 		"/organizations.OrganizationService/ListOrganizationsByTenant": {"view-organizations"},
-		"/organizations.OrganizationService/UpdateOrganization":       {"edit-organization"},
-		"/organizations.OrganizationService/DeleteOrganization":       {"delete-organization"},
+		"/organizations.OrganizationService/UpdateOrganization":       {"edit-organizations"},
+		"/organizations.OrganizationService/DeleteOrganization":       {"delete-organizations"},
 		
 		// User-Organization operations
-		"/organizations.OrganizationService/AddUserToOrganization":    {"manage-organization-users"},
-		"/organizations.OrganizationService/RemoveUserFromOrganization": {"manage-organization-users"},
+		"/organizations.OrganizationService/AddUserToOrganization":    {"edit-organizations"},
+		"/organizations.OrganizationService/RemoveUserFromOrganization": {"edit-organizations"},
 		"/organizations.OrganizationService/ListOrganizationUsers":    {"view-organizations"},
 		"/organizations.OrganizationService/GetUserOrganizations":     {"view-organizations"},
 	}

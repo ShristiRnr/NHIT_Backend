@@ -58,13 +58,23 @@ func (s *projectService) GetProject(ctx context.Context, projectID uuid.UUID) (*
 	return project, nil
 }
 
-// ListProjectsByOrganization lists all projects for an organization
-func (s *projectService) ListProjectsByOrganization(ctx context.Context, orgID uuid.UUID) ([]*domain.Project, error) {
-	projects, err := s.repo.ListByOrganization(ctx, orgID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list projects: %w", err)
+// ListProjectsByOrganization lists all projects for an organization with pagination
+func (s *projectService) ListProjectsByOrganization(ctx context.Context, orgID uuid.UUID, page, pageSize int32) ([]*domain.Project, int, error) {
+	if page < 1 {
+		page = 1
 	}
-	return projects, nil
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 10
+	}
+
+	limit := int(pageSize)
+	offset := int((page - 1) * pageSize)
+
+	projects, totalCount, err := s.repo.ListByOrganization(ctx, orgID, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to list projects: %w", err)
+	}
+	return projects, totalCount, nil
 }
 
 // HandleOrganizationCreatedEvent processes organization created events

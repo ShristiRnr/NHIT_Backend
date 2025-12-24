@@ -30,6 +30,9 @@ type User struct {
 	// Signature
 	SignatureURL       *string
 	
+	// Roles (Optional for updates)
+	Roles           []uuid.UUID
+
 	IsActive        bool       // For soft delete
 	DeactivatedAt   *time.Time // When user was deactivated
 	DeactivatedBy   *uuid.UUID // Who deactivated the user
@@ -80,17 +83,7 @@ type UserOrganizationRole struct {
 }
 
 
-// Notification represents system notifications
-type Notification struct {
-	NotificationID uuid.UUID
-	RecipientID    uuid.UUID // User ID who receives the notification
-	Title          string
-	Message        string
-	Type           string // e.g., "USER_DEACTIVATED", "ROLE_CHANGED"
-	IsRead         bool
-	CreatedAt      time.Time
-	ReadAt         *time.Time
-}
+
 
 // UserLoginHistory represents user login tracking
 type UserLoginHistory struct {

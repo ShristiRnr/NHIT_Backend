@@ -14,6 +14,7 @@ import (
 	"github.com/ShristiRnr/NHIT_Backend/services/auth-service/internal/adapters/notifier"
 	"github.com/ShristiRnr/NHIT_Backend/services/auth-service/internal/adapters/organization"
 	"github.com/ShristiRnr/NHIT_Backend/services/auth-service/internal/adapters/repository"
+	"github.com/ShristiRnr/NHIT_Backend/services/auth-service/internal/config"
 	"github.com/ShristiRnr/NHIT_Backend/services/auth-service/internal/core/services"
 	"github.com/ShristiRnr/NHIT_Backend/services/auth-service/internal/middleware"
 	"github.com/ShristiRnr/NHIT_Backend/services/auth-service/internal/utils"
@@ -23,6 +24,9 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+
+
+
 func main() {
 	// Load configuration from environment
 	serviceName := "auth-service"
@@ -30,6 +34,8 @@ func main() {
 	if serverPort == "" {
 		serverPort = "50052"
 	}
+
+	ssoConfig := config.LoadSSOConfig()
 
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" {
@@ -138,10 +144,21 @@ func main() {
 		notificationClient, // Pass notification client
 		userServiceClient,  // Pass User Service gRPC client
 		orgClientAdapter,   // Pass Organization Service client
+		ssoConfig,          // Pass SSO Config
 	)
 
 	// Initialize auth interceptor (middleware)
 	authInterceptor := middleware.NewAuthInterceptor(authService)
+
+	// Register public methods
+	for _, method := range config.GetPublicMethods() {
+		authInterceptor.RegisterPublicMethod(method)
+	}
+
+	// Register permissions
+	for method, perms := range config.GetPermissionMap() {
+		authInterceptor.RegisterPermissions(method, perms)
+	}
 
 	// Create gRPC server with interceptors
 	grpcServer := grpcMiddleware.NewServer(

@@ -261,4 +261,31 @@ service OrganizationService {
       delete: "/api/v1/organizations/{org_id}"
     };
   }
+
+  // Upload Organization Logo
+  rpc UploadOrganizationLogo(UploadLogoRequest) returns (UploadLogoResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/organizations/{org_id}/logo"
+      body: "*"
+    };
+  }
+}
+
+// ====================
+// Logo Upload Messages
+// ====================
+message UploadLogoRequest {
+  string org_id = 1;
+  bytes file_content = 2;
+}
+
+message UploadLogoResponse {
+  bool success = 1;
+  string message = 2;
+  string organization_id = 3;
+  string logo_url = 4;
+  string file_name = 5;
+  string mime_type = 6;
+  int64 file_size = 7;
+  google.protobuf.Timestamp uploaded_at = 8;
 }

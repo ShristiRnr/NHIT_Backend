@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v6.32.0
-// source: greennote.proto
+// source: api/proto/greennote.proto
 
-package greennote
+package greennotepb
 
 import (
 	context "context"
@@ -27,6 +27,7 @@ const (
 	GreenNoteService_GetOrganizationProjects_FullMethodName    = "/greennote.GreenNoteService/GetOrganizationProjects"
 	GreenNoteService_GetOrganizationVendors_FullMethodName     = "/greennote.GreenNoteService/GetOrganizationVendors"
 	GreenNoteService_GetOrganizationDepartments_FullMethodName = "/greennote.GreenNoteService/GetOrganizationDepartments"
+	GreenNoteService_UploadGreenNoteDocuments_FullMethodName   = "/greennote.GreenNoteService/UploadGreenNoteDocuments"
 )
 
 // GreenNoteServiceClient is the client API for GreenNoteService service.
@@ -53,6 +54,8 @@ type GreenNoteServiceClient interface {
 	GetOrganizationVendors(ctx context.Context, in *GetOrganizationVendorsRequest, opts ...grpc.CallOption) (*GetOrganizationVendorsResponse, error)
 	// Get departments for the logged-in user's organization
 	GetOrganizationDepartments(ctx context.Context, in *GetOrganizationDepartmentsRequest, opts ...grpc.CallOption) (*GetOrganizationDepartmentsResponse, error)
+	// Upload GreenNote Documents
+	UploadGreenNoteDocuments(ctx context.Context, in *UploadGreenNoteDocumentsRequest, opts ...grpc.CallOption) (*UploadGreenNoteDocumentsResponse, error)
 }
 
 type greenNoteServiceClient struct {
@@ -143,6 +146,16 @@ func (c *greenNoteServiceClient) GetOrganizationDepartments(ctx context.Context,
 	return out, nil
 }
 
+func (c *greenNoteServiceClient) UploadGreenNoteDocuments(ctx context.Context, in *UploadGreenNoteDocumentsRequest, opts ...grpc.CallOption) (*UploadGreenNoteDocumentsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UploadGreenNoteDocumentsResponse)
+	err := c.cc.Invoke(ctx, GreenNoteService_UploadGreenNoteDocuments_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GreenNoteServiceServer is the server API for GreenNoteService service.
 // All implementations must embed UnimplementedGreenNoteServiceServer
 // for forward compatibility.
@@ -167,6 +180,8 @@ type GreenNoteServiceServer interface {
 	GetOrganizationVendors(context.Context, *GetOrganizationVendorsRequest) (*GetOrganizationVendorsResponse, error)
 	// Get departments for the logged-in user's organization
 	GetOrganizationDepartments(context.Context, *GetOrganizationDepartmentsRequest) (*GetOrganizationDepartmentsResponse, error)
+	// Upload GreenNote Documents
+	UploadGreenNoteDocuments(context.Context, *UploadGreenNoteDocumentsRequest) (*UploadGreenNoteDocumentsResponse, error)
 	mustEmbedUnimplementedGreenNoteServiceServer()
 }
 
@@ -200,6 +215,9 @@ func (UnimplementedGreenNoteServiceServer) GetOrganizationVendors(context.Contex
 }
 func (UnimplementedGreenNoteServiceServer) GetOrganizationDepartments(context.Context, *GetOrganizationDepartmentsRequest) (*GetOrganizationDepartmentsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetOrganizationDepartments not implemented")
+}
+func (UnimplementedGreenNoteServiceServer) UploadGreenNoteDocuments(context.Context, *UploadGreenNoteDocumentsRequest) (*UploadGreenNoteDocumentsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UploadGreenNoteDocuments not implemented")
 }
 func (UnimplementedGreenNoteServiceServer) mustEmbedUnimplementedGreenNoteServiceServer() {}
 func (UnimplementedGreenNoteServiceServer) testEmbeddedByValue()                          {}
@@ -366,6 +384,24 @@ func _GreenNoteService_GetOrganizationDepartments_Handler(srv interface{}, ctx c
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GreenNoteService_UploadGreenNoteDocuments_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UploadGreenNoteDocumentsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GreenNoteServiceServer).UploadGreenNoteDocuments(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GreenNoteService_UploadGreenNoteDocuments_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GreenNoteServiceServer).UploadGreenNoteDocuments(ctx, req.(*UploadGreenNoteDocumentsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GreenNoteService_ServiceDesc is the grpc.ServiceDesc for GreenNoteService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -405,7 +441,11 @@ var GreenNoteService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "GetOrganizationDepartments",
 			Handler:    _GreenNoteService_GetOrganizationDepartments_Handler,
 		},
+		{
+			MethodName: "UploadGreenNoteDocuments",
+			Handler:    _GreenNoteService_UploadGreenNoteDocuments_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "greennote.proto",
+	Metadata: "api/proto/greennote.proto",
 }

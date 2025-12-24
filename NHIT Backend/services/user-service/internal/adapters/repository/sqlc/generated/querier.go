@@ -15,6 +15,9 @@ type Querier interface {
 	AssignRoleToUser(ctx context.Context, arg AssignRoleToUserParams) error
 	CountActivityLogs(ctx context.Context) (int64, error)
 	CountAllUsers(ctx context.Context) (int64, error)
+	CountRolesByOrganizationIncludingSystem(ctx context.Context, arg CountRolesByOrganizationIncludingSystemParams) (int64, error)
+	CountRolesByTenant(ctx context.Context, tenantID uuid.UUID) (int64, error)
+	CountRolesByTenantAndOrg(ctx context.Context, arg CountRolesByTenantAndOrgParams) (int64, error)
 	CountRolesForUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountUserLoginHistories(ctx context.Context, userID uuid.NullUUID) (int64, error)
 	CountUsersByTenant(ctx context.Context, tenantID uuid.UUID) (int64, error)
@@ -45,7 +48,7 @@ type Querier interface {
 	ListRecentLoginHistories(ctx context.Context, arg ListRecentLoginHistoriesParams) ([]*UserLoginHistory, error)
 	ListRolesByIDs(ctx context.Context, dollar_1 []pgtype.UUID) ([]*Role, error)
 	ListRolesByOrganizationIncludingSystem(ctx context.Context, arg ListRolesByOrganizationIncludingSystemParams) ([]*Role, error)
-	ListRolesByTenant(ctx context.Context, tenantID uuid.UUID) ([]*Role, error)
+	ListRolesByTenant(ctx context.Context, arg ListRolesByTenantParams) ([]*Role, error)
 	ListRolesByTenantAndOrg(ctx context.Context, arg ListRolesByTenantAndOrgParams) ([]*Role, error)
 	ListRolesForUser(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error)
 	ListUserLoginHistories(ctx context.Context, arg ListUserLoginHistoriesParams) ([]*UserLoginHistory, error)

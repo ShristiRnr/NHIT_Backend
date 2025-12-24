@@ -2,17 +2,17 @@
 INSERT INTO vendors (
     id, tenant_id, vendor_code, vendor_name, vendor_email, vendor_mobile,
     account_type, vendor_nick_name, activity_type, email, mobile, gstin, pan, pin,
-    country_id, state_id, city_id, country_name, state_name, city_name,
+    country_name, state_name, city_name,
     msme_classification, msme, msme_registration_number, msme_start_date, msme_end_date,
     material_nature, gst_defaulted, section_206ab_verified, beneficiary_name,
     remarks_address, common_bank_details, income_tax_type, project_id, status,
     from_account_type, account_name, short_name, parent, file_paths,
     code_auto_generated, created_by, account_number, name_of_bank,
-    ifsc_code, ifsc_code_id
+    ifsc_code, address, signature_url
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
     $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39,
-    $40, $41, $42, $43, $44, $45
+    $40, $41, $42, $43
 );
 
 -- name: GetVendorByID :one
@@ -34,7 +34,28 @@ UPDATE vendors SET
     vendor_mobile = COALESCE($5, vendor_mobile),
     pan = COALESCE($6, pan),
     beneficiary_name = COALESCE($7, beneficiary_name),
-    status = COALESCE($8, status),
+    msme_classification = COALESCE($8, msme_classification),
+    msme = COALESCE($9, msme),
+    msme_registration_number = COALESCE($10, msme_registration_number),
+    material_nature = COALESCE($11, material_nature),
+    gst_defaulted = COALESCE($12, gst_defaulted),
+    section_206ab_verified = COALESCE($13, section_206ab_verified),
+    income_tax_type = COALESCE($14, income_tax_type),
+    project_id = COALESCE($15, project_id),
+    account_name = COALESCE($16, account_name),
+    status = COALESCE($17, status),
+    remarks_address = COALESCE($18, remarks_address),
+    address = COALESCE($19, address),
+    signature_url = COALESCE($20, signature_url),
+    pin = COALESCE($21, pin),
+    activity_type = COALESCE($22, activity_type),
+    vendor_nick_name = COALESCE($23, vendor_nick_name),
+    country_name = COALESCE($24, country_name),
+    state_name = COALESCE($25, state_name),
+    city_name = COALESCE($26, city_name),
+    from_account_type = COALESCE($27, from_account_type),
+    short_name = COALESCE($28, short_name),
+    parent = COALESCE($29, parent),
     updated_at = NOW()
 WHERE id = $1 AND tenant_id = $2;
 

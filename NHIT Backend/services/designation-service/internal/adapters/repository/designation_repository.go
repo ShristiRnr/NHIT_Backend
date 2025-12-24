@@ -68,7 +68,7 @@ func (r *designationRepository) Delete(ctx context.Context, id uuid.UUID) error 
 	return r.queries.DeleteDesignation(ctx, id)
 }
 
-func (r *designationRepository) List(ctx context.Context, orgID *uuid.UUID, page, pageSize int32) ([]*domain.Designation, error) {
+func (r *designationRepository) List(ctx context.Context, orgID *uuid.UUID, page, pageSize int32) ([]*domain.Designation, int64, error) {
     offset := (page - 1) * pageSize
 
 	var orgIDParam pgtype.UUID
@@ -78,13 +78,19 @@ func (r *designationRepository) List(ctx context.Context, orgID *uuid.UUID, page
 		orgIDParam = pgtype.UUID{Valid: false}
 	}
 
+	// Get total count
+	totalCount, err := r.queries.CountDesignations(ctx, orgIDParam)
+	if err != nil {
+		return nil, 0, err
+	}
+
 	dbDesignations, err := r.queries.ListDesignations(ctx, sqlc.ListDesignationsParams{
 		Column1: orgIDParam,
 		Limit:   pageSize,
 		Offset:  offset,
 	})
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	designations := make([]*domain.Designation, len(dbDesignations))
@@ -92,7 +98,7 @@ func (r *designationRepository) List(ctx context.Context, orgID *uuid.UUID, page
 		designations[i] = toDomainDesignation(d)
 	}
 
-	return designations, nil
+	return designations, totalCount, nil
 }
 
 // toDomainDesignation converts a database designation to a domain designation

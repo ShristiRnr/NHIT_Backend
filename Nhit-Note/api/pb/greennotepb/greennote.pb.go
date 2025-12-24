@@ -2,9 +2,9 @@
 // versions:
 // 	protoc-gen-go v1.36.10
 // 	protoc        v6.32.0
-// source: greennote.proto
+// source: api/proto/greennote.proto
 
-package greennote
+package greennotepb
 
 import (
 	_ "google.golang.org/genproto/googleapis/api/annotations"
@@ -59,11 +59,11 @@ func (x ApprovalFor) String() string {
 }
 
 func (ApprovalFor) Descriptor() protoreflect.EnumDescriptor {
-	return file_greennote_proto_enumTypes[0].Descriptor()
+	return file_api_proto_greennote_proto_enumTypes[0].Descriptor()
 }
 
 func (ApprovalFor) Type() protoreflect.EnumType {
-	return &file_greennote_proto_enumTypes[0]
+	return &file_api_proto_greennote_proto_enumTypes[0]
 }
 
 func (x ApprovalFor) Number() protoreflect.EnumNumber {
@@ -72,7 +72,7 @@ func (x ApprovalFor) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ApprovalFor.Descriptor instead.
 func (ApprovalFor) EnumDescriptor() ([]byte, []int) {
-	return file_greennote_proto_rawDescGZIP(), []int{0}
+	return file_api_proto_greennote_proto_rawDescGZIP(), []int{0}
 }
 
 type ExpenseCategoryType int32
@@ -117,11 +117,11 @@ func (x ExpenseCategoryType) String() string {
 }
 
 func (ExpenseCategoryType) Descriptor() protoreflect.EnumDescriptor {
-	return file_greennote_proto_enumTypes[1].Descriptor()
+	return file_api_proto_greennote_proto_enumTypes[1].Descriptor()
 }
 
 func (ExpenseCategoryType) Type() protoreflect.EnumType {
-	return &file_greennote_proto_enumTypes[1]
+	return &file_api_proto_greennote_proto_enumTypes[1]
 }
 
 func (x ExpenseCategoryType) Number() protoreflect.EnumNumber {
@@ -130,7 +130,7 @@ func (x ExpenseCategoryType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ExpenseCategoryType.Descriptor instead.
 func (ExpenseCategoryType) EnumDescriptor() ([]byte, []int) {
-	return file_greennote_proto_rawDescGZIP(), []int{1}
+	return file_api_proto_greennote_proto_rawDescGZIP(), []int{1}
 }
 
 type NatureOfExpenses int32
@@ -169,11 +169,11 @@ func (x NatureOfExpenses) String() string {
 }
 
 func (NatureOfExpenses) Descriptor() protoreflect.EnumDescriptor {
-	return file_greennote_proto_enumTypes[2].Descriptor()
+	return file_api_proto_greennote_proto_enumTypes[2].Descriptor()
 }
 
 func (NatureOfExpenses) Type() protoreflect.EnumType {
-	return &file_greennote_proto_enumTypes[2]
+	return &file_api_proto_greennote_proto_enumTypes[2]
 }
 
 func (x NatureOfExpenses) Number() protoreflect.EnumNumber {
@@ -182,16 +182,17 @@ func (x NatureOfExpenses) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use NatureOfExpenses.Descriptor instead.
 func (NatureOfExpenses) EnumDescriptor() ([]byte, []int) {
-	return file_greennote_proto_rawDescGZIP(), []int{2}
+	return file_api_proto_greennote_proto_rawDescGZIP(), []int{2}
 }
 
 type Status int32
 
 const (
-	Status_STATUS_APPROVED Status = 0
-	Status_STATUS_PENDING  Status = 1
-	Status_STATUS_REJECTED Status = 2
-	Status_STATUS_DRAFT    Status = 3
+	Status_STATUS_APPROVED  Status = 0
+	Status_STATUS_PENDING   Status = 1
+	Status_STATUS_REJECTED  Status = 2
+	Status_STATUS_DRAFT     Status = 3
+	Status_STATUS_CANCELLED Status = 4
 )
 
 // Enum value maps for Status.
@@ -201,12 +202,14 @@ var (
 		1: "STATUS_PENDING",
 		2: "STATUS_REJECTED",
 		3: "STATUS_DRAFT",
+		4: "STATUS_CANCELLED",
 	}
 	Status_value = map[string]int32{
-		"STATUS_APPROVED": 0,
-		"STATUS_PENDING":  1,
-		"STATUS_REJECTED": 2,
-		"STATUS_DRAFT":    3,
+		"STATUS_APPROVED":  0,
+		"STATUS_PENDING":   1,
+		"STATUS_REJECTED":  2,
+		"STATUS_DRAFT":     3,
+		"STATUS_CANCELLED": 4,
 	}
 )
 
@@ -221,11 +224,11 @@ func (x Status) String() string {
 }
 
 func (Status) Descriptor() protoreflect.EnumDescriptor {
-	return file_greennote_proto_enumTypes[3].Descriptor()
+	return file_api_proto_greennote_proto_enumTypes[3].Descriptor()
 }
 
 func (Status) Type() protoreflect.EnumType {
-	return &file_greennote_proto_enumTypes[3]
+	return &file_api_proto_greennote_proto_enumTypes[3]
 }
 
 func (x Status) Number() protoreflect.EnumNumber {
@@ -234,7 +237,7 @@ func (x Status) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Status.Descriptor instead.
 func (Status) EnumDescriptor() ([]byte, []int) {
-	return file_greennote_proto_rawDescGZIP(), []int{3}
+	return file_api_proto_greennote_proto_rawDescGZIP(), []int{3}
 }
 
 type YesNo int32
@@ -270,11 +273,11 @@ func (x YesNo) String() string {
 }
 
 func (YesNo) Descriptor() protoreflect.EnumDescriptor {
-	return file_greennote_proto_enumTypes[4].Descriptor()
+	return file_api_proto_greennote_proto_enumTypes[4].Descriptor()
 }
 
 func (YesNo) Type() protoreflect.EnumType {
-	return &file_greennote_proto_enumTypes[4]
+	return &file_api_proto_greennote_proto_enumTypes[4]
 }
 
 func (x YesNo) Number() protoreflect.EnumNumber {
@@ -283,7 +286,7 @@ func (x YesNo) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use YesNo.Descriptor instead.
 func (YesNo) EnumDescriptor() ([]byte, []int) {
-	return file_greennote_proto_rawDescGZIP(), []int{4}
+	return file_api_proto_greennote_proto_rawDescGZIP(), []int{4}
 }
 
 // =======================
@@ -298,7 +301,7 @@ type CreateGreenNoteRequest struct {
 
 func (x *CreateGreenNoteRequest) Reset() {
 	*x = CreateGreenNoteRequest{}
-	mi := &file_greennote_proto_msgTypes[0]
+	mi := &file_api_proto_greennote_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -310,7 +313,7 @@ func (x *CreateGreenNoteRequest) String() string {
 func (*CreateGreenNoteRequest) ProtoMessage() {}
 
 func (x *CreateGreenNoteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_greennote_proto_msgTypes[0]
+	mi := &file_api_proto_greennote_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -323,7 +326,7 @@ func (x *CreateGreenNoteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateGreenNoteRequest.ProtoReflect.Descriptor instead.
 func (*CreateGreenNoteRequest) Descriptor() ([]byte, []int) {
-	return file_greennote_proto_rawDescGZIP(), []int{0}
+	return file_api_proto_greennote_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *CreateGreenNoteRequest) GetNote() *GreenNotePayload {
@@ -343,7 +346,7 @@ type UpdateGreenNoteRequest struct {
 
 func (x *UpdateGreenNoteRequest) Reset() {
 	*x = UpdateGreenNoteRequest{}
-	mi := &file_greennote_proto_msgTypes[1]
+	mi := &file_api_proto_greennote_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -355,7 +358,7 @@ func (x *UpdateGreenNoteRequest) String() string {
 func (*UpdateGreenNoteRequest) ProtoMessage() {}
 
 func (x *UpdateGreenNoteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_greennote_proto_msgTypes[1]
+	mi := &file_api_proto_greennote_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -368,7 +371,7 @@ func (x *UpdateGreenNoteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateGreenNoteRequest.ProtoReflect.Descriptor instead.
 func (*UpdateGreenNoteRequest) Descriptor() ([]byte, []int) {
-	return file_greennote_proto_rawDescGZIP(), []int{1}
+	return file_api_proto_greennote_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *UpdateGreenNoteRequest) GetId() string {
@@ -394,7 +397,7 @@ type GetGreenNoteRequest struct {
 
 func (x *GetGreenNoteRequest) Reset() {
 	*x = GetGreenNoteRequest{}
-	mi := &file_greennote_proto_msgTypes[2]
+	mi := &file_api_proto_greennote_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -406,7 +409,7 @@ func (x *GetGreenNoteRequest) String() string {
 func (*GetGreenNoteRequest) ProtoMessage() {}
 
 func (x *GetGreenNoteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_greennote_proto_msgTypes[2]
+	mi := &file_api_proto_greennote_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -419,7 +422,7 @@ func (x *GetGreenNoteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetGreenNoteRequest.ProtoReflect.Descriptor instead.
 func (*GetGreenNoteRequest) Descriptor() ([]byte, []int) {
-	return file_greennote_proto_rawDescGZIP(), []int{2}
+	return file_api_proto_greennote_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *GetGreenNoteRequest) GetId() string {
@@ -439,7 +442,7 @@ type CancelGreenNoteRequest struct {
 
 func (x *CancelGreenNoteRequest) Reset() {
 	*x = CancelGreenNoteRequest{}
-	mi := &file_greennote_proto_msgTypes[3]
+	mi := &file_api_proto_greennote_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -451,7 +454,7 @@ func (x *CancelGreenNoteRequest) String() string {
 func (*CancelGreenNoteRequest) ProtoMessage() {}
 
 func (x *CancelGreenNoteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_greennote_proto_msgTypes[3]
+	mi := &file_api_proto_greennote_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -464,7 +467,7 @@ func (x *CancelGreenNoteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelGreenNoteRequest.ProtoReflect.Descriptor instead.
 func (*CancelGreenNoteRequest) Descriptor() ([]byte, []int) {
-	return file_greennote_proto_rawDescGZIP(), []int{3}
+	return file_api_proto_greennote_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *CancelGreenNoteRequest) GetId() string {
@@ -483,16 +486,17 @@ func (x *CancelGreenNoteRequest) GetCancelReason() string {
 
 type ListGreenNotesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Status        string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"` // approved, pending, reject, draft
+	Status        Status                 `protobuf:"varint,1,opt,name=status,proto3,enum=greennote.Status" json:"status,omitempty"`
 	Page          int32                  `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`
 	PerPage       int32                  `protobuf:"varint,3,opt,name=per_page,json=perPage,proto3" json:"per_page,omitempty"`
+	IncludeAll    bool                   `protobuf:"varint,4,opt,name=include_all,json=includeAll,proto3" json:"include_all,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListGreenNotesRequest) Reset() {
 	*x = ListGreenNotesRequest{}
-	mi := &file_greennote_proto_msgTypes[4]
+	mi := &file_api_proto_greennote_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -504,7 +508,7 @@ func (x *ListGreenNotesRequest) String() string {
 func (*ListGreenNotesRequest) ProtoMessage() {}
 
 func (x *ListGreenNotesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_greennote_proto_msgTypes[4]
+	mi := &file_api_proto_greennote_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -517,14 +521,14 @@ func (x *ListGreenNotesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListGreenNotesRequest.ProtoReflect.Descriptor instead.
 func (*ListGreenNotesRequest) Descriptor() ([]byte, []int) {
-	return file_greennote_proto_rawDescGZIP(), []int{4}
+	return file_api_proto_greennote_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *ListGreenNotesRequest) GetStatus() string {
+func (x *ListGreenNotesRequest) GetStatus() Status {
 	if x != nil {
 		return x.Status
 	}
-	return ""
+	return Status_STATUS_APPROVED
 }
 
 func (x *ListGreenNotesRequest) GetPage() int32 {
@@ -541,6 +545,13 @@ func (x *ListGreenNotesRequest) GetPerPage() int32 {
 	return 0
 }
 
+func (x *ListGreenNotesRequest) GetIncludeAll() bool {
+	if x != nil {
+		return x.IncludeAll
+	}
+	return false
+}
+
 // =======================
 // LIST VIEW ITEM (LIGHTWEIGHT)
 // =======================
@@ -549,16 +560,16 @@ type GreenNoteListItem struct {
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	ProjectName   string                 `protobuf:"bytes,2,opt,name=project_name,json=projectName,proto3" json:"project_name,omitempty"`
 	VendorName    string                 `protobuf:"bytes,3,opt,name=vendor_name,json=vendorName,proto3" json:"vendor_name,omitempty"`
-	Amount        float64                `protobuf:"fixed64,4,opt,name=amount,proto3" json:"amount,omitempty"` // total_amount
-	Date          string                 `protobuf:"bytes,5,opt,name=date,proto3" json:"date,omitempty"`       // formatted created_at
-	Status        string                 `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`   // P, A, R, D
+	Amount        float64                `protobuf:"fixed64,4,opt,name=amount,proto3" json:"amount,omitempty"`                      // total_amount
+	Date          string                 `protobuf:"bytes,5,opt,name=date,proto3" json:"date,omitempty"`                            // formatted created_at
+	Status        Status                 `protobuf:"varint,6,opt,name=status,proto3,enum=greennote.Status" json:"status,omitempty"` // P, A, R, D
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GreenNoteListItem) Reset() {
 	*x = GreenNoteListItem{}
-	mi := &file_greennote_proto_msgTypes[5]
+	mi := &file_api_proto_greennote_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -570,7 +581,7 @@ func (x *GreenNoteListItem) String() string {
 func (*GreenNoteListItem) ProtoMessage() {}
 
 func (x *GreenNoteListItem) ProtoReflect() protoreflect.Message {
-	mi := &file_greennote_proto_msgTypes[5]
+	mi := &file_api_proto_greennote_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -583,7 +594,7 @@ func (x *GreenNoteListItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GreenNoteListItem.ProtoReflect.Descriptor instead.
 func (*GreenNoteListItem) Descriptor() ([]byte, []int) {
-	return file_greennote_proto_rawDescGZIP(), []int{5}
+	return file_api_proto_greennote_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GreenNoteListItem) GetId() string {
@@ -621,11 +632,11 @@ func (x *GreenNoteListItem) GetDate() string {
 	return ""
 }
 
-func (x *GreenNoteListItem) GetStatus() string {
+func (x *GreenNoteListItem) GetStatus() Status {
 	if x != nil {
 		return x.Status
 	}
-	return ""
+	return Status_STATUS_APPROVED
 }
 
 // =======================
@@ -656,7 +667,7 @@ type GreenNotePayload struct {
 	Invoice                           *InvoiceInput          `protobuf:"bytes,24,opt,name=invoice,proto3" json:"invoice,omitempty"`
 	EnableMultipleInvoices            bool                   `protobuf:"varint,25,opt,name=enable_multiple_invoices,json=enableMultipleInvoices,proto3" json:"enable_multiple_invoices,omitempty"`
 	Invoices                          []*InvoiceInput        `protobuf:"bytes,26,rep,name=invoices,proto3" json:"invoices,omitempty"`
-	Status                            string                 `protobuf:"bytes,27,opt,name=status,proto3" json:"status,omitempty"`
+	Status                            Status                 `protobuf:"varint,27,opt,name=status,proto3,enum=greennote.Status" json:"status,omitempty"`
 	// Basic information
 	ApprovalFor ApprovalFor `protobuf:"varint,28,opt,name=approval_for,json=approvalFor,proto3,enum=greennote.ApprovalFor" json:"approval_for,omitempty"`
 	// Project details
@@ -692,13 +703,14 @@ type GreenNotePayload struct {
 	UpdatedAt                      *timestamppb.Timestamp      `protobuf:"bytes,52,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	NewDocuments                   []*SupportingDocumentUpload `protobuf:"bytes,53,rep,name=new_documents,json=newDocuments,proto3" json:"new_documents,omitempty"`
 	ExistingDocuments              []*SupportingDocument       `protobuf:"bytes,54,rep,name=existing_documents,json=existingDocuments,proto3" json:"existing_documents,omitempty"`
+	DetailedStatus                 string                      `protobuf:"bytes,55,opt,name=detailed_status,json=detailedStatus,proto3" json:"detailed_status,omitempty"`
 	unknownFields                  protoimpl.UnknownFields
 	sizeCache                      protoimpl.SizeCache
 }
 
 func (x *GreenNotePayload) Reset() {
 	*x = GreenNotePayload{}
-	mi := &file_greennote_proto_msgTypes[6]
+	mi := &file_api_proto_greennote_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -710,7 +722,7 @@ func (x *GreenNotePayload) String() string {
 func (*GreenNotePayload) ProtoMessage() {}
 
 func (x *GreenNotePayload) ProtoReflect() protoreflect.Message {
-	mi := &file_greennote_proto_msgTypes[6]
+	mi := &file_api_proto_greennote_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -723,7 +735,7 @@ func (x *GreenNotePayload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GreenNotePayload.ProtoReflect.Descriptor instead.
 func (*GreenNotePayload) Descriptor() ([]byte, []int) {
-	return file_greennote_proto_rawDescGZIP(), []int{6}
+	return file_api_proto_greennote_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GreenNotePayload) GetProjectName() string {
@@ -887,11 +899,11 @@ func (x *GreenNotePayload) GetInvoices() []*InvoiceInput {
 	return nil
 }
 
-func (x *GreenNotePayload) GetStatus() string {
+func (x *GreenNotePayload) GetStatus() Status {
 	if x != nil {
 		return x.Status
 	}
-	return ""
+	return Status_STATUS_APPROVED
 }
 
 func (x *GreenNotePayload) GetApprovalFor() ApprovalFor {
@@ -1076,6 +1088,13 @@ func (x *GreenNotePayload) GetExistingDocuments() []*SupportingDocument {
 	return nil
 }
 
+func (x *GreenNotePayload) GetDetailedStatus() string {
+	if x != nil {
+		return x.DetailedStatus
+	}
+	return ""
+}
+
 type InvoiceInput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	InvoiceNumber string                 `protobuf:"bytes,1,opt,name=invoice_number,json=invoiceNumber,proto3" json:"invoice_number,omitempty"`
@@ -1090,7 +1109,7 @@ type InvoiceInput struct {
 
 func (x *InvoiceInput) Reset() {
 	*x = InvoiceInput{}
-	mi := &file_greennote_proto_msgTypes[7]
+	mi := &file_api_proto_greennote_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1102,7 +1121,7 @@ func (x *InvoiceInput) String() string {
 func (*InvoiceInput) ProtoMessage() {}
 
 func (x *InvoiceInput) ProtoReflect() protoreflect.Message {
-	mi := &file_greennote_proto_msgTypes[7]
+	mi := &file_api_proto_greennote_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1115,7 +1134,7 @@ func (x *InvoiceInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvoiceInput.ProtoReflect.Descriptor instead.
 func (*InvoiceInput) Descriptor() ([]byte, []int) {
-	return file_greennote_proto_rawDescGZIP(), []int{7}
+	return file_api_proto_greennote_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *InvoiceInput) GetInvoiceNumber() string {
@@ -1176,7 +1195,7 @@ type SupportingDocument struct {
 
 func (x *SupportingDocument) Reset() {
 	*x = SupportingDocument{}
-	mi := &file_greennote_proto_msgTypes[8]
+	mi := &file_api_proto_greennote_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1188,7 +1207,7 @@ func (x *SupportingDocument) String() string {
 func (*SupportingDocument) ProtoMessage() {}
 
 func (x *SupportingDocument) ProtoReflect() protoreflect.Message {
-	mi := &file_greennote_proto_msgTypes[8]
+	mi := &file_api_proto_greennote_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1201,7 +1220,7 @@ func (x *SupportingDocument) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SupportingDocument.ProtoReflect.Descriptor instead.
 func (*SupportingDocument) Descriptor() ([]byte, []int) {
-	return file_greennote_proto_rawDescGZIP(), []int{8}
+	return file_api_proto_greennote_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *SupportingDocument) GetId() string {
@@ -1272,7 +1291,7 @@ type SupportingDocumentUpload struct {
 
 func (x *SupportingDocumentUpload) Reset() {
 	*x = SupportingDocumentUpload{}
-	mi := &file_greennote_proto_msgTypes[9]
+	mi := &file_api_proto_greennote_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1284,7 +1303,7 @@ func (x *SupportingDocumentUpload) String() string {
 func (*SupportingDocumentUpload) ProtoMessage() {}
 
 func (x *SupportingDocumentUpload) ProtoReflect() protoreflect.Message {
-	mi := &file_greennote_proto_msgTypes[9]
+	mi := &file_api_proto_greennote_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1297,7 +1316,7 @@ func (x *SupportingDocumentUpload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SupportingDocumentUpload.ProtoReflect.Descriptor instead.
 func (*SupportingDocumentUpload) Descriptor() ([]byte, []int) {
-	return file_greennote_proto_rawDescGZIP(), []int{9}
+	return file_api_proto_greennote_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *SupportingDocumentUpload) GetName() string {
@@ -1336,7 +1355,7 @@ type GetOrganizationProjectsRequest struct {
 
 func (x *GetOrganizationProjectsRequest) Reset() {
 	*x = GetOrganizationProjectsRequest{}
-	mi := &file_greennote_proto_msgTypes[10]
+	mi := &file_api_proto_greennote_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1348,7 +1367,7 @@ func (x *GetOrganizationProjectsRequest) String() string {
 func (*GetOrganizationProjectsRequest) ProtoMessage() {}
 
 func (x *GetOrganizationProjectsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_greennote_proto_msgTypes[10]
+	mi := &file_api_proto_greennote_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1361,7 +1380,7 @@ func (x *GetOrganizationProjectsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetOrganizationProjectsRequest.ProtoReflect.Descriptor instead.
 func (*GetOrganizationProjectsRequest) Descriptor() ([]byte, []int) {
-	return file_greennote_proto_rawDescGZIP(), []int{10}
+	return file_api_proto_greennote_proto_rawDescGZIP(), []int{10}
 }
 
 type GetOrganizationProjectsResponse struct {
@@ -1374,7 +1393,7 @@ type GetOrganizationProjectsResponse struct {
 
 func (x *GetOrganizationProjectsResponse) Reset() {
 	*x = GetOrganizationProjectsResponse{}
-	mi := &file_greennote_proto_msgTypes[11]
+	mi := &file_api_proto_greennote_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1386,7 +1405,7 @@ func (x *GetOrganizationProjectsResponse) String() string {
 func (*GetOrganizationProjectsResponse) ProtoMessage() {}
 
 func (x *GetOrganizationProjectsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_greennote_proto_msgTypes[11]
+	mi := &file_api_proto_greennote_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1399,7 +1418,7 @@ func (x *GetOrganizationProjectsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetOrganizationProjectsResponse.ProtoReflect.Descriptor instead.
 func (*GetOrganizationProjectsResponse) Descriptor() ([]byte, []int) {
-	return file_greennote_proto_rawDescGZIP(), []int{11}
+	return file_api_proto_greennote_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *GetOrganizationProjectsResponse) GetProjects() []*Project {
@@ -1424,7 +1443,7 @@ type GetOrganizationVendorsRequest struct {
 
 func (x *GetOrganizationVendorsRequest) Reset() {
 	*x = GetOrganizationVendorsRequest{}
-	mi := &file_greennote_proto_msgTypes[12]
+	mi := &file_api_proto_greennote_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1436,7 +1455,7 @@ func (x *GetOrganizationVendorsRequest) String() string {
 func (*GetOrganizationVendorsRequest) ProtoMessage() {}
 
 func (x *GetOrganizationVendorsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_greennote_proto_msgTypes[12]
+	mi := &file_api_proto_greennote_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1449,7 +1468,7 @@ func (x *GetOrganizationVendorsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetOrganizationVendorsRequest.ProtoReflect.Descriptor instead.
 func (*GetOrganizationVendorsRequest) Descriptor() ([]byte, []int) {
-	return file_greennote_proto_rawDescGZIP(), []int{12}
+	return file_api_proto_greennote_proto_rawDescGZIP(), []int{12}
 }
 
 type GetOrganizationVendorsResponse struct {
@@ -1462,7 +1481,7 @@ type GetOrganizationVendorsResponse struct {
 
 func (x *GetOrganizationVendorsResponse) Reset() {
 	*x = GetOrganizationVendorsResponse{}
-	mi := &file_greennote_proto_msgTypes[13]
+	mi := &file_api_proto_greennote_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1474,7 +1493,7 @@ func (x *GetOrganizationVendorsResponse) String() string {
 func (*GetOrganizationVendorsResponse) ProtoMessage() {}
 
 func (x *GetOrganizationVendorsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_greennote_proto_msgTypes[13]
+	mi := &file_api_proto_greennote_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1487,7 +1506,7 @@ func (x *GetOrganizationVendorsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetOrganizationVendorsResponse.ProtoReflect.Descriptor instead.
 func (*GetOrganizationVendorsResponse) Descriptor() ([]byte, []int) {
-	return file_greennote_proto_rawDescGZIP(), []int{13}
+	return file_api_proto_greennote_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *GetOrganizationVendorsResponse) GetVendors() []*Vendor {
@@ -1512,7 +1531,7 @@ type GetOrganizationDepartmentsRequest struct {
 
 func (x *GetOrganizationDepartmentsRequest) Reset() {
 	*x = GetOrganizationDepartmentsRequest{}
-	mi := &file_greennote_proto_msgTypes[14]
+	mi := &file_api_proto_greennote_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1524,7 +1543,7 @@ func (x *GetOrganizationDepartmentsRequest) String() string {
 func (*GetOrganizationDepartmentsRequest) ProtoMessage() {}
 
 func (x *GetOrganizationDepartmentsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_greennote_proto_msgTypes[14]
+	mi := &file_api_proto_greennote_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1537,7 +1556,7 @@ func (x *GetOrganizationDepartmentsRequest) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use GetOrganizationDepartmentsRequest.ProtoReflect.Descriptor instead.
 func (*GetOrganizationDepartmentsRequest) Descriptor() ([]byte, []int) {
-	return file_greennote_proto_rawDescGZIP(), []int{14}
+	return file_api_proto_greennote_proto_rawDescGZIP(), []int{14}
 }
 
 type GetOrganizationDepartmentsResponse struct {
@@ -1550,7 +1569,7 @@ type GetOrganizationDepartmentsResponse struct {
 
 func (x *GetOrganizationDepartmentsResponse) Reset() {
 	*x = GetOrganizationDepartmentsResponse{}
-	mi := &file_greennote_proto_msgTypes[15]
+	mi := &file_api_proto_greennote_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1562,7 +1581,7 @@ func (x *GetOrganizationDepartmentsResponse) String() string {
 func (*GetOrganizationDepartmentsResponse) ProtoMessage() {}
 
 func (x *GetOrganizationDepartmentsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_greennote_proto_msgTypes[15]
+	mi := &file_api_proto_greennote_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1575,7 +1594,7 @@ func (x *GetOrganizationDepartmentsResponse) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use GetOrganizationDepartmentsResponse.ProtoReflect.Descriptor instead.
 func (*GetOrganizationDepartmentsResponse) Descriptor() ([]byte, []int) {
-	return file_greennote_proto_rawDescGZIP(), []int{15}
+	return file_api_proto_greennote_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *GetOrganizationDepartmentsResponse) GetDepartments() []*Department {
@@ -1607,7 +1626,7 @@ type Project struct {
 
 func (x *Project) Reset() {
 	*x = Project{}
-	mi := &file_greennote_proto_msgTypes[16]
+	mi := &file_api_proto_greennote_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1619,7 +1638,7 @@ func (x *Project) String() string {
 func (*Project) ProtoMessage() {}
 
 func (x *Project) ProtoReflect() protoreflect.Message {
-	mi := &file_greennote_proto_msgTypes[16]
+	mi := &file_api_proto_greennote_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1632,7 +1651,7 @@ func (x *Project) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Project.ProtoReflect.Descriptor instead.
 func (*Project) Descriptor() ([]byte, []int) {
-	return file_greennote_proto_rawDescGZIP(), []int{16}
+	return file_api_proto_greennote_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *Project) GetId() string {
@@ -1704,7 +1723,7 @@ type Vendor struct {
 
 func (x *Vendor) Reset() {
 	*x = Vendor{}
-	mi := &file_greennote_proto_msgTypes[17]
+	mi := &file_api_proto_greennote_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1716,7 +1735,7 @@ func (x *Vendor) String() string {
 func (*Vendor) ProtoMessage() {}
 
 func (x *Vendor) ProtoReflect() protoreflect.Message {
-	mi := &file_greennote_proto_msgTypes[17]
+	mi := &file_api_proto_greennote_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1729,7 +1748,7 @@ func (x *Vendor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Vendor.ProtoReflect.Descriptor instead.
 func (*Vendor) Descriptor() ([]byte, []int) {
-	return file_greennote_proto_rawDescGZIP(), []int{17}
+	return file_api_proto_greennote_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *Vendor) GetId() string {
@@ -1832,7 +1851,7 @@ type Department struct {
 
 func (x *Department) Reset() {
 	*x = Department{}
-	mi := &file_greennote_proto_msgTypes[18]
+	mi := &file_api_proto_greennote_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1844,7 +1863,7 @@ func (x *Department) String() string {
 func (*Department) ProtoMessage() {}
 
 func (x *Department) ProtoReflect() protoreflect.Message {
-	mi := &file_greennote_proto_msgTypes[18]
+	mi := &file_api_proto_greennote_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1857,7 +1876,7 @@ func (x *Department) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Department.ProtoReflect.Descriptor instead.
 func (*Department) Descriptor() ([]byte, []int) {
-	return file_greennote_proto_rawDescGZIP(), []int{18}
+	return file_api_proto_greennote_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *Department) GetId() string {
@@ -1930,7 +1949,7 @@ type GreenNoteResponse struct {
 
 func (x *GreenNoteResponse) Reset() {
 	*x = GreenNoteResponse{}
-	mi := &file_greennote_proto_msgTypes[19]
+	mi := &file_api_proto_greennote_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1942,7 +1961,7 @@ func (x *GreenNoteResponse) String() string {
 func (*GreenNoteResponse) ProtoMessage() {}
 
 func (x *GreenNoteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_greennote_proto_msgTypes[19]
+	mi := &file_api_proto_greennote_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1955,7 +1974,7 @@ func (x *GreenNoteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GreenNoteResponse.ProtoReflect.Descriptor instead.
 func (*GreenNoteResponse) Descriptor() ([]byte, []int) {
-	return file_greennote_proto_rawDescGZIP(), []int{19}
+	return file_api_proto_greennote_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *GreenNoteResponse) GetId() string {
@@ -1990,7 +2009,7 @@ type GreenNoteDetailResponse struct {
 
 func (x *GreenNoteDetailResponse) Reset() {
 	*x = GreenNoteDetailResponse{}
-	mi := &file_greennote_proto_msgTypes[20]
+	mi := &file_api_proto_greennote_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2002,7 +2021,7 @@ func (x *GreenNoteDetailResponse) String() string {
 func (*GreenNoteDetailResponse) ProtoMessage() {}
 
 func (x *GreenNoteDetailResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_greennote_proto_msgTypes[20]
+	mi := &file_api_proto_greennote_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2015,7 +2034,7 @@ func (x *GreenNoteDetailResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GreenNoteDetailResponse.ProtoReflect.Descriptor instead.
 func (*GreenNoteDetailResponse) Descriptor() ([]byte, []int) {
-	return file_greennote_proto_rawDescGZIP(), []int{20}
+	return file_api_proto_greennote_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *GreenNoteDetailResponse) GetSuccess() bool {
@@ -2039,19 +2058,88 @@ func (x *GreenNoteDetailResponse) GetData() *GreenNotePayload {
 	return nil
 }
 
+type PaginationMetadata struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CurrentPage   int32                  `protobuf:"varint,1,opt,name=current_page,json=currentPage,proto3" json:"current_page,omitempty"`
+	PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	TotalItems    int64                  `protobuf:"varint,3,opt,name=total_items,json=totalItems,proto3" json:"total_items,omitempty"`
+	TotalPages    int32                  `protobuf:"varint,4,opt,name=total_pages,json=totalPages,proto3" json:"total_pages,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PaginationMetadata) Reset() {
+	*x = PaginationMetadata{}
+	mi := &file_api_proto_greennote_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PaginationMetadata) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PaginationMetadata) ProtoMessage() {}
+
+func (x *PaginationMetadata) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_greennote_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PaginationMetadata.ProtoReflect.Descriptor instead.
+func (*PaginationMetadata) Descriptor() ([]byte, []int) {
+	return file_api_proto_greennote_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *PaginationMetadata) GetCurrentPage() int32 {
+	if x != nil {
+		return x.CurrentPage
+	}
+	return 0
+}
+
+func (x *PaginationMetadata) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *PaginationMetadata) GetTotalItems() int64 {
+	if x != nil {
+		return x.TotalItems
+	}
+	return 0
+}
+
+func (x *PaginationMetadata) GetTotalPages() int32 {
+	if x != nil {
+		return x.TotalPages
+	}
+	return 0
+}
+
 type ListGreenNotesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Notes         []*GreenNoteListItem   `protobuf:"bytes,1,rep,name=notes,proto3" json:"notes,omitempty"`
 	Page          int32                  `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`
 	PerPage       int32                  `protobuf:"varint,3,opt,name=per_page,json=perPage,proto3" json:"per_page,omitempty"`
 	Total         int64                  `protobuf:"varint,4,opt,name=total,proto3" json:"total,omitempty"`
+	Pagination    *PaginationMetadata    `protobuf:"bytes,5,opt,name=pagination,proto3" json:"pagination,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListGreenNotesResponse) Reset() {
 	*x = ListGreenNotesResponse{}
-	mi := &file_greennote_proto_msgTypes[21]
+	mi := &file_api_proto_greennote_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2063,7 +2151,7 @@ func (x *ListGreenNotesResponse) String() string {
 func (*ListGreenNotesResponse) ProtoMessage() {}
 
 func (x *ListGreenNotesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_greennote_proto_msgTypes[21]
+	mi := &file_api_proto_greennote_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2076,7 +2164,7 @@ func (x *ListGreenNotesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListGreenNotesResponse.ProtoReflect.Descriptor instead.
 func (*ListGreenNotesResponse) Descriptor() ([]byte, []int) {
-	return file_greennote_proto_rawDescGZIP(), []int{21}
+	return file_api_proto_greennote_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *ListGreenNotesResponse) GetNotes() []*GreenNoteListItem {
@@ -2107,11 +2195,157 @@ func (x *ListGreenNotesResponse) GetTotal() int64 {
 	return 0
 }
 
-var File_greennote_proto protoreflect.FileDescriptor
+func (x *ListGreenNotesResponse) GetPagination() *PaginationMetadata {
+	if x != nil {
+		return x.Pagination
+	}
+	return nil
+}
 
-const file_greennote_proto_rawDesc = "" +
+// ====================
+// Document Upload Messages
+// ====================
+type UploadGreenNoteDocumentsRequest struct {
+	state         protoimpl.MessageState      `protogen:"open.v1"`
+	NoteId        string                      `protobuf:"bytes,1,opt,name=note_id,json=noteId,proto3" json:"note_id,omitempty"`
+	Documents     []*SupportingDocumentUpload `protobuf:"bytes,2,rep,name=documents,proto3" json:"documents,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UploadGreenNoteDocumentsRequest) Reset() {
+	*x = UploadGreenNoteDocumentsRequest{}
+	mi := &file_api_proto_greennote_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UploadGreenNoteDocumentsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UploadGreenNoteDocumentsRequest) ProtoMessage() {}
+
+func (x *UploadGreenNoteDocumentsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_greennote_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UploadGreenNoteDocumentsRequest.ProtoReflect.Descriptor instead.
+func (*UploadGreenNoteDocumentsRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_greennote_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *UploadGreenNoteDocumentsRequest) GetNoteId() string {
+	if x != nil {
+		return x.NoteId
+	}
+	return ""
+}
+
+func (x *UploadGreenNoteDocumentsRequest) GetDocuments() []*SupportingDocumentUpload {
+	if x != nil {
+		return x.Documents
+	}
+	return nil
+}
+
+type UploadGreenNoteDocumentsResponse struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Success           bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	Message           string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	GreenNoteId       string                 `protobuf:"bytes,3,opt,name=green_note_id,json=greenNoteId,proto3" json:"green_note_id,omitempty"`
+	UploadedDocuments []*SupportingDocument  `protobuf:"bytes,4,rep,name=uploaded_documents,json=uploadedDocuments,proto3" json:"uploaded_documents,omitempty"`
+	TotalUploaded     int32                  `protobuf:"varint,5,opt,name=total_uploaded,json=totalUploaded,proto3" json:"total_uploaded,omitempty"`
+	TotalSize         int64                  `protobuf:"varint,6,opt,name=total_size,json=totalSize,proto3" json:"total_size,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *UploadGreenNoteDocumentsResponse) Reset() {
+	*x = UploadGreenNoteDocumentsResponse{}
+	mi := &file_api_proto_greennote_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UploadGreenNoteDocumentsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UploadGreenNoteDocumentsResponse) ProtoMessage() {}
+
+func (x *UploadGreenNoteDocumentsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_greennote_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UploadGreenNoteDocumentsResponse.ProtoReflect.Descriptor instead.
+func (*UploadGreenNoteDocumentsResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_greennote_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *UploadGreenNoteDocumentsResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *UploadGreenNoteDocumentsResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *UploadGreenNoteDocumentsResponse) GetGreenNoteId() string {
+	if x != nil {
+		return x.GreenNoteId
+	}
+	return ""
+}
+
+func (x *UploadGreenNoteDocumentsResponse) GetUploadedDocuments() []*SupportingDocument {
+	if x != nil {
+		return x.UploadedDocuments
+	}
+	return nil
+}
+
+func (x *UploadGreenNoteDocumentsResponse) GetTotalUploaded() int32 {
+	if x != nil {
+		return x.TotalUploaded
+	}
+	return 0
+}
+
+func (x *UploadGreenNoteDocumentsResponse) GetTotalSize() int64 {
+	if x != nil {
+		return x.TotalSize
+	}
+	return 0
+}
+
+var File_api_proto_greennote_proto protoreflect.FileDescriptor
+
+const file_api_proto_greennote_proto_rawDesc = "" +
 	"\n" +
-	"\x0fgreennote.proto\x12\tgreennote\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"I\n" +
+	"\x19api/proto/greennote.proto\x12\tgreennote\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"I\n" +
 	"\x16CreateGreenNoteRequest\x12/\n" +
 	"\x04note\x18\x01 \x01(\v2\x1b.greennote.GreenNotePayloadR\x04note\"Y\n" +
 	"\x16UpdateGreenNoteRequest\x12\x0e\n" +
@@ -2121,19 +2355,21 @@ const file_greennote_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"M\n" +
 	"\x16CancelGreenNoteRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12#\n" +
-	"\rcancel_reason\x18\x02 \x01(\tR\fcancelReason\"^\n" +
-	"\x15ListGreenNotesRequest\x12\x16\n" +
-	"\x06status\x18\x01 \x01(\tR\x06status\x12\x12\n" +
+	"\rcancel_reason\x18\x02 \x01(\tR\fcancelReason\"\x92\x01\n" +
+	"\x15ListGreenNotesRequest\x12)\n" +
+	"\x06status\x18\x01 \x01(\x0e2\x11.greennote.StatusR\x06status\x12\x12\n" +
 	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x19\n" +
-	"\bper_page\x18\x03 \x01(\x05R\aperPage\"\xab\x01\n" +
+	"\bper_page\x18\x03 \x01(\x05R\aperPage\x12\x1f\n" +
+	"\vinclude_all\x18\x04 \x01(\bR\n" +
+	"includeAll\"\xbe\x01\n" +
 	"\x11GreenNoteListItem\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
 	"\fproject_name\x18\x02 \x01(\tR\vprojectName\x12\x1f\n" +
 	"\vvendor_name\x18\x03 \x01(\tR\n" +
 	"vendorName\x12\x16\n" +
 	"\x06amount\x18\x04 \x01(\x01R\x06amount\x12\x12\n" +
-	"\x04date\x18\x05 \x01(\tR\x04date\x12\x16\n" +
-	"\x06status\x18\x06 \x01(\tR\x06status\"\xe7\x14\n" +
+	"\x04date\x18\x05 \x01(\tR\x04date\x12)\n" +
+	"\x06status\x18\x06 \x01(\x0e2\x11.greennote.StatusR\x06status\"\xa3\x15\n" +
 	"\x10GreenNotePayload\x12!\n" +
 	"\fproject_name\x18\x01 \x01(\tR\vprojectName\x12#\n" +
 	"\rsupplier_name\x18\x02 \x01(\tR\fsupplierName\x12)\n" +
@@ -2159,8 +2395,8 @@ const file_greennote_proto_rawDesc = "" +
 	"\ftotal_amount\x18\x17 \x01(\x01R\vtotalAmount\x121\n" +
 	"\ainvoice\x18\x18 \x01(\v2\x17.greennote.InvoiceInputR\ainvoice\x128\n" +
 	"\x18enable_multiple_invoices\x18\x19 \x01(\bR\x16enableMultipleInvoices\x123\n" +
-	"\binvoices\x18\x1a \x03(\v2\x17.greennote.InvoiceInputR\binvoices\x12\x16\n" +
-	"\x06status\x18\x1b \x01(\tR\x06status\x129\n" +
+	"\binvoices\x18\x1a \x03(\v2\x17.greennote.InvoiceInputR\binvoices\x12)\n" +
+	"\x06status\x18\x1b \x01(\x0e2\x11.greennote.StatusR\x06status\x129\n" +
 	"\fapproval_for\x18\x1c \x01(\x0e2\x16.greennote.ApprovalForR\vapprovalFor\x12'\n" +
 	"\x0fdepartment_name\x18\x1d \x01(\tR\x0edepartmentName\x12\"\n" +
 	"\rwork_order_no\x18\x1f \x01(\tR\vworkOrderNo\x12\x1b\n" +
@@ -2188,7 +2424,8 @@ const file_greennote_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x184 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12H\n" +
 	"\rnew_documents\x185 \x03(\v2#.greennote.SupportingDocumentUploadR\fnewDocuments\x12L\n" +
-	"\x12existing_documents\x186 \x03(\v2\x1d.greennote.SupportingDocumentR\x11existingDocuments\"\xd9\x01\n" +
+	"\x12existing_documents\x186 \x03(\v2\x1d.greennote.SupportingDocumentR\x11existingDocuments\x12'\n" +
+	"\x0fdetailed_status\x187 \x01(\tR\x0edetailedStatus\"\xd9\x01\n" +
 	"\fInvoiceInput\x12%\n" +
 	"\x0einvoice_number\x18\x01 \x01(\tR\rinvoiceNumber\x12!\n" +
 	"\finvoice_date\x18\x02 \x01(\tR\vinvoiceDate\x12#\n" +
@@ -2270,12 +2507,33 @@ const file_greennote_proto_rawDesc = "" +
 	"\x17GreenNoteDetailResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12/\n" +
-	"\x04data\x18\x03 \x01(\v2\x1b.greennote.GreenNotePayloadR\x04data\"\x91\x01\n" +
+	"\x04data\x18\x03 \x01(\v2\x1b.greennote.GreenNotePayloadR\x04data\"\x96\x01\n" +
+	"\x12PaginationMetadata\x12!\n" +
+	"\fcurrent_page\x18\x01 \x01(\x05R\vcurrentPage\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1f\n" +
+	"\vtotal_items\x18\x03 \x01(\x03R\n" +
+	"totalItems\x12\x1f\n" +
+	"\vtotal_pages\x18\x04 \x01(\x05R\n" +
+	"totalPages\"\xd0\x01\n" +
 	"\x16ListGreenNotesResponse\x122\n" +
 	"\x05notes\x18\x01 \x03(\v2\x1c.greennote.GreenNoteListItemR\x05notes\x12\x12\n" +
 	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x19\n" +
 	"\bper_page\x18\x03 \x01(\x05R\aperPage\x12\x14\n" +
-	"\x05total\x18\x04 \x01(\x03R\x05total*w\n" +
+	"\x05total\x18\x04 \x01(\x03R\x05total\x12=\n" +
+	"\n" +
+	"pagination\x18\x05 \x01(\v2\x1d.greennote.PaginationMetadataR\n" +
+	"pagination\"}\n" +
+	"\x1fUploadGreenNoteDocumentsRequest\x12\x17\n" +
+	"\anote_id\x18\x01 \x01(\tR\x06noteId\x12A\n" +
+	"\tdocuments\x18\x02 \x03(\v2#.greennote.SupportingDocumentUploadR\tdocuments\"\x8e\x02\n" +
+	" UploadGreenNoteDocumentsResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\x12\"\n" +
+	"\rgreen_note_id\x18\x03 \x01(\tR\vgreenNoteId\x12L\n" +
+	"\x12uploaded_documents\x18\x04 \x03(\v2\x1d.greennote.SupportingDocumentR\x11uploadedDocuments\x12%\n" +
+	"\x0etotal_uploaded\x18\x05 \x01(\x05R\rtotalUploaded\x12\x1d\n" +
+	"\n" +
+	"total_size\x18\x06 \x01(\x03R\ttotalSize*w\n" +
 	"\vApprovalFor\x12\x1c\n" +
 	"\x18APPROVAL_FOR_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14APPROVAL_FOR_INVOICE\x10\x01\x12\x18\n" +
@@ -2292,16 +2550,17 @@ const file_greennote_proto_rawDesc = "" +
 	"\x1eNATURE_OF_EXPENSES_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17NATURE_OHC_001_MANPOWER\x10\x01\x12 \n" +
 	"\x1cNATURE_OHC_002_STAFF_WELFARE\x10\x02\x12(\n" +
-	"$NATURE_OHC_003_OFFICE_RENT_UTILITIES\x10\x03*X\n" +
+	"$NATURE_OHC_003_OFFICE_RENT_UTILITIES\x10\x03*n\n" +
 	"\x06Status\x12\x13\n" +
 	"\x0fSTATUS_APPROVED\x10\x00\x12\x12\n" +
 	"\x0eSTATUS_PENDING\x10\x01\x12\x13\n" +
 	"\x0fSTATUS_REJECTED\x10\x02\x12\x10\n" +
-	"\fSTATUS_DRAFT\x10\x03*0\n" +
+	"\fSTATUS_DRAFT\x10\x03\x12\x14\n" +
+	"\x10STATUS_CANCELLED\x10\x04*0\n" +
 	"\x05YesNo\x12\x16\n" +
 	"\x12YES_NO_UNSPECIFIED\x10\x00\x12\a\n" +
 	"\x03YES\x10\x01\x12\x06\n" +
-	"\x02NO\x10\x022\xbf\b\n" +
+	"\x02NO\x10\x022\xe9\t\n" +
 	"\x10GreenNoteService\x12r\n" +
 	"\x0fCreateGreenNote\x12!.greennote.CreateGreenNoteRequest\x1a\x1c.greennote.GreenNoteResponse\"\x1e\x82\xd3\xe4\x93\x02\x18:\x01*\"\x13/api/v1/green-notes\x12t\n" +
 	"\fGetGreenNote\x12\x1e.greennote.GetGreenNoteRequest\x1a\".greennote.GreenNoteDetailResponse\" \x82\xd3\xe4\x93\x02\x1a\x12\x18/api/v1/green-notes/{id}\x12r\n" +
@@ -2310,23 +2569,24 @@ const file_greennote_proto_rawDesc = "" +
 	"\x0fCancelGreenNote\x12!.greennote.CancelGreenNoteRequest\x1a\x1c.greennote.GreenNoteResponse\"*\x82\xd3\xe4\x93\x02$:\x01*\"\x1f/api/v1/green-notes/{id}/cancel\x12\x97\x01\n" +
 	"\x17GetOrganizationProjects\x12).greennote.GetOrganizationProjectsRequest\x1a*.greennote.GetOrganizationProjectsResponse\"%\x82\xd3\xe4\x93\x02\x1f\x12\x1d/api/v1/organization/projects\x12\x93\x01\n" +
 	"\x16GetOrganizationVendors\x12(.greennote.GetOrganizationVendorsRequest\x1a).greennote.GetOrganizationVendorsResponse\"$\x82\xd3\xe4\x93\x02\x1e\x12\x1c/api/v1/organization/vendors\x12\xa3\x01\n" +
-	"\x1aGetOrganizationDepartments\x12,.greennote.GetOrganizationDepartmentsRequest\x1a-.greennote.GetOrganizationDepartmentsResponse\"(\x82\xd3\xe4\x93\x02\"\x12 /api/v1/organization/departmentsB\x12Z\x10api/pb;greennoteb\x06proto3"
+	"\x1aGetOrganizationDepartments\x12,.greennote.GetOrganizationDepartmentsRequest\x1a-.greennote.GetOrganizationDepartmentsResponse\"(\x82\xd3\xe4\x93\x02\"\x12 /api/v1/organization/departments\x12\xa7\x01\n" +
+	"\x18UploadGreenNoteDocuments\x12*.greennote.UploadGreenNoteDocumentsRequest\x1a+.greennote.UploadGreenNoteDocumentsResponse\"2\x82\xd3\xe4\x93\x02,:\x01*\"'/api/v1/green-notes/{note_id}/documentsB@Z>github.com/ShristiRnr/Nhit-Note/api/pb/greennotepb;greennotepbb\x06proto3"
 
 var (
-	file_greennote_proto_rawDescOnce sync.Once
-	file_greennote_proto_rawDescData []byte
+	file_api_proto_greennote_proto_rawDescOnce sync.Once
+	file_api_proto_greennote_proto_rawDescData []byte
 )
 
-func file_greennote_proto_rawDescGZIP() []byte {
-	file_greennote_proto_rawDescOnce.Do(func() {
-		file_greennote_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_greennote_proto_rawDesc), len(file_greennote_proto_rawDesc)))
+func file_api_proto_greennote_proto_rawDescGZIP() []byte {
+	file_api_proto_greennote_proto_rawDescOnce.Do(func() {
+		file_api_proto_greennote_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_api_proto_greennote_proto_rawDesc), len(file_api_proto_greennote_proto_rawDesc)))
 	})
-	return file_greennote_proto_rawDescData
+	return file_api_proto_greennote_proto_rawDescData
 }
 
-var file_greennote_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
-var file_greennote_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
-var file_greennote_proto_goTypes = []any{
+var file_api_proto_greennote_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
+var file_api_proto_greennote_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
+var file_api_proto_greennote_proto_goTypes = []any{
 	(ApprovalFor)(0),                           // 0: greennote.ApprovalFor
 	(ExpenseCategoryType)(0),                   // 1: greennote.ExpenseCategoryType
 	(NatureOfExpenses)(0),                      // 2: greennote.NatureOfExpenses
@@ -2353,86 +2613,97 @@ var file_greennote_proto_goTypes = []any{
 	(*Department)(nil),                         // 23: greennote.Department
 	(*GreenNoteResponse)(nil),                  // 24: greennote.GreenNoteResponse
 	(*GreenNoteDetailResponse)(nil),            // 25: greennote.GreenNoteDetailResponse
-	(*ListGreenNotesResponse)(nil),             // 26: greennote.ListGreenNotesResponse
-	(*timestamppb.Timestamp)(nil),              // 27: google.protobuf.Timestamp
+	(*PaginationMetadata)(nil),                 // 26: greennote.PaginationMetadata
+	(*ListGreenNotesResponse)(nil),             // 27: greennote.ListGreenNotesResponse
+	(*UploadGreenNoteDocumentsRequest)(nil),    // 28: greennote.UploadGreenNoteDocumentsRequest
+	(*UploadGreenNoteDocumentsResponse)(nil),   // 29: greennote.UploadGreenNoteDocumentsResponse
+	(*timestamppb.Timestamp)(nil),              // 30: google.protobuf.Timestamp
 }
-var file_greennote_proto_depIdxs = []int32{
+var file_api_proto_greennote_proto_depIdxs = []int32{
 	11, // 0: greennote.CreateGreenNoteRequest.note:type_name -> greennote.GreenNotePayload
 	11, // 1: greennote.UpdateGreenNoteRequest.note:type_name -> greennote.GreenNotePayload
-	4,  // 2: greennote.GreenNotePayload.protest_note_raised:type_name -> greennote.YesNo
-	4,  // 3: greennote.GreenNotePayload.whether_contract:type_name -> greennote.YesNo
-	4,  // 4: greennote.GreenNotePayload.extension_of_contract_period_executed:type_name -> greennote.YesNo
-	4,  // 5: greennote.GreenNotePayload.expense_amount_within_contract:type_name -> greennote.YesNo
-	4,  // 6: greennote.GreenNotePayload.milestone_achieved:type_name -> greennote.YesNo
-	4,  // 7: greennote.GreenNotePayload.payment_approved_with_deviation:type_name -> greennote.YesNo
-	4,  // 8: greennote.GreenNotePayload.required_documents_submitted:type_name -> greennote.YesNo
-	12, // 9: greennote.GreenNotePayload.invoice:type_name -> greennote.InvoiceInput
-	12, // 10: greennote.GreenNotePayload.invoices:type_name -> greennote.InvoiceInput
-	0,  // 11: greennote.GreenNotePayload.approval_for:type_name -> greennote.ApprovalFor
-	1,  // 12: greennote.GreenNotePayload.expense_category_type:type_name -> greennote.ExpenseCategoryType
-	2,  // 13: greennote.GreenNotePayload.nature_of_expenses:type_name -> greennote.NatureOfExpenses
-	4,  // 14: greennote.GreenNotePayload.contract_period_completed:type_name -> greennote.YesNo
-	27, // 15: greennote.GreenNotePayload.created_at:type_name -> google.protobuf.Timestamp
-	27, // 16: greennote.GreenNotePayload.updated_at:type_name -> google.protobuf.Timestamp
-	14, // 17: greennote.GreenNotePayload.new_documents:type_name -> greennote.SupportingDocumentUpload
-	13, // 18: greennote.GreenNotePayload.existing_documents:type_name -> greennote.SupportingDocument
-	27, // 19: greennote.SupportingDocument.created_at:type_name -> google.protobuf.Timestamp
-	27, // 20: greennote.SupportingDocument.updated_at:type_name -> google.protobuf.Timestamp
-	21, // 21: greennote.GetOrganizationProjectsResponse.projects:type_name -> greennote.Project
-	22, // 22: greennote.GetOrganizationVendorsResponse.vendors:type_name -> greennote.Vendor
-	23, // 23: greennote.GetOrganizationDepartmentsResponse.departments:type_name -> greennote.Department
-	27, // 24: greennote.Project.created_at:type_name -> google.protobuf.Timestamp
-	27, // 25: greennote.Project.updated_at:type_name -> google.protobuf.Timestamp
-	27, // 26: greennote.Vendor.created_at:type_name -> google.protobuf.Timestamp
-	27, // 27: greennote.Vendor.updated_at:type_name -> google.protobuf.Timestamp
-	27, // 28: greennote.Department.created_at:type_name -> google.protobuf.Timestamp
-	27, // 29: greennote.Department.updated_at:type_name -> google.protobuf.Timestamp
-	11, // 30: greennote.GreenNoteDetailResponse.data:type_name -> greennote.GreenNotePayload
-	10, // 31: greennote.ListGreenNotesResponse.notes:type_name -> greennote.GreenNoteListItem
-	5,  // 32: greennote.GreenNoteService.CreateGreenNote:input_type -> greennote.CreateGreenNoteRequest
-	7,  // 33: greennote.GreenNoteService.GetGreenNote:input_type -> greennote.GetGreenNoteRequest
-	9,  // 34: greennote.GreenNoteService.ListGreenNotes:input_type -> greennote.ListGreenNotesRequest
-	6,  // 35: greennote.GreenNoteService.UpdateGreenNote:input_type -> greennote.UpdateGreenNoteRequest
-	8,  // 36: greennote.GreenNoteService.CancelGreenNote:input_type -> greennote.CancelGreenNoteRequest
-	15, // 37: greennote.GreenNoteService.GetOrganizationProjects:input_type -> greennote.GetOrganizationProjectsRequest
-	17, // 38: greennote.GreenNoteService.GetOrganizationVendors:input_type -> greennote.GetOrganizationVendorsRequest
-	19, // 39: greennote.GreenNoteService.GetOrganizationDepartments:input_type -> greennote.GetOrganizationDepartmentsRequest
-	24, // 40: greennote.GreenNoteService.CreateGreenNote:output_type -> greennote.GreenNoteResponse
-	25, // 41: greennote.GreenNoteService.GetGreenNote:output_type -> greennote.GreenNoteDetailResponse
-	26, // 42: greennote.GreenNoteService.ListGreenNotes:output_type -> greennote.ListGreenNotesResponse
-	24, // 43: greennote.GreenNoteService.UpdateGreenNote:output_type -> greennote.GreenNoteResponse
-	24, // 44: greennote.GreenNoteService.CancelGreenNote:output_type -> greennote.GreenNoteResponse
-	16, // 45: greennote.GreenNoteService.GetOrganizationProjects:output_type -> greennote.GetOrganizationProjectsResponse
-	18, // 46: greennote.GreenNoteService.GetOrganizationVendors:output_type -> greennote.GetOrganizationVendorsResponse
-	20, // 47: greennote.GreenNoteService.GetOrganizationDepartments:output_type -> greennote.GetOrganizationDepartmentsResponse
-	40, // [40:48] is the sub-list for method output_type
-	32, // [32:40] is the sub-list for method input_type
-	32, // [32:32] is the sub-list for extension type_name
-	32, // [32:32] is the sub-list for extension extendee
-	0,  // [0:32] is the sub-list for field type_name
+	3,  // 2: greennote.ListGreenNotesRequest.status:type_name -> greennote.Status
+	3,  // 3: greennote.GreenNoteListItem.status:type_name -> greennote.Status
+	4,  // 4: greennote.GreenNotePayload.protest_note_raised:type_name -> greennote.YesNo
+	4,  // 5: greennote.GreenNotePayload.whether_contract:type_name -> greennote.YesNo
+	4,  // 6: greennote.GreenNotePayload.extension_of_contract_period_executed:type_name -> greennote.YesNo
+	4,  // 7: greennote.GreenNotePayload.expense_amount_within_contract:type_name -> greennote.YesNo
+	4,  // 8: greennote.GreenNotePayload.milestone_achieved:type_name -> greennote.YesNo
+	4,  // 9: greennote.GreenNotePayload.payment_approved_with_deviation:type_name -> greennote.YesNo
+	4,  // 10: greennote.GreenNotePayload.required_documents_submitted:type_name -> greennote.YesNo
+	12, // 11: greennote.GreenNotePayload.invoice:type_name -> greennote.InvoiceInput
+	12, // 12: greennote.GreenNotePayload.invoices:type_name -> greennote.InvoiceInput
+	3,  // 13: greennote.GreenNotePayload.status:type_name -> greennote.Status
+	0,  // 14: greennote.GreenNotePayload.approval_for:type_name -> greennote.ApprovalFor
+	1,  // 15: greennote.GreenNotePayload.expense_category_type:type_name -> greennote.ExpenseCategoryType
+	2,  // 16: greennote.GreenNotePayload.nature_of_expenses:type_name -> greennote.NatureOfExpenses
+	4,  // 17: greennote.GreenNotePayload.contract_period_completed:type_name -> greennote.YesNo
+	30, // 18: greennote.GreenNotePayload.created_at:type_name -> google.protobuf.Timestamp
+	30, // 19: greennote.GreenNotePayload.updated_at:type_name -> google.protobuf.Timestamp
+	14, // 20: greennote.GreenNotePayload.new_documents:type_name -> greennote.SupportingDocumentUpload
+	13, // 21: greennote.GreenNotePayload.existing_documents:type_name -> greennote.SupportingDocument
+	30, // 22: greennote.SupportingDocument.created_at:type_name -> google.protobuf.Timestamp
+	30, // 23: greennote.SupportingDocument.updated_at:type_name -> google.protobuf.Timestamp
+	21, // 24: greennote.GetOrganizationProjectsResponse.projects:type_name -> greennote.Project
+	22, // 25: greennote.GetOrganizationVendorsResponse.vendors:type_name -> greennote.Vendor
+	23, // 26: greennote.GetOrganizationDepartmentsResponse.departments:type_name -> greennote.Department
+	30, // 27: greennote.Project.created_at:type_name -> google.protobuf.Timestamp
+	30, // 28: greennote.Project.updated_at:type_name -> google.protobuf.Timestamp
+	30, // 29: greennote.Vendor.created_at:type_name -> google.protobuf.Timestamp
+	30, // 30: greennote.Vendor.updated_at:type_name -> google.protobuf.Timestamp
+	30, // 31: greennote.Department.created_at:type_name -> google.protobuf.Timestamp
+	30, // 32: greennote.Department.updated_at:type_name -> google.protobuf.Timestamp
+	11, // 33: greennote.GreenNoteDetailResponse.data:type_name -> greennote.GreenNotePayload
+	10, // 34: greennote.ListGreenNotesResponse.notes:type_name -> greennote.GreenNoteListItem
+	26, // 35: greennote.ListGreenNotesResponse.pagination:type_name -> greennote.PaginationMetadata
+	14, // 36: greennote.UploadGreenNoteDocumentsRequest.documents:type_name -> greennote.SupportingDocumentUpload
+	13, // 37: greennote.UploadGreenNoteDocumentsResponse.uploaded_documents:type_name -> greennote.SupportingDocument
+	5,  // 38: greennote.GreenNoteService.CreateGreenNote:input_type -> greennote.CreateGreenNoteRequest
+	7,  // 39: greennote.GreenNoteService.GetGreenNote:input_type -> greennote.GetGreenNoteRequest
+	9,  // 40: greennote.GreenNoteService.ListGreenNotes:input_type -> greennote.ListGreenNotesRequest
+	6,  // 41: greennote.GreenNoteService.UpdateGreenNote:input_type -> greennote.UpdateGreenNoteRequest
+	8,  // 42: greennote.GreenNoteService.CancelGreenNote:input_type -> greennote.CancelGreenNoteRequest
+	15, // 43: greennote.GreenNoteService.GetOrganizationProjects:input_type -> greennote.GetOrganizationProjectsRequest
+	17, // 44: greennote.GreenNoteService.GetOrganizationVendors:input_type -> greennote.GetOrganizationVendorsRequest
+	19, // 45: greennote.GreenNoteService.GetOrganizationDepartments:input_type -> greennote.GetOrganizationDepartmentsRequest
+	28, // 46: greennote.GreenNoteService.UploadGreenNoteDocuments:input_type -> greennote.UploadGreenNoteDocumentsRequest
+	24, // 47: greennote.GreenNoteService.CreateGreenNote:output_type -> greennote.GreenNoteResponse
+	25, // 48: greennote.GreenNoteService.GetGreenNote:output_type -> greennote.GreenNoteDetailResponse
+	27, // 49: greennote.GreenNoteService.ListGreenNotes:output_type -> greennote.ListGreenNotesResponse
+	24, // 50: greennote.GreenNoteService.UpdateGreenNote:output_type -> greennote.GreenNoteResponse
+	24, // 51: greennote.GreenNoteService.CancelGreenNote:output_type -> greennote.GreenNoteResponse
+	16, // 52: greennote.GreenNoteService.GetOrganizationProjects:output_type -> greennote.GetOrganizationProjectsResponse
+	18, // 53: greennote.GreenNoteService.GetOrganizationVendors:output_type -> greennote.GetOrganizationVendorsResponse
+	20, // 54: greennote.GreenNoteService.GetOrganizationDepartments:output_type -> greennote.GetOrganizationDepartmentsResponse
+	29, // 55: greennote.GreenNoteService.UploadGreenNoteDocuments:output_type -> greennote.UploadGreenNoteDocumentsResponse
+	47, // [47:56] is the sub-list for method output_type
+	38, // [38:47] is the sub-list for method input_type
+	38, // [38:38] is the sub-list for extension type_name
+	38, // [38:38] is the sub-list for extension extendee
+	0,  // [0:38] is the sub-list for field type_name
 }
 
-func init() { file_greennote_proto_init() }
-func file_greennote_proto_init() {
-	if File_greennote_proto != nil {
+func init() { file_api_proto_greennote_proto_init() }
+func file_api_proto_greennote_proto_init() {
+	if File_api_proto_greennote_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_greennote_proto_rawDesc), len(file_greennote_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_greennote_proto_rawDesc), len(file_api_proto_greennote_proto_rawDesc)),
 			NumEnums:      5,
-			NumMessages:   22,
+			NumMessages:   25,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_greennote_proto_goTypes,
-		DependencyIndexes: file_greennote_proto_depIdxs,
-		EnumInfos:         file_greennote_proto_enumTypes,
-		MessageInfos:      file_greennote_proto_msgTypes,
+		GoTypes:           file_api_proto_greennote_proto_goTypes,
+		DependencyIndexes: file_api_proto_greennote_proto_depIdxs,
+		EnumInfos:         file_api_proto_greennote_proto_enumTypes,
+		MessageInfos:      file_api_proto_greennote_proto_msgTypes,
 	}.Build()
-	File_greennote_proto = out.File
-	file_greennote_proto_goTypes = nil
-	file_greennote_proto_depIdxs = nil
+	File_api_proto_greennote_proto = out.File
+	file_api_proto_greennote_proto_goTypes = nil
+	file_api_proto_greennote_proto_depIdxs = nil
 }

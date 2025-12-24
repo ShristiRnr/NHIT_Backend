@@ -19,34 +19,24 @@ import (
 )
 
 // Repository is a minimal Postgres-backed implementation of ports.GreenNoteRepository.
-//
-// For now, this implementation delegates to the in-memory repository to keep the
-// runtime behaviour consistent with the simplified greennote.proto API while the
-// legacy rich SQLC-backed repository is guarded behind a build tag.
-//
-// This allows the service to compile and run regardless of whether a database
-// URL is configured, without pulling in the legacy GreenNote/SupportingDocument
-// types that no longer exist in the protobuf definitions.
-
 type Repository struct {
 	db   *sql.DB
 	q    *sqlcgen.Queries
 	docs ports.DocumentStorage
 }
 
-// NewPostgresGreenNoteRepository constructs a repository. The db and docs
-// parameters are accepted for API compatibility but are not used by the current
-// minimal implementation.
+// NewPostgresGreenNoteRepository constructs a repository.
 func NewPostgresGreenNoteRepository(db *sql.DB, docs ports.DocumentStorage) *Repository {
 	return &Repository{db: db, q: sqlcgen.New(db), docs: docs}
 }
 
-func (r *Repository) List(ctx context.Context, req *greennotepb.ListGreenNotesRequest) (*greennotepb.ListGreenNotesResponse, error) {
+func (r *Repository) List(ctx context.Context, req *greennotepb.ListGreenNotesRequest, orgID, tenantID string) (*greennotepb.ListGreenNotesResponse, error) {
 	if r == nil || r.db == nil {
 		return &greennotepb.ListGreenNotesResponse{}, nil
 	}
 
-	statusFilter := req.GetStatus()
+	statusFilter := mapProtoEnumToDBStatus(req.GetStatus())
+	includeAll := req.GetIncludeAll()
 	page := req.GetPage()
 	perPage := req.GetPerPage()
 	if page <= 0 {
@@ -57,21 +47,40 @@ func (r *Repository) List(ctx context.Context, req *greennotepb.ListGreenNotesRe
 	}
 	offset := (page - 1) * perPage
 
-	// Total count for pagination
 	var total int64
-	countQuery := `SELECT COUNT(*) FROM green_notes WHERE ($1 = '' OR status::text = $1)`
-	if err := r.db.QueryRowContext(ctx, countQuery, statusFilter).Scan(&total); err != nil {
+	fmt.Println("\n========== ListGreenNotes DEBUG START ==========")
+	fmt.Printf("🔍 Request Parameters:\n")
+	fmt.Printf("  - Page: %d\n", page)
+	fmt.Printf("  - PerPage: %d\n", perPage)
+	fmt.Printf("  - Offset: %d\n", offset)
+	fmt.Printf("  - OrgID: '%s'\n", orgID)
+	fmt.Printf("  - TenantID: '%s'\n", tenantID)
+	fmt.Printf("  - IncludeAll: %v\n", includeAll)
+	fmt.Printf("  - Status Enum: %v\n", req.GetStatus())
+	fmt.Printf("  - StatusFilter (mapped): '%s'\n", statusFilter)
+	
+	// Filter by org_id if provided. We assume multi-tenancy is required.
+	countQuery := `SELECT COUNT(*) FROM green_notes WHERE org_id = $1`
+	fmt.Printf("\n🔍 COUNT Query (Status Filter Removed):\n")
+	fmt.Printf("  SQL: %s\n", countQuery)
+	fmt.Printf("  Params: [$1='%s']\n", orgID)
+	if err := r.db.QueryRowContext(ctx, countQuery, orgID).Scan(&total); err != nil {
+		fmt.Printf("❌ COUNT Query Error: %v\n", err)
 		return nil, err
 	}
+	fmt.Printf("✅ COUNT Query Result: %d total records\n", total)
 
 	query := `
 		SELECT id, project_name, supplier_name, total_amount, created_at, status
 		FROM green_notes
-		WHERE ($1 = '' OR status::text = $1)
+		WHERE org_id = $1
 		ORDER BY id DESC
 		LIMIT $2 OFFSET $3
 	`
-	rows, err := r.db.QueryContext(ctx, query, statusFilter, perPage, offset)
+	fmt.Printf("\n🔍 SELECT Query (Status Filter Removed):\n")
+	fmt.Printf("  SQL: %s\n", query)
+	fmt.Printf("  Params: [$1='%s', $2=%d, $3=%d]\n", orgID, perPage, offset)
+	rows, err := r.db.QueryContext(ctx, query, orgID, perPage, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -90,59 +99,73 @@ func (r *Repository) List(ctx context.Context, req *greennotepb.ListGreenNotesRe
 		if err := rows.Scan(&id, &projectName, &vendorName, &amount, &created, &status); err != nil {
 			return nil, err
 		}
-		idStr := id
 		item := &greennotepb.GreenNoteListItem{
-			Id:          idStr,
+			Id:          id,
 			ProjectName: projectName.String,
 			VendorName:  vendorName.String,
 			Amount:      amount,
 			Date:        created.Format(time.RFC3339),
-			Status:      status,
+			Status:      mapDBStatusToProtoEnum(status),
 		}
 		items = append(items, item)
 	}
 	if err := rows.Err(); err != nil {
+		fmt.Printf("❌ Rows Error: %v\n", err)
 		return nil, err
 	}
+	fmt.Printf("\n✅ SELECT Query Result: Retrieved %d items\n", len(items))
+	for i, item := range items {
+		fmt.Printf("  [%d] ID=%s, Project=%s, Vendor=%s, Amount=%.2f, Status=%s\n", 
+			i+1, item.Id, item.ProjectName, item.VendorName, item.Amount, item.Status)
+	}
+	fmt.Printf("========== ListGreenNotes DEBUG END ==========\n\n")
 
-	resp := &greennotepb.ListGreenNotesResponse{
+	totalPages := (int32(total) + perPage - 1) / perPage
+
+	return &greennotepb.ListGreenNotesResponse{
 		Notes:   items,
 		Page:    page,
 		PerPage: perPage,
 		Total:   total,
-	}
-	return resp, nil
+		Pagination: &greennotepb.PaginationMetadata{
+			CurrentPage: page,
+			PageSize:    perPage,
+			TotalItems:  total,
+			TotalPages:  totalPages,
+		},
+	}, nil
 }
 
-func (r *Repository) Get(ctx context.Context, id string) (*greennotepb.GreenNotePayload, error) {
-	if r == nil || r.db == nil {
-		return nil, ports.ErrNotFound
-	}
-	if r.q == nil {
-		return nil, ports.ErrNotFound
+func (r *Repository) Get(ctx context.Context, id string) (*greennotepb.GreenNotePayload, string, string, error) {
+	if r == nil || r.db == nil || r.q == nil {
+		return nil, "", "", ports.ErrNotFound
 	}
 
 	id = strings.TrimSpace(id)
 	if id == "" {
-		return nil, ports.ErrNotFound
+		return nil, "", "", ports.ErrNotFound
+	}
+
+	var orgID, tenantID string
+	query := `SELECT org_id, tenant_id FROM green_notes WHERE id = $1`
+	err := r.db.QueryRowContext(ctx, query, id).Scan(&orgID, &tenantID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, "", "", ports.ErrNotFound
+		}
+		return nil, "", "", err
 	}
 
 	noteRow, err := r.q.GetGreenNote(ctx, id)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, ports.ErrNotFound
+		return nil, "", "", ports.ErrNotFound
 	}
 	if err != nil {
-		return nil, err
+		return nil, "", "", err
 	}
 
-	invoices, err := r.q.ListInvoicesByGreenNote(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	docs, err := r.q.ListSupportingDocuments(ctx, id)
-	if err != nil {
-		return nil, err
-	}
+	invoices, _ := r.q.ListInvoicesByGreenNote(ctx, id)
+	docs, _ := r.q.ListSupportingDocuments(ctx, id)
 
 	p := &greennotepb.GreenNotePayload{
 		ProjectName:                       noteRow.ProjectName.String,
@@ -168,22 +191,31 @@ func (r *Repository) Get(ctx context.Context, id string) (*greennotepb.GreenNote
 		MsmeClassification:                noteRow.MsmeClassification.String,
 		ActivityType:                      noteRow.ActivityType.String,
 		BriefOfGoodsServices:              noteRow.BriefOfGoodsServices.String,
-		Status:                            string(noteRow.Status.StatusEnum),
+		DetailedStatus:                    noteRow.Status.String,
+		Status:                            mapDBStatusToProtoEnum(noteRow.Status.String),
 		EnableMultipleInvoices:            noteRow.EnableMultipleInvoices,
+		WorkOrderDate:                     noteRow.WorkOrderDate.String,
+		MilestoneRemarks:                  noteRow.MilestoneRemarks.String,
+		SpecifyDeviation:                  noteRow.SpecifyDeviation.String,
+		DocumentsWorkdoneSupply:           noteRow.DocumentsWorkdoneSupply.String,
+		DocumentsDiscrepancy:              noteRow.DocumentsDiscrepancy.String,
+		Remarks:                           noteRow.Remarks.String,
+		AuditorRemarks:                    noteRow.AuditorRemarks.String,
+		CreatedAt:                         timestamppb.New(noteRow.CreatedAt),
+		UpdatedAt:                         timestamppb.New(noteRow.UpdatedAt),
 	}
 
-	// Convert numeric fields from string to float64
 	p.BaseValue = parseDecimal(noteRow.BaseValue.String)
 	p.Gst = parseDecimal(noteRow.Gst.String)
 	p.OtherCharges = parseDecimal(noteRow.OtherCharges.String)
 	p.TotalAmount = parseDecimal(noteRow.TotalAmount.String)
-
 	p.BudgetExpenditure = parseDecimal(noteRow.BudgetExpenditure.String)
 	p.ActualExpenditure = parseDecimal(noteRow.ActualExpenditure.String)
 	p.ExpenditureOverBudget = parseDecimal(noteRow.ExpenditureOverBudget.String)
+	p.AmountRetainedForNonSubmission = parseDecimal(noteRow.AmountRetainedForNonSubmission.String)
 
-	// Map enums stored as text (if present).
-	switch noteRow.ApprovalFor.ApprovalFor {
+	// Enum mappings from text
+	switch noteRow.ApprovalFor.String {
 	case "APPROVAL_FOR_INVOICE":
 		p.ApprovalFor = greennotepb.ApprovalFor_APPROVAL_FOR_INVOICE
 	case "APPROVAL_FOR_ADVANCE":
@@ -194,7 +226,7 @@ func (r *Repository) Get(ctx context.Context, id string) (*greennotepb.GreenNote
 		p.ApprovalFor = greennotepb.ApprovalFor_APPROVAL_FOR_UNSPECIFIED
 	}
 
-	switch noteRow.NatureOfExpenses.NatureOfExpenses {
+	switch noteRow.NatureOfExpenses.String {
 	case "NATURE_OHC_001_MANPOWER":
 		p.NatureOfExpenses = greennotepb.NatureOfExpenses_NATURE_OHC_001_MANPOWER
 	case "NATURE_OHC_002_STAFF_WELFARE":
@@ -206,7 +238,7 @@ func (r *Repository) Get(ctx context.Context, id string) (*greennotepb.GreenNote
 	}
 
 	if noteRow.ExpenseCategoryType.Valid {
-		switch noteRow.ExpenseCategoryType.ExpenseCategoryType {
+		switch noteRow.ExpenseCategoryType.String {
 		case "EXPENSE_CATEGORY_CAPITAL":
 			p.ExpenseCategoryType = greennotepb.ExpenseCategoryType_EXPENSE_CATEGORY_CAPITAL
 		case "EXPENSE_CATEGORY_REVENUE":
@@ -220,32 +252,22 @@ func (r *Repository) Get(ctx context.Context, id string) (*greennotepb.GreenNote
 		default:
 			p.ExpenseCategoryType = greennotepb.ExpenseCategoryType_EXPENSE_CATEGORY_UNSPECIFIED
 		}
-	} else {
-		p.ExpenseCategoryType = greennotepb.ExpenseCategoryType_EXPENSE_CATEGORY_UNSPECIFIED
 	}
 
-	// Map invoice rows back into InvoiceInput messages.
 	for _, in := range invoices {
-		taxableValue, _ := strconv.ParseFloat(in.TaxableValue, 64)
-		gst, _ := strconv.ParseFloat(in.Gst, 64)
-		otherCharges, _ := strconv.ParseFloat(in.OtherCharges, 64)
-		total, _ := strconv.ParseFloat(in.InvoiceValue, 64)
-
-		inv := &greennotepb.InvoiceInput{
+		p.Invoices = append(p.Invoices, &greennotepb.InvoiceInput{
 			InvoiceNumber: in.InvoiceNumber,
 			InvoiceDate:   in.InvoiceDate.String,
-			TaxableValue:  taxableValue,
-			Gst:           gst,
-			OtherCharges:  otherCharges,
-			InvoiceValue:  total,
-		}
-		p.Invoices = append(p.Invoices, inv)
+			TaxableValue:  parseDecimal(in.TaxableValue),
+			Gst:           parseDecimal(in.Gst),
+			OtherCharges:  parseDecimal(in.OtherCharges),
+			InvoiceValue:  parseDecimal(in.InvoiceValue),
+		})
 	}
 	if len(p.Invoices) > 0 {
 		p.Invoice = p.Invoices[0]
 	}
 
-	// Map supporting documents into existing_documents.
 	for _, d := range docs {
 		p.ExistingDocuments = append(p.ExistingDocuments, &greennotepb.SupportingDocument{
 			Id:               d.ID,
@@ -259,18 +281,11 @@ func (r *Repository) Get(ctx context.Context, id string) (*greennotepb.GreenNote
 		})
 	}
 
-	return p, nil
+	return p, orgID, tenantID, nil
 }
 
-func (r *Repository) Create(ctx context.Context, payload *greennotepb.GreenNotePayload) (string, error) {
-	if r == nil || r.db == nil {
-		return "", nil
-	}
-	if payload == nil {
-		return "", nil
-	}
-
-	if r.q == nil {
+func (r *Repository) Create(ctx context.Context, payload *greennotepb.GreenNotePayload, orgID, tenantID string) (string, error) {
+	if r == nil || r.db == nil || r.q == nil || payload == nil {
 		return "", nil
 	}
 
@@ -278,14 +293,11 @@ func (r *Repository) Create(ctx context.Context, payload *greennotepb.GreenNoteP
 	if err != nil {
 		return "", err
 	}
-	qtx := r.q.WithTx(tx)
+	// Using manual SQL for Create.
 
-	// Aggregate invoice totals for storage.
 	invBase, invGst, invOther, invTotal := sumInvoiceInputs(payload.GetInvoices())
-	if invBase == 0 && invGst == 0 && invOther == 0 && invTotal == 0 {
-		if payload.GetInvoice() != nil {
-			invBase, invGst, invOther, invTotal = sumInvoiceInputs([]*greennotepb.InvoiceInput{payload.GetInvoice()})
-		}
+	if invBase == 0 && invGst == 0 && invOther == 0 && invTotal == 0 && payload.GetInvoice() != nil {
+		invBase, invGst, invOther, invTotal = sumInvoiceInputs([]*greennotepb.InvoiceInput{payload.GetInvoice()})
 	}
 	if invBase == 0 {
 		invBase = payload.GetBaseValue()
@@ -305,94 +317,58 @@ func (r *Repository) Create(ctx context.Context, payload *greennotepb.GreenNoteP
 		brief = payload.GetProjectName()
 	}
 
-	approvalFor := ""
-	if payload.GetApprovalFor() != greennotepb.ApprovalFor_APPROVAL_FOR_UNSPECIFIED {
-		approvalFor = payload.GetApprovalFor().String()
-	}
-	natureOfExpenses := ""
-	if payload.GetNatureOfExpenses() != greennotepb.NatureOfExpenses_NATURE_OF_EXPENSES_UNSPECIFIED {
-		natureOfExpenses = payload.GetNatureOfExpenses().String()
-	}
-
-	status := strings.TrimSpace(payload.GetStatus())
+	status := strings.TrimSpace(payload.GetDetailedStatus())
 	if status == "" {
-		status = "draft"
-	}
-	// Convert enums to their storage representations
-	var approvalForEnum sqlcgen.NullApprovalFor
-	if approvalFor != "" {
-		approvalForEnum = sqlcgen.NullApprovalFor{
-			ApprovalFor: sqlcgen.ApprovalFor(approvalFor),
-			Valid:       true,
-		}
+		status = "pending"
 	}
 
-	var natureOfExpensesEnum sqlcgen.NullNatureOfExpenses
-	if natureOfExpenses != "" {
-		natureOfExpensesEnum = sqlcgen.NullNatureOfExpenses{
-			NatureOfExpenses: sqlcgen.NatureOfExpenses(natureOfExpenses),
-			Valid:            true,
-		}
-	}
+	// We'll use a manual query here instead of sqlc because we can't easily regenerate sqlc for org_id/tenant_id
+	createNoteQuery := `
+		INSERT INTO green_notes (
+			id, project_name, supplier_name, expense_category, 
+			protest_note_raised, whether_contract, extension_of_contract_period_executed,
+			expense_amount_within_contract, milestone_achieved, payment_approved_with_deviation,
+			required_documents_submitted, contract_period_completed, documents_verified,
+			contract_start_date, contract_end_date, appointed_start_date,
+			supply_period_start, supply_period_end, base_value, gst, other_charges,
+			total_amount, enable_multiple_invoices, status, approval_for,
+			department_name, work_order_no, po_number, work_order_date,
+			expense_category_type, msme_classification, activity_type,
+			brief_of_goods_services, delayed_damages, nature_of_expenses,
+			budget_expenditure, actual_expenditure, expenditure_over_budget,
+			milestone_remarks, specify_deviation, documents_workdone_supply,
+			documents_discrepancy, remarks, auditor_remarks, 
+			amount_retained_for_non_submission, org_id, tenant_id
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, 
+			$19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, 
+			$35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47
+		) RETURNING id
+	`
+	id := uuid.NewString()
+	var returnedID string
+	err = tx.QueryRowContext(ctx, createNoteQuery,
+		id, toNullString(payload.GetProjectName()), toNullString(payload.GetSupplierName()), toNullString(payload.GetExpenseCategory()),
+		toNullYesNoEnum(payload.GetProtestNoteRaised()), toNullYesNoEnum(payload.GetWhetherContract()), toNullYesNoEnum(payload.GetExtensionOfContractPeriodExecuted()),
+		toNullYesNoEnum(payload.GetExpenseAmountWithinContract()), toNullYesNoEnum(payload.GetMilestoneAchieved()), toNullYesNoEnum(payload.GetPaymentApprovedWithDeviation()),
+		toNullYesNoEnum(payload.GetRequiredDocumentsSubmitted()), toNullYesNoEnum(payload.GetContractPeriodCompleted()), toNullString(payload.GetDocumentsVerified()),
+		toNullString(payload.GetContractStartDate()), toNullString(payload.GetContractEndDate()), toNullString(payload.GetAppointedStartDate()),
+		toNullString(payload.GetSupplyPeriodStart()), toNullString(payload.GetSupplyPeriodEnd()), formatDecimal(invBase), formatDecimal(invGst), formatDecimal(invOther),
+		formatDecimal(invTotal), payload.GetEnableMultipleInvoices(), status, payload.GetApprovalFor().String(),
+		toNullString(payload.GetDepartmentName()), toNullString(payload.GetWorkOrderNo()), toNullString(payload.GetPoNumber()), toNullString(payload.GetWorkOrderDate()),
+		payload.GetExpenseCategoryType().String(), toNullString(payload.GetMsmeClassification()), toNullString(payload.GetActivityType()),
+		brief, toNullString(payload.GetDelayedDamages()), payload.GetNatureOfExpenses().String(),
+		formatDecimal(payload.GetBudgetExpenditure()), formatDecimal(payload.GetActualExpenditure()), formatDecimal(payload.GetExpenditureOverBudget()),
+		toNullString(payload.GetMilestoneRemarks()), toNullString(payload.GetSpecifyDeviation()), toNullString(payload.GetDocumentsWorkdoneSupply()),
+		toNullString(payload.GetDocumentsDiscrepancy()), toNullString(payload.GetRemarks()), toNullString(payload.GetAuditorRemarks()),
+		formatDecimal(payload.GetAmountRetainedForNonSubmission()), orgID, tenantID,
+	).Scan(&returnedID)
 
-	statusEnum := toNullStatusEnumFromString(status)
-
-	noteRow, err := qtx.CreateGreenNote(ctx, sqlcgen.CreateGreenNoteParams{
-		ID:                                uuid.NewString(),
-		ProjectName:                       toNullString(payload.GetProjectName()),
-		SupplierName:                      toNullString(payload.GetSupplierName()),
-		ExpenseCategory:                   toNullString(payload.GetExpenseCategory()),
-		ProtestNoteRaised:                 toNullYesNoEnum(payload.GetProtestNoteRaised()),
-		WhetherContract:                   toNullYesNoEnum(payload.GetWhetherContract()),
-		ExtensionOfContractPeriodExecuted: toNullYesNoEnum(payload.GetExtensionOfContractPeriodExecuted()),
-		ExpenseAmountWithinContract:       toNullYesNoEnum(payload.GetExpenseAmountWithinContract()),
-		MilestoneAchieved:                 toNullYesNoEnum(payload.GetMilestoneAchieved()),
-		PaymentApprovedWithDeviation:      toNullYesNoEnum(payload.GetPaymentApprovedWithDeviation()),
-		RequiredDocumentsSubmitted:        toNullYesNoEnum(payload.GetRequiredDocumentsSubmitted()),
-		ContractPeriodCompleted:           toNullYesNoEnum(payload.GetContractPeriodCompleted()),
-		DocumentsVerified:                 toNullString(payload.GetDocumentsVerified()),
-		ContractStartDate:                 toNullString(payload.GetContractStartDate()),
-		ContractEndDate:                   toNullString(payload.GetContractEndDate()),
-		AppointedStartDate:                toNullString(payload.GetAppointedStartDate()),
-		SupplyPeriodStart:                 toNullString(payload.GetSupplyPeriodStart()),
-		SupplyPeriodEnd:                   toNullString(payload.GetSupplyPeriodEnd()),
-		BaseValue:                         toNullString(formatDecimal(invBase)),
-		Gst:                               toNullString(formatDecimal(invGst)),
-		OtherCharges:                      toNullString(formatDecimal(invOther)),
-		TotalAmount:                       toNullString(formatDecimal(invTotal)),
-		EnableMultipleInvoices:            payload.GetEnableMultipleInvoices(),
-		Status:                            statusEnum,
-		ApprovalFor:                       approvalForEnum,
-		DepartmentName:                    toNullString(payload.GetDepartmentName()),
-		WorkOrderNo:                       toNullString(payload.GetWorkOrderNo()),
-		PoNumber:                          toNullString(payload.GetPoNumber()),
-		WorkOrderDate:                     toNullString(payload.GetWorkOrderDate()),
-		ExpenseCategoryType: sqlcgen.NullExpenseCategoryType{
-			ExpenseCategoryType: sqlcgen.ExpenseCategoryType(payload.GetExpenseCategoryType().String()),
-			Valid:               payload.GetExpenseCategoryType() != greennotepb.ExpenseCategoryType_EXPENSE_CATEGORY_UNSPECIFIED,
-		},
-		MsmeClassification:             toNullString(payload.GetMsmeClassification()),
-		ActivityType:                   toNullString(payload.GetActivityType()),
-		BriefOfGoodsServices:           toNullString(brief),
-		DelayedDamages:                 toNullString(payload.GetDelayedDamages()),
-		NatureOfExpenses:               natureOfExpensesEnum,
-		BudgetExpenditure:              toNullString(formatDecimal(payload.GetBudgetExpenditure())),
-		ActualExpenditure:              toNullString(formatDecimal(payload.GetActualExpenditure())),
-		ExpenditureOverBudget:          toNullString(formatDecimal(payload.GetExpenditureOverBudget())),
-		MilestoneRemarks:               toNullString(payload.GetMilestoneRemarks()),
-		SpecifyDeviation:               toNullString(payload.GetSpecifyDeviation()),
-		DocumentsWorkdoneSupply:        toNullString(payload.GetDocumentsWorkdoneSupply()),
-		DocumentsDiscrepancy:           toNullString(payload.GetDocumentsDiscrepancy()),
-		Remarks:                        toNullString(payload.GetRemarks()),
-		AuditorRemarks:                 toNullString(payload.GetAuditorRemarks()),
-		AmountRetainedForNonSubmission: toNullString(formatDecimal(payload.GetAmountRetainedForNonSubmission())),
-	})
 	if err != nil {
 		_ = tx.Rollback()
 		return "", err
 	}
 
-	// Persist invoice rows if provided.
 	allInvoices := payload.GetInvoices()
 	if len(allInvoices) == 0 && payload.GetInvoice() != nil {
 		allInvoices = []*greennotepb.InvoiceInput{payload.GetInvoice()}
@@ -401,42 +377,36 @@ func (r *Repository) Create(ctx context.Context, payload *greennotepb.GreenNoteP
 		if in == nil {
 			continue
 		}
-		_, err := qtx.InsertInvoice(ctx, sqlcgen.InsertInvoiceParams{
-			ID:            uuid.NewString(),
-			GreenNoteID:   noteRow.ID,
-			InvoiceNumber: in.GetInvoiceNumber(),
-			InvoiceDate:   toNullString(in.GetInvoiceDate()),
-			TaxableValue:  formatDecimal(in.GetTaxableValue()),
-			Gst:           formatDecimal(in.GetGst()),
-			OtherCharges:  formatDecimal(in.GetOtherCharges()),
-			InvoiceValue:  formatDecimal(in.GetInvoiceValue()),
-		})
+		insertInvoiceQuery := `
+			INSERT INTO green_note_invoices (
+				id, green_note_id, invoice_number, invoice_date, 
+				taxable_value, gst, other_charges, invoice_value, org_id, tenant_id
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		`
+		_, err := tx.ExecContext(ctx, insertInvoiceQuery,
+			uuid.NewString(), returnedID, in.GetInvoiceNumber(), toNullString(in.GetInvoiceDate()),
+			formatDecimal(in.GetTaxableValue()), formatDecimal(in.GetGst()),
+			formatDecimal(in.GetOtherCharges()), formatDecimal(in.GetInvoiceValue()),
+			orgID, tenantID,
+		)
 		if err != nil {
 			_ = tx.Rollback()
 			return "", err
 		}
 	}
 
-	// Persist supporting documents if provided.
-	if err := r.insertDocumentsTx(ctx, qtx, noteRow.ID, payload.GetNewDocuments()); err != nil {
+	if err := r.insertDocumentsTx(ctx, tx, returnedID, payload.GetNewDocuments(), orgID, tenantID); err != nil {
 		_ = tx.Rollback()
 		return "", err
 	}
 	if err := tx.Commit(); err != nil {
 		return "", err
 	}
-	return noteRow.ID, nil
+	return returnedID, nil
 }
 
-func (r *Repository) Update(ctx context.Context, id string, payload *greennotepb.GreenNotePayload) error {
-	if r == nil || r.db == nil {
-		return nil
-	}
-	if payload == nil {
-		return nil
-	}
-
-	if r.q == nil {
+func (r *Repository) Update(ctx context.Context, id string, payload *greennotepb.GreenNotePayload, orgID, tenantID string) error {
+	if r == nil || r.db == nil || r.q == nil || payload == nil {
 		return nil
 	}
 
@@ -451,12 +421,9 @@ func (r *Repository) Update(ctx context.Context, id string, payload *greennotepb
 	}
 	qtx := r.q.WithTx(tx)
 
-	// Recompute invoice totals.
 	invBase, invGst, invOther, invTotal := sumInvoiceInputs(payload.GetInvoices())
-	if invBase == 0 && invGst == 0 && invOther == 0 && invTotal == 0 {
-		if payload.GetInvoice() != nil {
-			invBase, invGst, invOther, invTotal = sumInvoiceInputs([]*greennotepb.InvoiceInput{payload.GetInvoice()})
-		}
+	if invBase == 0 && invGst == 0 && invOther == 0 && invTotal == 0 && payload.GetInvoice() != nil {
+		invBase, invGst, invOther, invTotal = sumInvoiceInputs([]*greennotepb.InvoiceInput{payload.GetInvoice()})
 	}
 	if invBase == 0 {
 		invBase = payload.GetBaseValue()
@@ -476,37 +443,10 @@ func (r *Repository) Update(ctx context.Context, id string, payload *greennotepb
 		brief = payload.GetProjectName()
 	}
 
-	approvalFor := ""
-	if payload.GetApprovalFor() != greennotepb.ApprovalFor_APPROVAL_FOR_UNSPECIFIED {
-		approvalFor = payload.GetApprovalFor().String()
-	}
-	natureOfExpenses := ""
-	if payload.GetNatureOfExpenses() != greennotepb.NatureOfExpenses_NATURE_OF_EXPENSES_UNSPECIFIED {
-		natureOfExpenses = payload.GetNatureOfExpenses().String()
-	}
-
-	status := strings.TrimSpace(payload.GetStatus())
+	status := strings.TrimSpace(payload.GetDetailedStatus())
 	if status == "" {
-		status = "draft"
+		status = "pending"
 	}
-	// Convert enums to their storage representations
-	var approvalForEnum sqlcgen.NullApprovalFor
-	if approvalFor != "" {
-		approvalForEnum = sqlcgen.NullApprovalFor{
-			ApprovalFor: sqlcgen.ApprovalFor(approvalFor),
-			Valid:       true,
-		}
-	}
-
-	var natureOfExpensesEnum sqlcgen.NullNatureOfExpenses
-	if natureOfExpenses != "" {
-		natureOfExpensesEnum = sqlcgen.NullNatureOfExpenses{
-			NatureOfExpenses: sqlcgen.NatureOfExpenses(natureOfExpenses),
-			Valid:            true,
-		}
-	}
-
-	statusEnum := toNullStatusEnumFromString(status)
 
 	_, err = qtx.UpdateGreenNote(ctx, sqlcgen.UpdateGreenNoteParams{
 		ID:                                id,
@@ -532,62 +472,56 @@ func (r *Repository) Update(ctx context.Context, id string, payload *greennotepb
 		OtherCharges:                      toNullString(formatDecimal(invOther)),
 		TotalAmount:                       toNullString(formatDecimal(invTotal)),
 		EnableMultipleInvoices:            payload.GetEnableMultipleInvoices(),
-		Status:                            statusEnum,
-		ApprovalFor:                       approvalForEnum,
+		Status:                            toNullString(status),
+		ApprovalFor:                       toNullString(payload.GetApprovalFor().String()),
 		DepartmentName:                    toNullString(payload.GetDepartmentName()),
 		WorkOrderNo:                       toNullString(payload.GetWorkOrderNo()),
 		PoNumber:                          toNullString(payload.GetPoNumber()),
 		WorkOrderDate:                     toNullString(payload.GetWorkOrderDate()),
-		ExpenseCategoryType: sqlcgen.NullExpenseCategoryType{
-			ExpenseCategoryType: sqlcgen.ExpenseCategoryType(payload.GetExpenseCategoryType().String()),
-			Valid:               payload.GetExpenseCategoryType() != greennotepb.ExpenseCategoryType_EXPENSE_CATEGORY_UNSPECIFIED,
-		},
-		MsmeClassification:             toNullString(payload.GetMsmeClassification()),
-		ActivityType:                   toNullString(payload.GetActivityType()),
-		BriefOfGoodsServices:           toNullString(brief),
-		DelayedDamages:                 toNullString(payload.GetDelayedDamages()),
-		NatureOfExpenses:               natureOfExpensesEnum,
-		BudgetExpenditure:              toNullString(formatDecimal(payload.GetBudgetExpenditure())),
-		ActualExpenditure:              toNullString(formatDecimal(payload.GetActualExpenditure())),
-		ExpenditureOverBudget:          toNullString(formatDecimal(payload.GetExpenditureOverBudget())),
-		MilestoneRemarks:               toNullString(payload.GetMilestoneRemarks()),
-		SpecifyDeviation:               toNullString(payload.GetSpecifyDeviation()),
-		DocumentsWorkdoneSupply:        toNullString(payload.GetDocumentsWorkdoneSupply()),
-		DocumentsDiscrepancy:           toNullString(payload.GetDocumentsDiscrepancy()),
-		Remarks:                        toNullString(payload.GetRemarks()),
-		AuditorRemarks:                 toNullString(payload.GetAuditorRemarks()),
-		AmountRetainedForNonSubmission: toNullString(formatDecimal(payload.GetAmountRetainedForNonSubmission())),
+		ExpenseCategoryType:               toNullString(payload.GetExpenseCategoryType().String()),
+		MsmeClassification:                toNullString(payload.GetMsmeClassification()),
+		ActivityType:                      toNullString(payload.GetActivityType()),
+		BriefOfGoodsServices:              toNullString(brief),
+		DelayedDamages:                    toNullString(payload.GetDelayedDamages()),
+		NatureOfExpenses:                  toNullString(payload.GetNatureOfExpenses().String()),
+		BudgetExpenditure:                 toNullString(formatDecimal(payload.GetBudgetExpenditure())),
+		ActualExpenditure:                 toNullString(formatDecimal(payload.GetActualExpenditure())),
+		ExpenditureOverBudget:             toNullString(formatDecimal(payload.GetExpenditureOverBudget())),
+		MilestoneRemarks:                  toNullString(payload.GetMilestoneRemarks()),
+		SpecifyDeviation:                  toNullString(payload.GetSpecifyDeviation()),
+		DocumentsWorkdoneSupply:           toNullString(payload.GetDocumentsWorkdoneSupply()),
+		DocumentsDiscrepancy:              toNullString(payload.GetDocumentsDiscrepancy()),
+		Remarks:                           toNullString(payload.GetRemarks()),
+		AuditorRemarks:                    toNullString(payload.GetAuditorRemarks()),
+		AmountRetainedForNonSubmission:    toNullString(formatDecimal(payload.GetAmountRetainedForNonSubmission())),
 	})
 	if err != nil {
 		_ = tx.Rollback()
 		return err
 	}
 
-	// Replace invoices if provided.
 	allInvoices := payload.GetInvoices()
 	if len(allInvoices) == 0 && payload.GetInvoice() != nil {
 		allInvoices = []*greennotepb.InvoiceInput{payload.GetInvoice()}
 	}
 	if len(allInvoices) > 0 {
-		// Delete existing invoices for this note
-		if err := qtx.DeleteInvoicesByGreenNoteID(ctx, id); err != nil {
-			_ = tx.Rollback()
-			return fmt.Errorf("failed to delete existing invoices: %w", err)
-		}
+		_, _ = tx.ExecContext(ctx, "DELETE FROM green_note_invoices WHERE green_note_id = $1", id)
 		for _, in := range allInvoices {
 			if in == nil {
 				continue
 			}
-			_, err := qtx.InsertInvoice(ctx, sqlcgen.InsertInvoiceParams{
-				ID:            uuid.NewString(),
-				GreenNoteID:   id,
-				InvoiceNumber: in.GetInvoiceNumber(),
-				InvoiceDate:   toNullString(in.GetInvoiceDate()),
-				TaxableValue:  formatDecimal(in.GetTaxableValue()),
-				Gst:           formatDecimal(in.GetGst()),
-				OtherCharges:  formatDecimal(in.GetOtherCharges()),
-				InvoiceValue:  formatDecimal(in.GetInvoiceValue()),
-			})
+			insertInvoiceQuery := `
+				INSERT INTO green_note_invoices (
+					id, green_note_id, invoice_number, invoice_date, 
+					taxable_value, gst, other_charges, invoice_value, org_id, tenant_id
+				) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+			`
+			_, err := tx.ExecContext(ctx, insertInvoiceQuery,
+				uuid.NewString(), id, in.GetInvoiceNumber(), toNullString(in.GetInvoiceDate()),
+				formatDecimal(in.GetTaxableValue()), formatDecimal(in.GetGst()),
+				formatDecimal(in.GetOtherCharges()), formatDecimal(in.GetInvoiceValue()),
+				orgID, tenantID,
+			)
 			if err != nil {
 				_ = tx.Rollback()
 				return err
@@ -595,19 +529,14 @@ func (r *Repository) Update(ctx context.Context, id string, payload *greennotepb
 		}
 	}
 
-	// Append any newly uploaded documents (existing documents are left untouched).
-	if err := r.insertDocumentsTx(ctx, qtx, id, payload.GetNewDocuments()); err != nil {
+	if err := r.insertDocumentsTx(ctx, tx, id, payload.GetNewDocuments(), orgID, tenantID); err != nil {
 		_ = tx.Rollback()
 		return err
 	}
-
-	if err := tx.Commit(); err != nil {
-		return err
-	}
-	return nil
+	return tx.Commit()
 }
 
-func (r *Repository) Cancel(ctx context.Context, id string, reason string) error {
+func (r *Repository) Cancel(ctx context.Context, id string, reason string, orgID, tenantID string) error {
 	if r == nil || r.db == nil {
 		return nil
 	}
@@ -620,16 +549,13 @@ func (r *Repository) Cancel(ctx context.Context, id string, reason string) error
 			status = 'cancelled',
 			remarks = CASE WHEN remarks IS NULL OR remarks = '' THEN $2 ELSE remarks || ' | cancel: ' || $2 END,
 			updated_at = NOW()
-		WHERE id = $1
+		WHERE id = $1 AND org_id = $3
 	`
-	res, err := r.db.ExecContext(ctx, query, id, reason)
+	res, err := r.db.ExecContext(ctx, query, id, reason, orgID)
 	if err != nil {
 		return err
 	}
-	rows, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
+	rows, _ := res.RowsAffected()
 	if rows == 0 {
 		return ports.ErrNotFound
 	}
@@ -652,36 +578,29 @@ func fromNullYesNoEnum(v sqlcgen.NullYesNoEnum) greennotepb.YesNo {
 	}
 }
 
-// insertDocumentsTx saves uploaded document binaries via DocumentStorage and
-// inserts their metadata into green_note_documents within the provided
-// transaction. It is used by both Create and Update to attach documents to a
-// green note.
-func (r *Repository) insertDocumentsTx(ctx context.Context, qtx *sqlcgen.Queries, noteID string, uploads []*greennotepb.SupportingDocumentUpload) error {
+func (r *Repository) insertDocumentsTx(ctx context.Context, tx *sql.Tx, noteID string, uploads []*greennotepb.SupportingDocumentUpload, orgID, tenantID string) error {
 	if r == nil || r.docs == nil {
 		return nil
 	}
 	for _, u := range uploads {
-		if u == nil {
-			continue
-		}
-		content := u.GetFileContent()
-		if len(content) == 0 {
+		if u == nil || len(u.GetFileContent()) == 0 {
 			continue
 		}
 		objectKey := fmt.Sprintf("note-%s/%d-%s", noteID, time.Now().UnixNano(), u.GetOriginalFilename())
-		if err := r.docs.Save(ctx, objectKey, content, u.GetMimeType()); err != nil {
+		if err := r.docs.Save(ctx, objectKey, u.GetFileContent(), u.GetMimeType()); err != nil {
 			return err
 		}
-
-		_, err := qtx.InsertSupportingDocument(ctx, sqlcgen.InsertSupportingDocumentParams{
-			ID:               uuid.NewString(),
-			GreenNoteID:      noteID,
-			Name:             u.GetName(),
-			OriginalFilename: u.GetOriginalFilename(),
-			MimeType:         u.GetMimeType(),
-			FileSize:         int64(len(content)),
-			ObjectKey:        objectKey,
-		})
+		insertDocQuery := `
+			INSERT INTO green_note_documents (
+				id, green_note_id, name, original_filename, 
+				mime_type, file_size, object_key, org_id, tenant_id
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		`
+		_, err := tx.ExecContext(ctx, insertDocQuery,
+			uuid.NewString(), noteID, u.GetName(), u.GetOriginalFilename(),
+			u.GetMimeType(), int64(len(u.GetFileContent())), objectKey,
+			orgID, tenantID,
+		)
 		if err != nil {
 			return err
 		}
@@ -700,24 +619,48 @@ func toNullYesNoEnum(v greennotepb.YesNo) sqlcgen.NullYesNoEnum {
 	}
 }
 
-func toNullStatusEnumFromString(status string) sqlcgen.NullStatusEnum {
-	s := strings.ToLower(strings.TrimSpace(status))
+func toNullString(s string) sql.NullString {
 	if s == "" {
-		return sqlcgen.NullStatusEnum{StatusEnum: sqlcgen.StatusEnumSTATUSDRAFT, Valid: true}
+		return sql.NullString{Valid: false}
 	}
-	switch s {
-	case "draft", "status_draft":
-		return sqlcgen.NullStatusEnum{StatusEnum: sqlcgen.StatusEnumSTATUSDRAFT, Valid: true}
-	case "pending", "status_pending":
-		return sqlcgen.NullStatusEnum{StatusEnum: sqlcgen.StatusEnumSTATUSPENDING, Valid: true}
-	case "approved", "status_approved":
-		return sqlcgen.NullStatusEnum{StatusEnum: sqlcgen.StatusEnumSTATUSAPPROVED, Valid: true}
-	case "rejected", "reject", "status_rejected":
-		return sqlcgen.NullStatusEnum{StatusEnum: sqlcgen.StatusEnumSTATUSREJECTED, Valid: true}
+	return sql.NullString{String: s, Valid: true}
+}
+
+func mapProtoEnumToDBStatus(e greennotepb.Status) string {
+	switch e {
+	case greennotepb.Status_STATUS_APPROVED:
+		return "approved"
+	case greennotepb.Status_STATUS_PENDING:
+		return "pending"
+	case greennotepb.Status_STATUS_REJECTED:
+		return "rejected"
+	case greennotepb.Status_STATUS_DRAFT:
+		return "draft"
+	case greennotepb.Status_STATUS_CANCELLED:
+		return "cancelled"
 	default:
-		// Fallback to draft if unknown value comes from client
-		return sqlcgen.NullStatusEnum{StatusEnum: sqlcgen.StatusEnumSTATUSDRAFT, Valid: true}
+		return ""
 	}
+}
+
+func mapDBStatusToProtoEnum(dbStatus string) greennotepb.Status {
+	s := strings.ToLower(strings.TrimSpace(dbStatus))
+	if strings.HasPrefix(s, "pending") {
+		return greennotepb.Status_STATUS_PENDING
+	}
+	if strings.Contains(s, "approved") {
+		return greennotepb.Status_STATUS_APPROVED
+	}
+	if strings.Contains(s, "rejected") || strings.Contains(s, "reject") {
+		return greennotepb.Status_STATUS_REJECTED
+	}
+	if strings.Contains(s, "cancelled") {
+		return greennotepb.Status_STATUS_CANCELLED
+	}
+	if s == "draft" {
+		return greennotepb.Status_STATUS_DRAFT
+	}
+	return greennotepb.Status_STATUS_PENDING
 }
 
 func sumInvoiceInputs(inputs []*greennotepb.InvoiceInput) (base, gst, other, total float64) {
@@ -744,16 +687,6 @@ func parseDecimal(s string) float64 {
 	if strings.TrimSpace(s) == "" {
 		return 0
 	}
-	f, err := strconv.ParseFloat(s, 64)
-	if err != nil {
-		return 0
-	}
+	f, _ := strconv.ParseFloat(s, 64)
 	return f
-}
-
-func toNullString(s string) sql.NullString {
-	if s == "" {
-		return sql.NullString{}
-	}
-	return sql.NullString{String: s, Valid: true}
 }

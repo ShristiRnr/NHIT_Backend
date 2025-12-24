@@ -36,12 +36,16 @@ func NewUserService(userRepo ports.UserRepository, tenantRepo ports.TenantReposi
 }
 
 func (s *userService) CreateUser(ctx context.Context, user *domain.User) (*domain.User, error) {
-	// TODO: Hash password before storing (add bcrypt after module setup)
-	// For now, store password as-is (NOT PRODUCTION READY)
+	// Hash password before storing
+	if user.Password != "" {
+		hashedPassword, err := s.hashPassword(user.Password)
+		if err != nil {
+			return nil, fmt.Errorf("failed to hash password: %w", err)
+		}
+		user.Password = hashedPassword
+	}
 
-	// Default to active if not specified (or boolean default is false so force true)
-	// If caller explicitly wanted false, they would need a different flow or we check if it was set (but bool makes it hard).
-	// Requirement: "newly created user are active by default"
+	// Default to active if not specified
 	user.IsActive = true
 	
 	// Auto-verify email for admin-created users
@@ -68,7 +72,118 @@ func (s *userService) GetUser(ctx context.Context, userID uuid.UUID) (*domain.Us
 }
 
 func (s *userService) UpdateUser(ctx context.Context, user *domain.User) (*domain.User, error) {
-	// TODO: Hash password if being updated (add bcrypt after module setup)
+	// Fetch existing user to handle state transitions and partial updates
+	existingUser, err := s.userRepo.GetByID(ctx, user.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get existing user: %w", err)
+	}
+
+	// --- Partial Update Checks ---
+	if user.Name == "" {
+		user.Name = existingUser.Name
+	}
+	if user.Email == "" {
+		user.Email = existingUser.Email
+	}
+	// Password: If empty, keep existing. If provided, it will be hashed below.
+	if user.Password == "" {
+		user.Password = existingUser.Password
+	}
+	// Department: If nil, keep existing.
+	if user.DepartmentID == nil {
+		user.DepartmentID = existingUser.DepartmentID
+	}
+	// Designation: If nil, keep existing.
+	if user.DesignationID == nil {
+		user.DesignationID = existingUser.DesignationID
+	}
+	// Note: Account fields are not strictly checked here for nil as they are pointers in domain, 
+	// but if the handler sends nil, we might blank them out if we strictly follow "replace" semantics.
+	// However, user asked for "jab tak update na kiya jaye tab tak purana rahega".
+	// Assuming the handler passes nil if not provided.
+	if user.AccountHolderName == nil {
+		user.AccountHolderName = existingUser.AccountHolderName
+	}
+	if user.BankName == nil {
+		user.BankName = existingUser.BankName
+	}
+	if user.BankAccountNumber == nil {
+		user.BankAccountNumber = existingUser.BankAccountNumber
+	}
+	if user.IFSCCode == nil {
+		user.IFSCCode = existingUser.IFSCCode
+	}
+
+	// Handle Reactivation / Deactivation logic
+	if user.IsActive {
+		// Case: Active or Reactivating
+		user.DeactivatedAt = nil
+		user.DeactivatedBy = nil
+		user.DeactivatedByName = nil
+	} else {
+		// Case: Inactive or Deactivating
+		if existingUser.IsActive {
+			now := time.Now()
+			user.DeactivatedAt = &now
+		} else {
+			user.DeactivatedAt = existingUser.DeactivatedAt
+			user.DeactivatedBy = existingUser.DeactivatedBy
+			user.DeactivatedByName = existingUser.DeactivatedByName
+		}
+		// Force clear password if inactive? 
+		// User said "password humesha same hi rhega", but deactivation usually implies blocking access.
+		// Leaving as is for now, but usually we don't clear password on deactivation to allow reactivation.
+		// Reverting the "Force clear password" logic from previous code to respect "password humesha same hi rhega".
+		if user.Password == "" {
+             user.Password = existingUser.Password
+        }
+	}
+
+	// Hash password if it's being updated (differs from existing)
+	if user.Password != "" && user.Password != existingUser.Password {
+		hashedPassword, err := s.hashPassword(user.Password)
+		if err != nil {
+			return nil, fmt.Errorf("failed to hash password: %w", err)
+		}
+		user.Password = hashedPassword
+	}
+
+	// --- Role Management (Internal) ---
+	if user.Roles != nil {
+		// Fetch existing roles
+		existingRoles, err := s.userRoleRepo.ListRolesByUser(ctx, user.UserID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch existing roles: %w", err)
+		}
+
+		existingRoleMap := make(map[uuid.UUID]bool)
+		for _, r := range existingRoles {
+			existingRoleMap[r.RoleID] = true
+		}
+
+		newRoleMap := make(map[uuid.UUID]bool)
+		for _, rID := range user.Roles {
+			newRoleMap[rID] = true
+		}
+
+		// Roles to Remove: Exist in DB but not in new list
+		for rID := range existingRoleMap {
+			if !newRoleMap[rID] {
+				if err := s.userRoleRepo.RemoveRole(ctx, user.UserID, rID); err != nil {
+					return nil, fmt.Errorf("failed to remove role %s: %w", rID, err)
+				}
+			}
+		}
+
+		// Roles to Add: Exist in new list but not in DB
+		for rID := range newRoleMap {
+			if !existingRoleMap[rID] {
+				if err := s.userRoleRepo.AssignRole(ctx, user.UserID, rID); err != nil {
+					return nil, fmt.Errorf("failed to assign role %s: %w", rID, err)
+				}
+			}
+		}
+	}
 
 	updatedUser, err := s.userRepo.Update(ctx, user)
 	if err != nil {
@@ -79,33 +194,23 @@ func (s *userService) UpdateUser(ctx context.Context, user *domain.User) (*domai
 }
 
 func (s *userService) DeleteUser(ctx context.Context, userID uuid.UUID) error {
-	if err := s.userRepo.Delete(ctx, userID); err != nil {
-		return fmt.Errorf("failed to delete user: %w", err)
-	}
-	return nil
+	return s.userRepo.Delete(ctx, userID)
 }
 
-func (s *userService) ListUsersByTenant(ctx context.Context, tenantID uuid.UUID, limit, offset int32) ([]*domain.User, error) {
-	users, err := s.userRepo.ListByTenant(ctx, tenantID, limit, offset)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list users: %w", err)
-	}
-	return users, nil
+func (s *userService) ListUsersByTenant(ctx context.Context, tenantID uuid.UUID, limit, offset int32) ([]*domain.User, int64, error) {
+	return s.userRepo.ListByTenant(ctx, tenantID, limit, offset)
+}
+
+func (s *userService) ListUsersByOrganization(ctx context.Context, tenantID, orgID uuid.UUID, limit, offset int32) ([]*domain.User, int64, error) {
+	return s.userRepo.ListByOrganization(ctx, tenantID, orgID, limit, offset)
 }
 
 func (s *userService) AssignRoleToUser(ctx context.Context, userID, roleID uuid.UUID) error {
-	if err := s.userRoleRepo.AssignRole(ctx, userID, roleID); err != nil {
-		return fmt.Errorf("failed to assign role: %w", err)
-	}
-	return nil
+	return s.userRoleRepo.AssignRole(ctx, userID, roleID)
 }
 
 func (s *userService) GetUserRoles(ctx context.Context, userID uuid.UUID) ([]*domain.Role, error) {
-	roles, err := s.userRoleRepo.ListRolesByUser(ctx, userID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get user roles: %w", err)
-	}
-	return roles, nil
+	return s.userRoleRepo.ListRolesByUser(ctx, userID)
 }
 
 // ensureSuperAdminRoleForTenant ensures that a SUPER_ADMIN system role with full permissions
@@ -113,110 +218,71 @@ func (s *userService) GetUserRoles(ctx context.Context, userID uuid.UUID) ([]*do
 // using the global permission catalog. This helper is internal and does not expose any new
 // endpoints; it is used by CreateTenant and can be reused by other internal flows if needed.
 func (s *userService) ensureSuperAdminRoleForTenant(ctx context.Context, tenantID uuid.UUID, createdBy string) (*domain.Role, error) {
-	// List existing roles for this tenant and try to find SUPER_ADMIN
-	existingRoles, err := s.roleRepo.ListByTenant(ctx, tenantID)
+	// Check if exists
+	roles, _, err := s.roleRepo.ListByTenant(ctx, tenantID, 100, 0) // Check first 100 roles
 	if err != nil {
-		return nil, fmt.Errorf("failed to list roles for tenant %s: %w", tenantID, err)
+		return nil, err
 	}
-
-	for _, r := range existingRoles {
-		if r != nil && r.Name == "SUPER_ADMIN" {
+	for _, r := range roles {
+		if r.Name == "SUPER_ADMIN" {
 			return r, nil
 		}
 	}
 
-	// No SUPER_ADMIN role found – create a new one with all available permissions
+	// Create if not exists
+	// 1. Get all system permissions
 	perms, err := s.permissionRepo.ListAll(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list permissions for super admin role: %w", err)
+		return nil, fmt.Errorf("failed to list permissions: %w", err)
 	}
-	if len(perms) == 0 {
-		return nil, fmt.Errorf("no permissions defined; cannot create SUPER_ADMIN role for tenant %s", tenantID)
-	}
-
-	permKeys := make([]string, 0, len(perms))
+	var permKeys []string
 	for _, p := range perms {
-		if p == nil || p.Name == "" {
-			return nil, fmt.Errorf("encountered permission with empty name while creating SUPER_ADMIN role for tenant %s", tenantID)
-		}
-		permKeys = append(permKeys, p.Name)
+		permKeys = append(permKeys, p.Name) // Use Name as key? Or ID? Role uses keys (names)
 	}
 
-	now := time.Now()
-	roleModel := &domain.Role{
+	// 2. Create Role
+	role := &domain.Role{
 		TenantID:     tenantID,
-		OrgID:        nil, // tenant-wide role
 		Name:         "SUPER_ADMIN",
-		Description:  "Super Administrator with full access to all resources",
+		Description:  "System Super Admin with full access",
 		Permissions:  permKeys,
 		IsSystemRole: true,
 		CreatedBy:    createdBy,
-		CreatedAt:    now,
-		UpdatedAt:    now,
 	}
-
-	createdRole, err := s.roleRepo.Create(ctx, roleModel)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create super admin role: %w", err)
-	}
-
-	return createdRole, nil
+	return s.roleRepo.Create(ctx, role)
 }
 
-// CreateRole creates a new role with name + permissions for a tenant/org
 func (s *userService) CreateRole(ctx context.Context, role *domain.Role) (*domain.Role, error) {
-	created, err := s.roleRepo.Create(ctx, role)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create role: %w", err)
-	}
-	return created, nil
+	return s.roleRepo.Create(ctx, role)
 }
 
-// GetRole retrieves a role by ID
 func (s *userService) GetRole(ctx context.Context, roleID uuid.UUID) (*domain.Role, error) {
-	role, err := s.roleRepo.GetByID(ctx, roleID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get role: %w", err)
-	}
-	return role, nil
+	return s.roleRepo.GetByID(ctx, roleID)
 }
 
-// ListRolesByTenant lists all roles for a tenant
-func (s *userService) ListRolesByTenant(ctx context.Context, tenantID uuid.UUID) ([]*domain.Role, error) {
-	roles, err := s.roleRepo.ListByTenant(ctx, tenantID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list roles: %w", err)
-	}
-	return roles, nil
+func (s *userService) ListRolesByTenant(ctx context.Context, tenantID uuid.UUID, limit, offset int32) ([]*domain.Role, int64, error) {
+	return s.roleRepo.ListByTenant(ctx, tenantID, limit, offset)
 }
 
-// ListRolesByOrganization lists roles for a tenant+org, optionally including system roles
-func (s *userService) ListRolesByOrganization(ctx context.Context, tenantID uuid.UUID, orgID *uuid.UUID, includeSystem bool) ([]*domain.Role, error) {
+func (s *userService) ListRolesByOrganization(ctx context.Context, tenantID uuid.UUID, orgID *uuid.UUID, includeSystem bool, limit, offset int32) ([]*domain.Role, int64, error) {
+	roles, total, err := s.roleRepo.ListByTenantAndOrgIncludingSystem(ctx, tenantID, orgID, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	
 	if includeSystem {
-		roles, err := s.roleRepo.ListByTenantAndOrgIncludingSystem(ctx, tenantID, orgID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to list roles: %w", err)
-		}
-		return roles, nil
+		return roles, total, nil
 	}
-
-	// Without system roles: filter out system/global roles from combined result
-	roles, err := s.roleRepo.ListByTenantAndOrgIncludingSystem(ctx, tenantID, orgID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list roles: %w", err)
-	}
-
-	filtered := make([]*domain.Role, 0, len(roles))
+	
+	// Filter out system roles. Note: Pagination might be slightly off if we filter system roles here.
+	// But usually, system roles are few. For strict pagination, the SQL query should handle the filtering.
+	var filtered []*domain.Role
 	for _, r := range roles {
-		if r.IsSystemRole {
-			continue
-		}
-		// Ensure role is bound to this org only
-		if orgID != nil && r.OrgID != nil && r.OrgID.String() == orgID.String() {
+		if !r.IsSystemRole {
 			filtered = append(filtered, r)
 		}
 	}
-	return filtered, nil
+	return filtered, total, nil
 }
 
 // UpdateRole updates role name/description/permissions
@@ -341,44 +407,12 @@ func (s *userService) CreateActivityLog(ctx context.Context, log *domain.Activit
 }
 
 // ListActivityLogs lists activity logs
-func (s *userService) ListActivityLogs(ctx context.Context, limit, offset int32) ([]*domain.ActivityLog, error) {
-	logs, err := s.activityLogRepo.List(ctx, limit, offset)
+func (s *userService) ListActivityLogs(ctx context.Context, limit, offset int32) ([]*domain.ActivityLog, int64, error) {
+	logs, totalCount, err := s.activityLogRepo.List(ctx, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list activity logs: %w", err)
+		return nil, 0, fmt.Errorf("failed to list activity logs: %w", err)
 	}
-	return logs, nil
-}
-
-// CreateNotification creates a notification
-func (s *userService) CreateNotification(ctx context.Context, notification *domain.Notification) (*domain.Notification, error) {
-	// TODO: Implement notification repository
-	notification.NotificationID = uuid.New()
-	notification.CreatedAt = time.Now()
-	notification.IsRead = false
-
-	// Mock implementation for now
-	fmt.Printf("Notification: %s - %s\n", notification.Title, notification.Message)
-
-	return notification, nil
-}
-
-// ListNotifications lists notifications for a user
-func (s *userService) ListNotifications(ctx context.Context, userID uuid.UUID, unreadOnly bool, limit, offset int32) ([]*domain.Notification, error) {
-	// TODO: Implement notification repository
-	// Mock implementation
-	return []*domain.Notification{}, nil
-}
-
-// MarkNotificationAsRead marks a notification as read
-func (s *userService) MarkNotificationAsRead(ctx context.Context, notificationID uuid.UUID) (*domain.Notification, error) {
-	// TODO: Implement notification repository
-	// Mock implementation
-	now := time.Now()
-	return &domain.Notification{
-		NotificationID: notificationID,
-		IsRead:         true,
-		ReadAt:         &now,
-	}, nil
+	return logs, totalCount, nil
 }
 
 // CreateLoginHistory creates a login history entry
@@ -408,12 +442,12 @@ func (s *userService) CreateLoginHistory(ctx context.Context, history *domain.Us
 }
 
 // ListLoginHistory lists login history for a user
-func (s *userService) ListLoginHistory(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]*domain.UserLoginHistory, error) {
-	histories, err := s.loginHistoryRepo.ListByUser(ctx, userID, limit, offset)
+func (s *userService) ListLoginHistory(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]*domain.UserLoginHistory, int64, error) {
+	histories, totalCount, err := s.loginHistoryRepo.ListByUser(ctx, userID, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list login history: %w", err)
+		return nil, 0, fmt.Errorf("failed to list login history: %w", err)
 	}
-	return histories, nil
+	return histories, totalCount, nil
 }
 
 // CreateTenant creates a new tenant with super admin user

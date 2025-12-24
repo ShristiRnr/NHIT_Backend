@@ -53,7 +53,8 @@ func (s *authService) ForgotPasswordWithOTP(ctx context.Context, email string, t
 	}
 
 	// Create password reset token with OTP
-	expiresAt := time.Now().Add(15 * time.Minute) // OTPs expire faster than reset links
+	// Create password reset token with OTP
+	expiresAt := time.Now().Add(5 * time.Minute) // OTPs expire in 5 minutes as requested
 	_, err = s.passwordResetRepo.CreateWithOTP(ctx, user.UserID, otp, expiresAt)
 	if err != nil {
 		return fmt.Errorf("failed to create password reset OTP: %w", err)
@@ -122,9 +123,23 @@ func (s *authService) VerifyOTPAndResetPassword(ctx context.Context, email, otp,
 		return fmt.Errorf("failed to hash password: %w", err)
 	}
 
-	// Update password
+	// Update password in users table
 	if err := s.userRepo.UpdatePassword(ctx, user.UserID, hashedPassword); err != nil {
 		return fmt.Errorf("failed to update password: %w", err)
+	}
+
+	// TRIGGER SYNC: Update password in tenants and organizations tables if email matches
+	// This ensures consistency across the platform as requested
+	log.Printf("Syncing password for %s across platforms...", user.Email)
+	
+	if err := s.userRepo.UpdateTenantPassword(ctx, user.Email, hashedPassword); err != nil {
+		log.Printf("⚠️  Failed to sync tenant password for %s: %v", user.Email, err)
+		// We don't fail the whole operation if sync fails, but we log it
+	}
+
+	if err := s.userRepo.UpdateOrganizationSuperAdminPassword(ctx, user.Email, hashedPassword); err != nil {
+		log.Printf("⚠️  Failed to sync organization super admin password for %s: %v", user.Email, err)
+		// We don't fail the whole operation if sync fails, but we log it
 	}
 
 	// Delete used OTP

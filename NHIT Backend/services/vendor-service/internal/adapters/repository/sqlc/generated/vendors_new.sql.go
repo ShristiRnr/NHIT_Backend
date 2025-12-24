@@ -15,9 +15,9 @@ import (
 const countVendors = `-- name: CountVendors :one
 SELECT COUNT(*) FROM vendors 
 WHERE tenant_id = $1
-    AND ($2::boolean IS NULL OR is_active = $2)
-    AND ($3::text IS NULL OR vendor_type = $3)
-    AND ($4::text IS NULL OR project = $4)
+    AND ($2::text IS NULL OR status::text = $2)
+    AND ($3::text IS NULL OR account_type::text = $3)
+    AND ($4::text IS NULL OR project_id = $4)
     AND ($5::text IS NULL OR (
         vendor_name ILIKE '%' || $5 || '%' OR
         vendor_email ILIKE '%' || $5 || '%' OR
@@ -27,7 +27,7 @@ WHERE tenant_id = $1
 
 type CountVendorsParams struct {
 	TenantID uuid.UUID `db:"tenant_id" json:"tenant_id"`
-	Column2  bool      `db:"column_2" json:"column_2"`
+	Column2  string    `db:"column_2" json:"column_2"`
 	Column3  string    `db:"column_3" json:"column_3"`
 	Column4  string    `db:"column_4" json:"column_4"`
 	Column5  string    `db:"column_5" json:"column_5"`
@@ -50,67 +50,64 @@ const createVendor = `-- name: CreateVendor :exec
 INSERT INTO vendors (
     id, tenant_id, vendor_code, vendor_name, vendor_email, vendor_mobile,
     account_type, vendor_nick_name, activity_type, email, mobile, gstin, pan, pin,
-    country_id, state_id, city_id, country_name, state_name, city_name,
+    country_name, state_name, city_name,
     msme_classification, msme, msme_registration_number, msme_start_date, msme_end_date,
     material_nature, gst_defaulted, section_206ab_verified, beneficiary_name,
     remarks_address, common_bank_details, income_tax_type, project_id, status,
     from_account_type, account_name, short_name, parent, file_paths,
     code_auto_generated, created_by, account_number, name_of_bank,
-    ifsc_code, ifsc_code_id
+    ifsc_code, address, signature_url
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
     $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39,
-    $40, $41, $42, $43, $44, $45
+    $40, $41, $42, $43
 )
 `
 
 type CreateVendorParams struct {
-	ID                     uuid.UUID   `db:"id" json:"id"`
-	TenantID               uuid.UUID   `db:"tenant_id" json:"tenant_id"`
-	VendorCode             string      `db:"vendor_code" json:"vendor_code"`
-	VendorName             string      `db:"vendor_name" json:"vendor_name"`
-	VendorEmail            string      `db:"vendor_email" json:"vendor_email"`
-	VendorMobile           *string     `db:"vendor_mobile" json:"vendor_mobile"`
-	VendorType             *string     `db:"vendor_type" json:"vendor_type"`
-	VendorNickName         *string     `db:"vendor_nick_name" json:"vendor_nick_name"`
-	ActivityType           *string     `db:"activity_type" json:"activity_type"`
-	Email                  *string     `db:"email" json:"email"`
-	Mobile                 *string     `db:"mobile" json:"mobile"`
-	Gstin                  *string     `db:"gstin" json:"gstin"`
-	Pan                    string      `db:"pan" json:"pan"`
-	Pin                    *string     `db:"pin" json:"pin"`
-	CountryID              *string     `db:"country_id" json:"country_id"`
-	StateID                *string     `db:"state_id" json:"state_id"`
-	CityID                 *string     `db:"city_id" json:"city_id"`
-	CountryName            *string     `db:"country_name" json:"country_name"`
-	StateName              *string     `db:"state_name" json:"state_name"`
-	CityName               *string     `db:"city_name" json:"city_name"`
-	MsmeClassification     *string     `db:"msme_classification" json:"msme_classification"`
-	Msme                   *string     `db:"msme" json:"msme"`
-	MsmeRegistrationNumber *string     `db:"msme_registration_number" json:"msme_registration_number"`
-	MsmeStartDate          pgtype.Date `db:"msme_start_date" json:"msme_start_date"`
-	MsmeEndDate            pgtype.Date `db:"msme_end_date" json:"msme_end_date"`
-	MaterialNature         *string     `db:"material_nature" json:"material_nature"`
-	GstDefaulted           *string     `db:"gst_defaulted" json:"gst_defaulted"`
-	Section206abVerified   *string     `db:"section_206ab_verified" json:"section_206ab_verified"`
-	BeneficiaryName        string      `db:"beneficiary_name" json:"beneficiary_name"`
-	RemarksAddress         *string     `db:"remarks_address" json:"remarks_address"`
-	CommonBankDetails      *string     `db:"common_bank_details" json:"common_bank_details"`
-	IncomeTaxType          *string     `db:"income_tax_type" json:"income_tax_type"`
-	Project                *string     `db:"project" json:"project"`
-	Status                 *string     `db:"status" json:"status"`
-	FromAccountType        *string     `db:"from_account_type" json:"from_account_type"`
-	AccountName            *string     `db:"account_name" json:"account_name"`
-	ShortName              *string     `db:"short_name" json:"short_name"`
-	Parent                 *string     `db:"parent" json:"parent"`
-	FilePaths              []byte      `db:"file_paths" json:"file_paths"`
-	CodeAutoGenerated      *bool       `db:"code_auto_generated" json:"code_auto_generated"`
-	IsActive               *bool       `db:"is_active" json:"is_active"`
-	CreatedBy              uuid.UUID   `db:"created_by" json:"created_by"`
-	AccountNumber          *string     `db:"account_number" json:"account_number"`
-	NameOfBank             *string     `db:"name_of_bank" json:"name_of_bank"`
-	IfscCode               *string     `db:"ifsc_code" json:"ifsc_code"`
-	IfscCodeID             *string     `db:"ifsc_code_id" json:"ifsc_code_id"`
+	ID                     uuid.UUID                  `db:"id" json:"id"`
+	TenantID               uuid.UUID                  `db:"tenant_id" json:"tenant_id"`
+	VendorCode             string                     `db:"vendor_code" json:"vendor_code"`
+	VendorName             string                     `db:"vendor_name" json:"vendor_name"`
+	VendorEmail            string                     `db:"vendor_email" json:"vendor_email"`
+	VendorMobile           *string                    `db:"vendor_mobile" json:"vendor_mobile"`
+	AccountType            NullAccountTypeEnum        `db:"account_type" json:"account_type"`
+	VendorNickName         *string                    `db:"vendor_nick_name" json:"vendor_nick_name"`
+	ActivityType           *string                    `db:"activity_type" json:"activity_type"`
+	Email                  *string                    `db:"email" json:"email"`
+	Mobile                 *string                    `db:"mobile" json:"mobile"`
+	Gstin                  *string                    `db:"gstin" json:"gstin"`
+	Pan                    string                     `db:"pan" json:"pan"`
+	Pin                    *string                    `db:"pin" json:"pin"`
+	CountryName            *string                    `db:"country_name" json:"country_name"`
+	StateName              *string                    `db:"state_name" json:"state_name"`
+	CityName               *string                    `db:"city_name" json:"city_name"`
+	MsmeClassification     NullMsmeClassificationEnum `db:"msme_classification" json:"msme_classification"`
+	Msme                   *string                    `db:"msme" json:"msme"`
+	MsmeRegistrationNumber *string                    `db:"msme_registration_number" json:"msme_registration_number"`
+	MsmeStartDate          pgtype.Timestamp           `db:"msme_start_date" json:"msme_start_date"`
+	MsmeEndDate            pgtype.Timestamp           `db:"msme_end_date" json:"msme_end_date"`
+	MaterialNature         *string                    `db:"material_nature" json:"material_nature"`
+	GstDefaulted           *string                    `db:"gst_defaulted" json:"gst_defaulted"`
+	Section206abVerified   *string                    `db:"section_206ab_verified" json:"section_206ab_verified"`
+	BeneficiaryName        string                     `db:"beneficiary_name" json:"beneficiary_name"`
+	RemarksAddress         *string                    `db:"remarks_address" json:"remarks_address"`
+	CommonBankDetails      *string                    `db:"common_bank_details" json:"common_bank_details"`
+	IncomeTaxType          *string                    `db:"income_tax_type" json:"income_tax_type"`
+	ProjectID              *string                    `db:"project_id" json:"project_id"`
+	Status                 NullVendorStatusEnum       `db:"status" json:"status"`
+	FromAccountType        *string                    `db:"from_account_type" json:"from_account_type"`
+	AccountName            *string                    `db:"account_name" json:"account_name"`
+	ShortName              *string                    `db:"short_name" json:"short_name"`
+	Parent                 *string                    `db:"parent" json:"parent"`
+	FilePaths              []string                   `db:"file_paths" json:"file_paths"`
+	CodeAutoGenerated      *bool                      `db:"code_auto_generated" json:"code_auto_generated"`
+	CreatedBy              uuid.UUID                  `db:"created_by" json:"created_by"`
+	AccountNumber          *string                    `db:"account_number" json:"account_number"`
+	NameOfBank             *string                    `db:"name_of_bank" json:"name_of_bank"`
+	IfscCode               *string                    `db:"ifsc_code" json:"ifsc_code"`
+	Address                *string                    `db:"address" json:"address"`
+	SignatureUrl           *string                    `db:"signature_url" json:"signature_url"`
 }
 
 func (q *Queries) CreateVendor(ctx context.Context, arg CreateVendorParams) error {
@@ -121,7 +118,7 @@ func (q *Queries) CreateVendor(ctx context.Context, arg CreateVendorParams) erro
 		arg.VendorName,
 		arg.VendorEmail,
 		arg.VendorMobile,
-		arg.VendorType,
+		arg.AccountType,
 		arg.VendorNickName,
 		arg.ActivityType,
 		arg.Email,
@@ -129,9 +126,6 @@ func (q *Queries) CreateVendor(ctx context.Context, arg CreateVendorParams) erro
 		arg.Gstin,
 		arg.Pan,
 		arg.Pin,
-		arg.CountryID,
-		arg.StateID,
-		arg.CityID,
 		arg.CountryName,
 		arg.StateName,
 		arg.CityName,
@@ -147,7 +141,7 @@ func (q *Queries) CreateVendor(ctx context.Context, arg CreateVendorParams) erro
 		arg.RemarksAddress,
 		arg.CommonBankDetails,
 		arg.IncomeTaxType,
-		arg.Project,
+		arg.ProjectID,
 		arg.Status,
 		arg.FromAccountType,
 		arg.AccountName,
@@ -159,7 +153,8 @@ func (q *Queries) CreateVendor(ctx context.Context, arg CreateVendorParams) erro
 		arg.AccountNumber,
 		arg.NameOfBank,
 		arg.IfscCode,
-		arg.IfscCodeID,
+		arg.Address,
+		arg.SignatureUrl,
 	)
 	return err
 }
@@ -180,7 +175,7 @@ func (q *Queries) DeleteVendor(ctx context.Context, arg DeleteVendorParams) erro
 }
 
 const getVendorByCode = `-- name: GetVendorByCode :one
-SELECT id, tenant_id, vendor_code, vendor_name, vendor_email, vendor_mobile, account_type, vendor_nick_name, activity_type, email, mobile, gstin, pan, pin, country_id, state_id, city_id, country_name, state_name, city_name, msme_classification, msme, msme_registration_number, msme_start_date, msme_end_date, material_nature, gst_defaulted, section_206ab_verified, beneficiary_name, remarks_address, common_bank_details, income_tax_type, project_id, status, from_account_type, account_name, short_name, parent, file_paths, code_auto_generated, (status = 'ACTIVE') as is_active, created_by, created_at, updated_at, account_number, name_of_bank, ifsc_code, ifsc_code_id FROM vendors 
+SELECT id, tenant_id, vendor_code, vendor_name, vendor_email, vendor_mobile, vendor_nick_name, activity_type, email, mobile, gstin, pan, pin, country_name, state_name, city_name, msme, msme_registration_number, msme_start_date, msme_end_date, material_nature, gst_defaulted, section_206ab_verified, beneficiary_name, remarks_address, common_bank_details, income_tax_type, project_id, from_account_type, account_name, short_name, parent, file_paths, code_auto_generated, created_by, created_at, updated_at, account_number, name_of_bank, ifsc_code, account_type, status, msme_classification, address, signature_url FROM vendors 
 WHERE vendor_code = $1 AND tenant_id = $2
 `
 
@@ -199,7 +194,6 @@ func (q *Queries) GetVendorByCode(ctx context.Context, arg GetVendorByCodeParams
 		&i.VendorName,
 		&i.VendorEmail,
 		&i.VendorMobile,
-		&i.VendorType,
 		&i.VendorNickName,
 		&i.ActivityType,
 		&i.Email,
@@ -207,13 +201,9 @@ func (q *Queries) GetVendorByCode(ctx context.Context, arg GetVendorByCodeParams
 		&i.Gstin,
 		&i.Pan,
 		&i.Pin,
-		&i.CountryID,
-		&i.StateID,
-		&i.CityID,
 		&i.CountryName,
 		&i.StateName,
 		&i.CityName,
-		&i.MsmeClassification,
 		&i.Msme,
 		&i.MsmeRegistrationNumber,
 		&i.MsmeStartDate,
@@ -225,28 +215,30 @@ func (q *Queries) GetVendorByCode(ctx context.Context, arg GetVendorByCodeParams
 		&i.RemarksAddress,
 		&i.CommonBankDetails,
 		&i.IncomeTaxType,
-		&i.Project,
-		&i.Status,
+		&i.ProjectID,
 		&i.FromAccountType,
 		&i.AccountName,
 		&i.ShortName,
 		&i.Parent,
 		&i.FilePaths,
 		&i.CodeAutoGenerated,
-		&i.IsActive,
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.AccountNumber,
 		&i.NameOfBank,
 		&i.IfscCode,
-		&i.IfscCodeID,
+		&i.AccountType,
+		&i.Status,
+		&i.MsmeClassification,
+		&i.Address,
+		&i.SignatureUrl,
 	)
 	return &i, err
 }
 
 const getVendorByEmail = `-- name: GetVendorByEmail :one
-SELECT id, tenant_id, vendor_code, vendor_name, vendor_email, vendor_mobile, account_type, vendor_nick_name, activity_type, email, mobile, gstin, pan, pin, country_id, state_id, city_id, country_name, state_name, city_name, msme_classification, msme, msme_registration_number, msme_start_date, msme_end_date, material_nature, gst_defaulted, section_206ab_verified, beneficiary_name, remarks_address, common_bank_details, income_tax_type, project_id, status, from_account_type, account_name, short_name, parent, file_paths, code_auto_generated, (status = 'ACTIVE') as is_active, created_by, created_at, updated_at, account_number, name_of_bank, ifsc_code, ifsc_code_id FROM vendors 
+SELECT id, tenant_id, vendor_code, vendor_name, vendor_email, vendor_mobile, vendor_nick_name, activity_type, email, mobile, gstin, pan, pin, country_name, state_name, city_name, msme, msme_registration_number, msme_start_date, msme_end_date, material_nature, gst_defaulted, section_206ab_verified, beneficiary_name, remarks_address, common_bank_details, income_tax_type, project_id, from_account_type, account_name, short_name, parent, file_paths, code_auto_generated, created_by, created_at, updated_at, account_number, name_of_bank, ifsc_code, account_type, status, msme_classification, address, signature_url FROM vendors 
 WHERE vendor_email = $1 AND tenant_id = $2
 `
 
@@ -265,7 +257,6 @@ func (q *Queries) GetVendorByEmail(ctx context.Context, arg GetVendorByEmailPara
 		&i.VendorName,
 		&i.VendorEmail,
 		&i.VendorMobile,
-		&i.VendorType,
 		&i.VendorNickName,
 		&i.ActivityType,
 		&i.Email,
@@ -273,13 +264,9 @@ func (q *Queries) GetVendorByEmail(ctx context.Context, arg GetVendorByEmailPara
 		&i.Gstin,
 		&i.Pan,
 		&i.Pin,
-		&i.CountryID,
-		&i.StateID,
-		&i.CityID,
 		&i.CountryName,
 		&i.StateName,
 		&i.CityName,
-		&i.MsmeClassification,
 		&i.Msme,
 		&i.MsmeRegistrationNumber,
 		&i.MsmeStartDate,
@@ -291,28 +278,30 @@ func (q *Queries) GetVendorByEmail(ctx context.Context, arg GetVendorByEmailPara
 		&i.RemarksAddress,
 		&i.CommonBankDetails,
 		&i.IncomeTaxType,
-		&i.Project,
-		&i.Status,
+		&i.ProjectID,
 		&i.FromAccountType,
 		&i.AccountName,
 		&i.ShortName,
 		&i.Parent,
 		&i.FilePaths,
 		&i.CodeAutoGenerated,
-		&i.IsActive,
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.AccountNumber,
 		&i.NameOfBank,
 		&i.IfscCode,
-		&i.IfscCodeID,
+		&i.AccountType,
+		&i.Status,
+		&i.MsmeClassification,
+		&i.Address,
+		&i.SignatureUrl,
 	)
 	return &i, err
 }
 
 const getVendorByID = `-- name: GetVendorByID :one
-SELECT id, tenant_id, vendor_code, vendor_name, vendor_email, vendor_mobile, account_type, vendor_nick_name, activity_type, email, mobile, gstin, pan, pin, country_id, state_id, city_id, country_name, state_name, city_name, msme_classification, msme, msme_registration_number, msme_start_date, msme_end_date, material_nature, gst_defaulted, section_206ab_verified, beneficiary_name, remarks_address, common_bank_details, income_tax_type, project_id, status, from_account_type, account_name, short_name, parent, file_paths, code_auto_generated, (status = 'ACTIVE') as is_active, created_by, created_at, updated_at, account_number, name_of_bank, ifsc_code, ifsc_code_id FROM vendors 
+SELECT id, tenant_id, vendor_code, vendor_name, vendor_email, vendor_mobile, vendor_nick_name, activity_type, email, mobile, gstin, pan, pin, country_name, state_name, city_name, msme, msme_registration_number, msme_start_date, msme_end_date, material_nature, gst_defaulted, section_206ab_verified, beneficiary_name, remarks_address, common_bank_details, income_tax_type, project_id, from_account_type, account_name, short_name, parent, file_paths, code_auto_generated, created_by, created_at, updated_at, account_number, name_of_bank, ifsc_code, account_type, status, msme_classification, address, signature_url FROM vendors 
 WHERE id = $1 AND tenant_id = $2
 `
 
@@ -331,7 +320,6 @@ func (q *Queries) GetVendorByID(ctx context.Context, arg GetVendorByIDParams) (*
 		&i.VendorName,
 		&i.VendorEmail,
 		&i.VendorMobile,
-		&i.VendorType,
 		&i.VendorNickName,
 		&i.ActivityType,
 		&i.Email,
@@ -339,13 +327,9 @@ func (q *Queries) GetVendorByID(ctx context.Context, arg GetVendorByIDParams) (*
 		&i.Gstin,
 		&i.Pan,
 		&i.Pin,
-		&i.CountryID,
-		&i.StateID,
-		&i.CityID,
 		&i.CountryName,
 		&i.StateName,
 		&i.CityName,
-		&i.MsmeClassification,
 		&i.Msme,
 		&i.MsmeRegistrationNumber,
 		&i.MsmeStartDate,
@@ -357,22 +341,24 @@ func (q *Queries) GetVendorByID(ctx context.Context, arg GetVendorByIDParams) (*
 		&i.RemarksAddress,
 		&i.CommonBankDetails,
 		&i.IncomeTaxType,
-		&i.Project,
-		&i.Status,
+		&i.ProjectID,
 		&i.FromAccountType,
 		&i.AccountName,
 		&i.ShortName,
 		&i.Parent,
 		&i.FilePaths,
 		&i.CodeAutoGenerated,
-		&i.IsActive,
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.AccountNumber,
 		&i.NameOfBank,
 		&i.IfscCode,
-		&i.IfscCodeID,
+		&i.AccountType,
+		&i.Status,
+		&i.MsmeClassification,
+		&i.Address,
+		&i.SignatureUrl,
 	)
 	return &i, err
 }
@@ -420,9 +406,9 @@ func (q *Queries) IsVendorEmailExists(ctx context.Context, arg IsVendorEmailExis
 }
 
 const listVendors = `-- name: ListVendors :many
-SELECT id, tenant_id, vendor_code, vendor_name, vendor_email, vendor_mobile, account_type, vendor_nick_name, activity_type, email, mobile, gstin, pan, pin, country_id, state_id, city_id, country_name, state_name, city_name, msme_classification, msme, msme_registration_number, msme_start_date, msme_end_date, material_nature, gst_defaulted, section_206ab_verified, beneficiary_name, remarks_address, common_bank_details, income_tax_type, project_id, status, from_account_type, account_name, short_name, parent, file_paths, code_auto_generated, (status = 'ACTIVE') as is_active, created_by, created_at, updated_at, account_number, name_of_bank, ifsc_code, ifsc_code_id FROM vendors 
+SELECT id, tenant_id, vendor_code, vendor_name, vendor_email, vendor_mobile, vendor_nick_name, activity_type, email, mobile, gstin, pan, pin, country_name, state_name, city_name, msme, msme_registration_number, msme_start_date, msme_end_date, material_nature, gst_defaulted, section_206ab_verified, beneficiary_name, remarks_address, common_bank_details, income_tax_type, project_id, from_account_type, account_name, short_name, parent, file_paths, code_auto_generated, created_by, created_at, updated_at, account_number, name_of_bank, ifsc_code, account_type, status, msme_classification, address, signature_url FROM vendors 
 WHERE tenant_id = $1
-    AND ($2::boolean IS NULL OR ($2 = true AND status = 'ACTIVE') OR ($2 = false AND status != 'ACTIVE'))
+    AND ($2::text IS NULL OR status::text = $2)
     AND ($3::text IS NULL OR account_type::text = $3)
     AND ($4::text IS NULL OR project_id = $4)
     AND ($5::text IS NULL OR (
@@ -436,7 +422,7 @@ LIMIT $6 OFFSET $7
 
 type ListVendorsParams struct {
 	TenantID uuid.UUID `db:"tenant_id" json:"tenant_id"`
-	Column2  bool      `db:"column_2" json:"column_2"`
+	Column2  string    `db:"column_2" json:"column_2"`
 	Column3  string    `db:"column_3" json:"column_3"`
 	Column4  string    `db:"column_4" json:"column_4"`
 	Column5  string    `db:"column_5" json:"column_5"`
@@ -468,7 +454,6 @@ func (q *Queries) ListVendors(ctx context.Context, arg ListVendorsParams) ([]*Ve
 			&i.VendorName,
 			&i.VendorEmail,
 			&i.VendorMobile,
-			&i.VendorType,
 			&i.VendorNickName,
 			&i.ActivityType,
 			&i.Email,
@@ -476,13 +461,9 @@ func (q *Queries) ListVendors(ctx context.Context, arg ListVendorsParams) ([]*Ve
 			&i.Gstin,
 			&i.Pan,
 			&i.Pin,
-			&i.CountryID,
-			&i.StateID,
-			&i.CityID,
 			&i.CountryName,
 			&i.StateName,
 			&i.CityName,
-			&i.MsmeClassification,
 			&i.Msme,
 			&i.MsmeRegistrationNumber,
 			&i.MsmeStartDate,
@@ -494,22 +475,24 @@ func (q *Queries) ListVendors(ctx context.Context, arg ListVendorsParams) ([]*Ve
 			&i.RemarksAddress,
 			&i.CommonBankDetails,
 			&i.IncomeTaxType,
-			&i.Project,
-			&i.Status,
+			&i.ProjectID,
 			&i.FromAccountType,
 			&i.AccountName,
 			&i.ShortName,
 			&i.Parent,
 			&i.FilePaths,
 			&i.CodeAutoGenerated,
-			&i.IsActive,
 			&i.CreatedBy,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.AccountNumber,
 			&i.NameOfBank,
 			&i.IfscCode,
-			&i.IfscCodeID,
+			&i.AccountType,
+			&i.Status,
+			&i.MsmeClassification,
+			&i.Address,
+			&i.SignatureUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -528,42 +511,62 @@ UPDATE vendors SET
     vendor_mobile = COALESCE($5, vendor_mobile),
     pan = COALESCE($6, pan),
     beneficiary_name = COALESCE($7, beneficiary_name),
-    is_active = COALESCE($8, is_active),
-    msme_classification = COALESCE($9, msme_classification),
-    msme = COALESCE($10, msme),
-    msme_registration_number = COALESCE($11, msme_registration_number),
-    material_nature = COALESCE($12, material_nature),
-    gst_defaulted = COALESCE($13, gst_defaulted),
-    section_206ab_verified = COALESCE($14, section_206ab_verified),
-    income_tax_type = COALESCE($15, income_tax_type),
-    project_id = COALESCE($16, project_id),
-    account_name = COALESCE($17, account_name),
-    status = COALESCE($18, status),
-    remarks_address = COALESCE($19, remarks_address),
+    msme_classification = COALESCE($8, msme_classification),
+    msme = COALESCE($9, msme),
+    msme_registration_number = COALESCE($10, msme_registration_number),
+    material_nature = COALESCE($11, material_nature),
+    gst_defaulted = COALESCE($12, gst_defaulted),
+    section_206ab_verified = COALESCE($13, section_206ab_verified),
+    income_tax_type = COALESCE($14, income_tax_type),
+    project_id = COALESCE($15, project_id),
+    account_name = COALESCE($16, account_name),
+    status = COALESCE($17, status),
+    remarks_address = COALESCE($18, remarks_address),
+    address = COALESCE($19, address),
+    signature_url = COALESCE($20, signature_url),
+    pin = COALESCE($21, pin),
+    activity_type = COALESCE($22, activity_type),
+    vendor_nick_name = COALESCE($23, vendor_nick_name),
+    country_name = COALESCE($24, country_name),
+    state_name = COALESCE($25, state_name),
+    city_name = COALESCE($26, city_name),
+    from_account_type = COALESCE($27, from_account_type),
+    short_name = COALESCE($28, short_name),
+    parent = COALESCE($29, parent),
     updated_at = NOW()
 WHERE id = $1 AND tenant_id = $2
 `
 
 type UpdateVendorParams struct {
-	ID                     uuid.UUID `db:"id" json:"id"`
-	TenantID               uuid.UUID `db:"tenant_id" json:"tenant_id"`
-	VendorName             string    `db:"vendor_name" json:"vendor_name"`
-	VendorEmail            string    `db:"vendor_email" json:"vendor_email"`
-	VendorMobile           *string   `db:"vendor_mobile" json:"vendor_mobile"`
-	Pan                    string    `db:"pan" json:"pan"`
-	BeneficiaryName        string    `db:"beneficiary_name" json:"beneficiary_name"`
-	IsActive               *bool     `db:"is_active" json:"is_active"`
-	MsmeClassification     *string   `db:"msme_classification" json:"msme_classification"`
-	Msme                   *string   `db:"msme" json:"msme"`
-	MsmeRegistrationNumber *string   `db:"msme_registration_number" json:"msme_registration_number"`
-	MaterialNature         *string   `db:"material_nature" json:"material_nature"`
-	GstDefaulted           *string   `db:"gst_defaulted" json:"gst_defaulted"`
-	Section206abVerified   *string   `db:"section_206ab_verified" json:"section_206ab_verified"`
-	IncomeTaxType          *string   `db:"income_tax_type" json:"income_tax_type"`
-	Project                *string   `db:"project" json:"project"`
-	AccountName            *string   `db:"account_name" json:"account_name"`
-	Status                 *string   `db:"status" json:"status"`
-	RemarksAddress         *string   `db:"remarks_address" json:"remarks_address"`
+	ID                     uuid.UUID                  `db:"id" json:"id"`
+	TenantID               uuid.UUID                  `db:"tenant_id" json:"tenant_id"`
+	VendorName             string                     `db:"vendor_name" json:"vendor_name"`
+	VendorEmail            string                     `db:"vendor_email" json:"vendor_email"`
+	VendorMobile           *string                    `db:"vendor_mobile" json:"vendor_mobile"`
+	Pan                    string                     `db:"pan" json:"pan"`
+	BeneficiaryName        string                     `db:"beneficiary_name" json:"beneficiary_name"`
+	MsmeClassification     NullMsmeClassificationEnum `db:"msme_classification" json:"msme_classification"`
+	Msme                   *string                    `db:"msme" json:"msme"`
+	MsmeRegistrationNumber *string                    `db:"msme_registration_number" json:"msme_registration_number"`
+	MaterialNature         *string                    `db:"material_nature" json:"material_nature"`
+	GstDefaulted           *string                    `db:"gst_defaulted" json:"gst_defaulted"`
+	Section206abVerified   *string                    `db:"section_206ab_verified" json:"section_206ab_verified"`
+	IncomeTaxType          *string                    `db:"income_tax_type" json:"income_tax_type"`
+	ProjectID              *string                    `db:"project_id" json:"project_id"`
+	AccountName            *string                    `db:"account_name" json:"account_name"`
+	Status                 NullVendorStatusEnum       `db:"status" json:"status"`
+	RemarksAddress         *string                    `db:"remarks_address" json:"remarks_address"`
+	Address                *string                    `db:"address" json:"address"`
+	SignatureUrl           *string                    `db:"signature_url" json:"signature_url"`
+	Pin                    *string                    `db:"pin" json:"pin"`
+	ActivityType           *string                    `db:"activity_type" json:"activity_type"`
+	VendorNickName         *string                    `db:"vendor_nick_name" json:"vendor_nick_name"`
+	CountryName            *string                    `db:"country_name" json:"country_name"`
+	StateName              *string                    `db:"state_name" json:"state_name"`
+	CityName               *string                    `db:"city_name" json:"city_name"`
+	FromAccountType        *string                    `db:"from_account_type" json:"from_account_type"`
+	ShortName              *string                    `db:"short_name" json:"short_name"`
+	Parent                 *string                    `db:"parent" json:"parent"`
 }
 
 func (q *Queries) UpdateVendor(ctx context.Context, arg UpdateVendorParams) error {
@@ -575,7 +578,6 @@ func (q *Queries) UpdateVendor(ctx context.Context, arg UpdateVendorParams) erro
 		arg.VendorMobile,
 		arg.Pan,
 		arg.BeneficiaryName,
-		arg.IsActive,
 		arg.MsmeClassification,
 		arg.Msme,
 		arg.MsmeRegistrationNumber,
@@ -583,10 +585,21 @@ func (q *Queries) UpdateVendor(ctx context.Context, arg UpdateVendorParams) erro
 		arg.GstDefaulted,
 		arg.Section206abVerified,
 		arg.IncomeTaxType,
-		arg.Project,
+		arg.ProjectID,
 		arg.AccountName,
 		arg.Status,
 		arg.RemarksAddress,
+		arg.Address,
+		arg.SignatureUrl,
+		arg.Pin,
+		arg.ActivityType,
+		arg.VendorNickName,
+		arg.CountryName,
+		arg.StateName,
+		arg.CityName,
+		arg.FromAccountType,
+		arg.ShortName,
+		arg.Parent,
 	)
 	return err
 }
@@ -610,6 +623,8 @@ func (q *Queries) UpdateVendorCode(ctx context.Context, arg UpdateVendorCodePara
 	_, err := q.db.Exec(ctx, updateVendorCode,
 		arg.ID,
 		arg.TenantID,
+		arg.VendorCode,
+		arg.CodeAutoGenerated,
 	)
 	return err
 }

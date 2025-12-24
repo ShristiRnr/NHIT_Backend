@@ -29,6 +29,10 @@ const (
 // DepartmentServiceClient is the client API for DepartmentService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// =====================
+// Service Definition
+// =====================
 type DepartmentServiceClient interface {
 	CreateDepartment(ctx context.Context, in *CreateDepartmentRequest, opts ...grpc.CallOption) (*DepartmentResponse, error)
 	GetDepartment(ctx context.Context, in *GetDepartmentRequest, opts ...grpc.CallOption) (*DepartmentResponse, error)
@@ -98,6 +102,10 @@ func (c *departmentServiceClient) ListDepartments(ctx context.Context, in *ListD
 // DepartmentServiceServer is the server API for DepartmentService service.
 // All implementations must embed UnimplementedDepartmentServiceServer
 // for forward compatibility.
+//
+// =====================
+// Service Definition
+// =====================
 type DepartmentServiceServer interface {
 	CreateDepartment(context.Context, *CreateDepartmentRequest) (*DepartmentResponse, error)
 	GetDepartment(context.Context, *GetDepartmentRequest) (*DepartmentResponse, error)

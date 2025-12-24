@@ -4,28 +4,28 @@ package config
 func GetPermissionMap() map[string][]string {
 	return map[string][]string{
 		// Vendor CRUD operations
-		"/vendor.v1.VendorService/CreateVendor":       {"create-vendor"},
-		"/vendor.v1.VendorService/GetVendor":          {"view-vendors"},
-		"/vendor.v1.VendorService/GetVendorByCode":    {"view-vendors"},
-		"/vendor.v1.VendorService/ListVendors":        {"view-vendors"},
-		"/vendor.v1.VendorService/UpdateVendor":       {"edit-vendor"},
-		"/vendor.v1.VendorService/DeleteVendor":       {"delete-vendor"},
+		"/vendor.VendorService/CreateVendor":       {"create-vendors"}, // Plural
+		"/vendor.VendorService/GetVendor":          {"view-vendors"},
+		"/vendor.VendorService/GetVendorByCode":    {"view-vendors"},
+		"/vendor.VendorService/ListVendors":        {"view-vendors"},
+		"/vendor.VendorService/UpdateVendor":       {"edit-vendors"}, // Plural
+		"/vendor.VendorService/DeleteVendor":       {"delete-vendors"}, // Plural
 		
 		// Vendor Code operations
-		"/vendor.v1.VendorService/GenerateVendorCode":   {"create-vendor"},
-		"/vendor.v1.VendorService/UpdateVendorCode":     {"edit-vendor"},
-		"/vendor.v1.VendorService/RegenerateVendorCode": {"edit-vendor"},
+		"/vendor.VendorService/GenerateVendorCode":   {"create-vendors"}, // Plural
+		"/vendor.VendorService/UpdateVendorCode":     {"edit-vendors"}, // Plural
+		"/vendor.VendorService/RegenerateVendorCode": {"edit-vendors"}, // Plural
 		
 		// Vendor Account operations
-		"/vendor.v1.VendorService/CreateVendorAccount":     {"manage-vendor-accounts"},
-		"/vendor.v1.VendorService/GetVendorAccounts":       {"view-vendors"},
-		"/vendor.v1.VendorService/GetVendorBankingDetails": {"view-vendors"},
-		"/vendor.v1.VendorService/UpdateVendorAccount":     {"manage-vendor-accounts"},
-		"/vendor.v1.VendorService/DeleteVendorAccount":     {"manage-vendor-accounts"},
-		"/vendor.v1.VendorService/ToggleAccountStatus":     {"manage-vendor-accounts"},
+		"/vendor.VendorService/CreateVendorAccount":     {"edit-vendors"}, // Aligned to edit-vendors or create-vendors? User list has create-vendors. Accounts are sub-resource. I'll use edit-vendors for updating, create-vendors for creating? User list: "edit-vendors", "create-vendors". Vendor accounts are part of vendor mgmt. I'll map to edit-vendors generally or verify if "manage-vendor-accounts" is in list. It is NOT. I will use `edit-vendors` for account management to be safe and consistent.
+		"/vendor.VendorService/GetVendorAccounts":       {"view-vendors"},
+		"/vendor.VendorService/GetVendorBankingDetails": {"view-vendors"},
+		"/vendor.VendorService/UpdateVendorAccount":     {"edit-vendors"},
+		"/vendor.VendorService/DeleteVendorAccount":     {"edit-vendors"},
+		"/vendor.VendorService/ToggleAccountStatus":     {"edit-vendors"},
 		
 		// Dropdown operations
-		"/vendor.v1.VendorService/GetProjectsDropdown":     {"view-vendors"},
+		"/vendor.VendorService/GetProjectsDropdown":     {"view-vendors"},
 	}
 }
 
@@ -33,6 +33,6 @@ func GetPermissionMap() map[string][]string {
 func GetPublicMethods() []string {
 	return []string{
 		// Vendor code generation can be public for UI
-		"/vendor.v1.VendorService/GenerateVendorCode",
+		"/vendor.VendorService/GenerateVendorCode",
 	}
 }

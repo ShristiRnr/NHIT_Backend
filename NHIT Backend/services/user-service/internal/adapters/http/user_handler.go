@@ -47,7 +47,8 @@ type UserResponse struct {
 }
 
 type ListUsersResponse struct {
-	Users []*UserResponse `json:"users"`
+	Users      []*UserResponse `json:"users"`
+	TotalCount int64           `json:"total_count"`
 }
 
 type ListRolesResponse struct {
@@ -175,7 +176,7 @@ func (h *UserHTTPHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 
 	limit, offset := parsePagination(r)
 
-	users, err := h.userService.ListUsersByTenant(r.Context(), tenantID, limit, offset)
+	users, total, err := h.userService.ListUsersByTenant(r.Context(), tenantID, limit, offset)
 	if err != nil {
 		http.Error(w, "Failed to list users: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -186,7 +187,10 @@ func (h *UserHTTPHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 		responses[i] = toHTTPUser(u, nil, nil)
 	}
 
-	respondJSON(w, http.StatusOK, &ListUsersResponse{Users: responses})
+	respondJSON(w, http.StatusOK, &ListUsersResponse{
+		Users:      responses,
+		TotalCount: total,
+	})
 }
 
 func (h *UserHTTPHandler) AssignRolesToUser(w http.ResponseWriter, r *http.Request) {

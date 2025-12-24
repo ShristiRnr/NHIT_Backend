@@ -14,10 +14,11 @@ import (
 
 const countDepartments = `-- name: CountDepartments :one
 SELECT COUNT(*) FROM departments
+WHERE ($1::uuid IS NULL OR org_id = $1)
 `
 
-func (q *Queries) CountDepartments(ctx context.Context) (int64, error) {
-	row := q.db.QueryRow(ctx, countDepartments)
+func (q *Queries) CountDepartments(ctx context.Context, dollar_1 pgtype.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countDepartments, dollar_1)
 	var count int64
 	err := row.Scan(&count)
 	return count, err

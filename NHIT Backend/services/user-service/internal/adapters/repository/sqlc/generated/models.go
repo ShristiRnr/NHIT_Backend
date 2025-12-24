@@ -91,8 +91,9 @@ type User struct {
 	// When the user was deactivated
 	DeactivatedAt pgtype.Timestamptz `db:"deactivated_at" json:"deactivated_at"`
 	// Who deactivated the user
-	DeactivatedBy     pgtype.UUID `db:"deactivated_by" json:"deactivated_by"`
-	DeactivatedByName *string     `db:"deactivated_by_name" json:"deactivated_by_name"`
+	DeactivatedBy pgtype.UUID `db:"deactivated_by" json:"deactivated_by"`
+	// Name of the user who deactivated the user
+	DeactivatedByName *string `db:"deactivated_by_name" json:"deactivated_by_name"`
 }
 
 // Tracks user login history

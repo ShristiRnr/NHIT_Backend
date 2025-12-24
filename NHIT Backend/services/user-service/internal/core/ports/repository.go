@@ -14,7 +14,8 @@ type UserRepository interface {
 	GetByEmail(ctx context.Context, tenantID uuid.UUID, email string) (*domain.User, error)
 	Update(ctx context.Context, user *domain.User) (*domain.User, error)
 	Delete(ctx context.Context, userID uuid.UUID) error
-	ListByTenant(ctx context.Context, tenantID uuid.UUID, limit, offset int32) ([]*domain.User, error)
+	ListByTenant(ctx context.Context, tenantID uuid.UUID, limit, offset int32) ([]*domain.User, int64, error)
+	ListByOrganization(ctx context.Context, tenantID, orgID uuid.UUID, limit, offset int32) ([]*domain.User, int64, error)
 	UpdateLastLogin(ctx context.Context, userID uuid.UUID, lastLoginIP, userAgent string) error
 }
 
@@ -35,8 +36,8 @@ type UserRoleRepository interface {
 type RoleRepository interface {
 	Create(ctx context.Context, role *domain.Role) (*domain.Role, error)
 	GetByID(ctx context.Context, roleID uuid.UUID) (*domain.Role, error)
-	ListByTenant(ctx context.Context, tenantID uuid.UUID) ([]*domain.Role, error)
-	ListByTenantAndOrgIncludingSystem(ctx context.Context, tenantID uuid.UUID, orgID *uuid.UUID) ([]*domain.Role, error)
+	ListByTenant(ctx context.Context, tenantID uuid.UUID, limit, offset int32) ([]*domain.Role, int64, error)
+	ListByTenantAndOrgIncludingSystem(ctx context.Context, tenantID uuid.UUID, orgID *uuid.UUID, limit, offset int32) ([]*domain.Role, int64, error)
 	Update(ctx context.Context, role *domain.Role) (*domain.Role, error)
 	Delete(ctx context.Context, roleID uuid.UUID) error
 }
@@ -50,12 +51,12 @@ type PermissionRepository interface {
 // LoginHistoryRepository defines the interface for login history data operations
 type LoginHistoryRepository interface {
 	Create(ctx context.Context, history *domain.UserLoginHistory) (*domain.UserLoginHistory, error)
-	ListByUser(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]*domain.UserLoginHistory, error)
+	ListByUser(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]*domain.UserLoginHistory, int64, error)
 }
 
 // ActivityLogRepository defines the interface for activity log data operations
 type ActivityLogRepository interface {
 	Create(ctx context.Context, log *domain.ActivityLog) (*domain.ActivityLog, error)
-	List(ctx context.Context, limit, offset int32) ([]*domain.ActivityLog, error)
+	List(ctx context.Context, limit, offset int32) ([]*domain.ActivityLog, int64, error)
 	Count(ctx context.Context) (int64, error)
 }

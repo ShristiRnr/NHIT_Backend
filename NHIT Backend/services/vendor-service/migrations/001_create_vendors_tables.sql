@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS vendors (
     -- Legacy banking fields (for backward compatibility)
     account_number VARCHAR(50),
     name_of_bank VARCHAR(255),
-    ifsc_code VARCHAR(15),
+    ifsc_code VARCHAR(15)
 );
 
 -- Create vendor_accounts table

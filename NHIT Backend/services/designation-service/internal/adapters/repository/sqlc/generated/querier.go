@@ -8,9 +8,11 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
+	CountDesignations(ctx context.Context, dollar_1 pgtype.UUID) (int64, error)
 	CreateDesignation(ctx context.Context, arg CreateDesignationParams) (*Designation, error)
 	DeleteDesignation(ctx context.Context, id uuid.UUID) error
 	GetDesignationByID(ctx context.Context, id uuid.UUID) (*Designation, error)

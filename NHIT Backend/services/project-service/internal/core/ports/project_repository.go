@@ -12,5 +12,5 @@ type ProjectRepository interface {
 	// Project CRUD operations
 	Create(ctx context.Context, project *domain.Project) (*domain.Project, error)
 	GetByID(ctx context.Context, projectID uuid.UUID) (*domain.Project, error)
-	ListByOrganization(ctx context.Context, orgID uuid.UUID) ([]*domain.Project, error)
+	ListByOrganization(ctx context.Context, orgID uuid.UUID, limit, offset int) ([]*domain.Project, int, error)
 }

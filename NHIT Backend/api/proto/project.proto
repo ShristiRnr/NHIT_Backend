@@ -54,10 +54,21 @@ message GetProjectResponse {
 
 message ListProjectsByOrganizationRequest {
   string org_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message PaginationMetadata {
+  int32 current_page = 1;
+  int32 page_size = 2;
+  int32 total_items = 3;
+  int32 total_pages = 4;
 }
 
 message ListProjectsByOrganizationResponse {
   repeated Project projects = 1;
+  int32 total_count = 2;
+  PaginationMetadata pagination = 3;
 }
 
 message CreateProjectRequest {

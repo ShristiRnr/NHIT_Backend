@@ -4,11 +4,11 @@ package config
 func GetPermissionMap() map[string][]string {
 	return map[string][]string{
 		// Designation CRUD operations
-		"/designation.v1.DesignationService/CreateDesignation": {"create-designation"},
-		"/designation.v1.DesignationService/GetDesignation":    {"view-designations"},
-		"/designation.v1.DesignationService/ListDesignations":  {"view-designations"},
-		"/designation.v1.DesignationService/UpdateDesignation": {"edit-designation"},
-		"/designation.v1.DesignationService/DeleteDesignation": {"delete-designation"},
+		"/designations.DesignationService/CreateDesignation": {"create-designation"},
+		"/designations.DesignationService/GetDesignation":    {"view-designation"},
+		"/designations.DesignationService/ListDesignations":  {"view-designation"},
+		"/designations.DesignationService/UpdateDesignation": {"edit-designation"},
+		"/designations.DesignationService/DeleteDesignation": {"delete-designation"},
 	}
 }
 

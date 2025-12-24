@@ -181,6 +181,13 @@ VALUES
     ('switch-organizations', 'Switch between organizations', 'organizations', 'switch', TRUE),
     ('create-organizations', 'Create organizations', 'organizations', 'create', TRUE),
 
+    --Projects
+    ('create-projects', 'Create projects', 'projects', 'create', TRUE),
+    ('edit-projects', 'Edit projects', 'projects', 'edit', TRUE),
+    ('delete-projects', 'Delete projects', 'projects', 'delete', TRUE),
+    ('view-projects', 'View projects', 'projects', 'view', TRUE),
+    ('approve-projects', 'Approve projects', 'projects', 'approve', TRUE),
+    
     -- Tickets & approvals
     ('view-tickets', 'View tickets', 'tickets', 'view', TRUE),
     ('create-tickets', 'Create tickets', 'tickets', 'create', TRUE),

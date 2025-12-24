@@ -148,10 +148,11 @@ func (ns NullNatureOfExpenses) Value() (driver.Value, error) {
 type StatusEnum string
 
 const (
-	StatusEnumSTATUSAPPROVED StatusEnum = "STATUS_APPROVED"
-	StatusEnumSTATUSPENDING  StatusEnum = "STATUS_PENDING"
-	StatusEnumSTATUSREJECTED StatusEnum = "STATUS_REJECTED"
-	StatusEnumSTATUSDRAFT    StatusEnum = "STATUS_DRAFT"
+	StatusEnumSTATUSAPPROVED  StatusEnum = "STATUS_APPROVED"
+	StatusEnumSTATUSPENDING   StatusEnum = "STATUS_PENDING"
+	StatusEnumSTATUSREJECTED  StatusEnum = "STATUS_REJECTED"
+	StatusEnumSTATUSDRAFT     StatusEnum = "STATUS_DRAFT"
+	StatusEnumSTATUSCANCELLED StatusEnum = "STATUS_CANCELLED"
 )
 
 func (e *StatusEnum) Scan(src interface{}) error {
@@ -256,18 +257,18 @@ type GreenNote struct {
 	Gst                               sql.NullString
 	TotalAmount                       sql.NullString
 	EnableMultipleInvoices            bool
-	Status                            NullStatusEnum
-	ApprovalFor                       NullApprovalFor
+	Status                            sql.NullString
+	ApprovalFor                       sql.NullString
 	DepartmentName                    sql.NullString
 	WorkOrderNo                       sql.NullString
 	PoNumber                          sql.NullString
 	WorkOrderDate                     sql.NullString
-	ExpenseCategoryType               NullExpenseCategoryType
+	ExpenseCategoryType               sql.NullString
 	MsmeClassification                sql.NullString
 	ActivityType                      sql.NullString
 	BriefOfGoodsServices              sql.NullString
 	DelayedDamages                    sql.NullString
-	NatureOfExpenses                  NullNatureOfExpenses
+	NatureOfExpenses                  sql.NullString
 	BudgetExpenditure                 sql.NullString
 	ActualExpenditure                 sql.NullString
 	ExpenditureOverBudget             sql.NullString
@@ -280,6 +281,8 @@ type GreenNote struct {
 	AmountRetainedForNonSubmission    sql.NullString
 	CreatedAt                         time.Time
 	UpdatedAt                         time.Time
+	OrgID                             sql.NullString
+	TenantID                          sql.NullString
 }
 
 type GreenNoteDocument struct {

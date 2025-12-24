@@ -72,9 +72,9 @@ func (h *projectHandler) CreateProject(ctx context.Context, req *pb.CreateProjec
 	}, nil
 }
 
-// ListProjectsByOrganization lists all projects for an organization
+// ListProjectsByOrganization lists all projects for an organization with pagination
 func (h *projectHandler) ListProjectsByOrganization(ctx context.Context, req *pb.ListProjectsByOrganizationRequest) (*pb.ListProjectsByOrganizationResponse, error) {
-	fmt.Printf("DEBUG PROJECT HANDLER: ListProjectsByOrganization called for OrgID=%s\n", req.OrgId)
+	fmt.Printf("DEBUG PROJECT HANDLER: ListProjectsByOrganization called for OrgID=%s, Page=%d, PageSize=%d\n", req.OrgId, req.Page, req.PageSize)
 	
 	orgID, err := uuid.Parse(req.OrgId)
 	if err != nil {
@@ -82,21 +82,39 @@ func (h *projectHandler) ListProjectsByOrganization(ctx context.Context, req *pb
 		return nil, status.Errorf(codes.InvalidArgument, "invalid organization ID: %v", err)
 	}
 
-	projects, err := h.service.ListProjectsByOrganization(ctx, orgID)
+	page := req.Page
+	if page < 1 {
+		page = 1
+	}
+	pageSize := req.PageSize
+	if pageSize < 1 {
+		pageSize = 10
+	}
+
+	projects, totalCount, err := h.service.ListProjectsByOrganization(ctx, orgID, page, pageSize)
 	if err != nil {
 		fmt.Printf("DEBUG PROJECT HANDLER: Service returned error: %v\n", err)
 		return nil, status.Errorf(codes.Internal, "failed to list projects: %v", err)
 	}
 	
-	fmt.Printf("DEBUG PROJECT HANDLER: Found %d projects for OrgID=%s\n", len(projects), req.OrgId)
+	fmt.Printf("DEBUG PROJECT HANDLER: Found %d projects (Total: %d) for OrgID=%s\n", len(projects), totalCount, req.OrgId)
 
 	var pbProjects []*pb.Project
 	for _, p := range projects {
 		pbProjects = append(pbProjects, toProtoProject(p))
 	}
 
+	totalPages := (int32(totalCount) + pageSize - 1) / pageSize
+
 	return &pb.ListProjectsByOrganizationResponse{
-		Projects: pbProjects,
+		Projects:   pbProjects,
+		TotalCount: int32(totalCount),
+		Pagination: &pb.PaginationMetadata{
+			CurrentPage: page,
+			PageSize:    pageSize,
+			TotalItems:  int32(totalCount),
+			TotalPages:  totalPages,
+		},
 	}, nil
 }
 

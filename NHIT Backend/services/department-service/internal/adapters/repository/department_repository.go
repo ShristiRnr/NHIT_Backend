@@ -102,7 +102,7 @@ func (r *departmentRepository) List(ctx context.Context, orgID *uuid.UUID, page,
 	}
 
 	// Get total count
-	total, err := r.queries.CountDepartments(ctx)
+	total, err := r.queries.CountDepartments(ctx, orgIDParam)
 	if err != nil {
 		return nil, 0, err
 	}

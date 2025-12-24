@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"log"
+
 
 	"nhit-note/services/greennote-service/internal/core/ports"
 
 	greennotepb "nhit-note/api/pb/greennotepb"
+	approvalpb "nhit-note/api/pb/approvalpb"
 
 	departmentpb "github.com/ShristiRnr/NHIT_Backend/api/pb/departmentpb"
 	projectpb "github.com/ShristiRnr/NHIT_Backend/api/pb/projectpb"
@@ -28,6 +31,7 @@ type GreenNoteService struct {
 	projectClient  projectpb.ProjectServiceClient
 	vendorClient   vendorpb.VendorServiceClient
 	deptClient     departmentpb.DepartmentServiceClient
+	approvalClient approvalpb.ApprovalServiceClient
 }
 
 const (
@@ -35,10 +39,11 @@ const (
 	statusApproved = "approved"
 	statusRejected = "rejected"
 	statusDraft    = "draft"
+	statusCancelled = "cancelled"
 )
 
 // NewGreenNoteService constructs a GreenNoteService from its required ports.
-func NewGreenNoteService(repo ports.GreenNoteRepository, events ports.EventPublisher, projectClient projectpb.ProjectServiceClient, vendorClient vendorpb.VendorServiceClient, deptClient departmentpb.DepartmentServiceClient) *GreenNoteService {
+func NewGreenNoteService(repo ports.GreenNoteRepository, events ports.EventPublisher, projectClient projectpb.ProjectServiceClient, vendorClient vendorpb.VendorServiceClient, deptClient departmentpb.DepartmentServiceClient, approvalClient approvalpb.ApprovalServiceClient) *GreenNoteService {
 	if events == nil {
 		// Guard with internal no-op publisher when none is provided.
 		return &GreenNoteService{
@@ -48,6 +53,7 @@ func NewGreenNoteService(repo ports.GreenNoteRepository, events ports.EventPubli
 			projectClient:  projectClient,
 			vendorClient:   vendorClient,
 			deptClient:     deptClient,
+			approvalClient: approvalClient,
 		}
 	}
 	return &GreenNoteService{
@@ -57,6 +63,7 @@ func NewGreenNoteService(repo ports.GreenNoteRepository, events ports.EventPubli
 		projectClient:  projectClient,
 		vendorClient:   vendorClient,
 		deptClient:     deptClient,
+		approvalClient: approvalClient,
 	}
 }
 
@@ -155,20 +162,32 @@ func (s *GreenNoteService) ListGreenNotes(ctx context.Context, req *greennotepb.
 	}
 
 	// Log user context for debugging
-	fmt.Printf("🔐 Authenticated User - ID: %s, Type: %s, Tenant: %s, Org: %s\n",
-		userCtx.UserID, userCtx.UserType, userCtx.TenantID, userCtx.OrgID)
+	fmt.Println("\n========== ListGreenNotes SERVICE LAYER DEBUG ==========")
+	fmt.Printf("🔐 Authenticated User:\n")
+	fmt.Printf("  - User ID: %s\n", userCtx.UserID)
+	fmt.Printf("  - User Type: %s\n", userCtx.UserType)
+	fmt.Printf("  - Tenant ID: %s\n", userCtx.TenantID)
+	fmt.Printf("  - Org ID: %s\n", userCtx.OrgID)
+	fmt.Printf("  - Email: %s\n", userCtx.Email)
+	fmt.Printf("  - Roles: %v\n", userCtx.Roles)
+	fmt.Printf("\n📋 Request Details:\n")
+	fmt.Printf("  - Status Filter: %v\n", req.GetStatus())
+	fmt.Printf("  - Include All: %v\n", req.GetIncludeAll())
+	fmt.Printf("  - Page: %d\n", req.GetPage())
+	fmt.Printf("  - PerPage: %d\n", req.GetPerPage())
+	fmt.Printf("========== CALLING REPOSITORY ==========\n")
 
 	// TODO: Add business logic based on user type
 	// For example: VENDORS can only see their own notes, USERS can see notes within their org
 
-	return s.repo.List(ctx, req)
+	return s.repo.List(ctx, req, userCtx.OrgID, userCtx.TenantID)
 }
 
 func (s *GreenNoteService) GetGreenNote(ctx context.Context, req *greennotepb.GetGreenNoteRequest) (*greennotepb.GreenNoteDetailResponse, error) {
 	if req == nil || strings.TrimSpace(req.GetId()) == "" {
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
-	payload, err := s.repo.Get(ctx, req.GetId())
+	payload, _, _, err := s.repo.Get(ctx, req.GetId())
 	if err != nil {
 		if errors.Is(err, ports.ErrNotFound) {
 			return nil, status.Error(codes.NotFound, "green note not found")
@@ -208,15 +227,141 @@ func (s *GreenNoteService) CreateGreenNote(ctx context.Context, req *greennotepb
 	if err := validateGreenNotePayload(note, true); err != nil {
 		return nil, err
 	}
-	id, err := s.repo.Create(ctx, note)
+	id, err := s.repo.Create(ctx, note, userCtx.OrgID, userCtx.TenantID)
 	if err != nil {
 		return nil, err
+	}
+
+	// Call Approval Service to initiate approval flow
+	if s.approvalClient != nil {
+		// Ensure Auth Token is propagated
+		ctx = s.ensureOutgoingContext(ctx)
+
+		// Lookup IDs from Names
+		// 1. Department ID
+		var departmentID string
+		availableDepts := []string{}
+		log.Printf("🔍 [DEBUG] Looking up Department Name: '%s' (Trimmed: '%s')", note.DepartmentName, strings.TrimSpace(note.DepartmentName))
+		deptResp, err := s.deptClient.ListDepartments(ctx, &departmentpb.ListDepartmentsRequest{
+			Page:     1,
+			PageSize: 1000,
+		})
+		if err == nil {
+			for _, d := range deptResp.Departments {
+				availableDepts = append(availableDepts, fmt.Sprintf("'%s'", d.Name))
+				if strings.EqualFold(strings.TrimSpace(d.Name), strings.TrimSpace(note.DepartmentName)) {
+					departmentID = d.Id
+					log.Printf("✅ [DEBUG] Found Department ID: %s for Name: %s", departmentID, d.Name)
+					break
+				}
+			}
+		} else {
+			log.Printf("⚠️ [DEBUG] Failed to list departments: %v", err)
+			return nil, status.Errorf(codes.Internal, "failed to fetch departments for validation: %v", err)
+		}
+
+		if departmentID == "" {
+			msg := fmt.Sprintf("Department '%s' not found. Available: [%s]", note.DepartmentName, strings.Join(availableDepts, ", "))
+			log.Printf("❌ [ERROR] %s", msg)
+			return &greennotepb.GreenNoteResponse{
+				Success: false,
+				Message: msg,
+				Id:      id,
+			}, nil
+		}
+
+		// 2. Project ID
+		var projectID string
+		availableProjects := []string{}
+		log.Printf("🔍 [DEBUG] Looking up Project Name: '%s' in Org: %s", note.ProjectName, userCtx.OrgID)
+		projResp, err := s.projectClient.ListProjectsByOrganization(ctx, &projectpb.ListProjectsByOrganizationRequest{
+			OrgId: userCtx.OrgID,
+		})
+		if err == nil {
+			for _, p := range projResp.Projects {
+				availableProjects = append(availableProjects, fmt.Sprintf("'%s'", p.ProjectName))
+				if strings.EqualFold(strings.TrimSpace(p.ProjectName), strings.TrimSpace(note.ProjectName)) {
+					projectID = p.ProjectId
+					log.Printf("✅ [DEBUG] Found Project ID: %s for Name: %s", projectID, p.ProjectName)
+					break
+				}
+			}
+		} else {
+			log.Printf("⚠️ [DEBUG] Failed to list projects: %v", err)
+			return nil, status.Errorf(codes.Internal, "failed to fetch projects for validation: %v", err)
+		}
+
+		if projectID == "" {
+			msg := fmt.Sprintf("Project '%s' not found in Org %s. Available: [%s]", note.ProjectName, userCtx.OrgID, strings.Join(availableProjects, ", "))
+			log.Printf("❌ [ERROR] %s", msg)
+			return &greennotepb.GreenNoteResponse{
+				Success: false,
+				Message: msg,
+				Id:      id,
+			}, nil
+		}
+
+
+		// 3. Vendor ID (Requested by user)
+		var vendorID string
+		if note.SupplierName != "" {
+			log.Printf("🔍 [DEBUG] Looking up Vendor Name: '%s' for Tenant: %s", note.SupplierName, userCtx.TenantID)
+			vendorResp, err := s.vendorClient.ListVendors(ctx, &vendorpb.ListVendorsRequest{
+				TenantId: userCtx.TenantID,
+				Search:   &note.SupplierName,
+				Limit:    10, 
+			})
+			if err == nil {
+				// Search is fuzzy, so iterate to find exact match if possible, or take first valid one
+				for _, v := range vendorResp.Vendors {
+					if strings.EqualFold(strings.TrimSpace(v.VendorName), strings.TrimSpace(note.SupplierName)) {
+						vendorID = v.Id
+						log.Printf("✅ [DEBUG] Found Vendor ID: %s", vendorID)
+						break
+					}
+				}
+				if vendorID == "" && len(vendorResp.Vendors) > 0 {
+					log.Printf("⚠️ [DEBUG] Exact match not found for Vendor '%s', ignoring partial matches.", note.SupplierName)
+				}
+			} else {
+				log.Printf("⚠️ [DEBUG] Failed to list vendors: %v", err)
+			}
+		}
+
+		// 3. Initiate Approval via gRPC
+		approvalReq := &approvalpb.InitiateApprovalRequest{
+			SlNo:            id,
+			Amount:          note.TotalAmount,
+			DepartmentId:    departmentID,
+			ProjectId:       projectID,
+			CreatedByUserId: userCtx.UserID,
+			SourceType:      "GREENNOTE",
+		}
+
+		approvalResp, err := s.approvalClient.InitiateApproval(ctx, approvalReq)
+		if err != nil {
+			fmt.Printf("⚠️ Failed to initiate approval (service might be down): %v\n", err)
+			return &greennotepb.GreenNoteResponse{
+				Success: true,
+				Message: fmt.Sprintf("green note created, but approval initiation failed: %v", err),
+				Id:      id,
+			}, nil
+		}
+
+		// Update status based on approval service response
+		if approvalResp.Status != "" {
+			note.DetailedStatus = approvalResp.Status
+			// Update status in DB
+			if err := s.repo.Update(ctx, id, note, userCtx.OrgID, userCtx.TenantID); err != nil {
+				fmt.Printf("⚠️ Failed to update status after approval initiation: %v\n", err)
+			}
+		}
 	}
 
 	s.publishApprovedIfNeeded(ctx, id, nil, note)
 	return &greennotepb.GreenNoteResponse{
 		Success: true,
-		Message: "green note created",
+		Message: "green note created and approval initiated",
 	}, nil
 }
 
@@ -227,7 +372,7 @@ func (s *GreenNoteService) UpdateGreenNote(ctx context.Context, req *greennotepb
 	if req.Note == nil {
 		return nil, status.Error(codes.InvalidArgument, "note payload is required")
 	}
-	existing, err := s.repo.Get(ctx, req.GetId())
+	existing, _, _, err := s.repo.Get(ctx, req.GetId())
 	if err != nil {
 		if errors.Is(err, ports.ErrNotFound) {
 			return nil, status.Error(codes.NotFound, "green note not found")
@@ -236,7 +381,7 @@ func (s *GreenNoteService) UpdateGreenNote(ctx context.Context, req *greennotepb
 	}
 
 	// Only draft notes can be updated.
-	if normalizeStatus(existing.GetStatus()) != statusDraft {
+	if existing.GetDetailedStatus() != statusDraft {
 		return nil, status.Error(codes.FailedPrecondition, "only draft notes can be updated")
 	}
 
@@ -244,10 +389,16 @@ func (s *GreenNoteService) UpdateGreenNote(ctx context.Context, req *greennotepb
 	applyDerivedFields(note)
 	normalizeStatusOnUpdate(existing, note)
 
+	// Validate JWT token
+	userCtx, err := s.validateJWT(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	if err := validateGreenNotePayload(note, false); err != nil {
 		return nil, err
 	}
-	if err := s.repo.Update(ctx, req.GetId(), note); err != nil {
+	if err := s.repo.Update(ctx, req.GetId(), note, userCtx.OrgID, userCtx.TenantID); err != nil {
 		return nil, err
 	}
 
@@ -265,7 +416,13 @@ func (s *GreenNoteService) CancelGreenNote(ctx context.Context, req *greennotepb
 	if strings.TrimSpace(req.GetCancelReason()) == "" {
 		return nil, status.Error(codes.InvalidArgument, "cancel_reason is required")
 	}
-	if err := s.repo.Cancel(ctx, req.GetId(), req.GetCancelReason()); err != nil {
+	// Validate JWT token
+	userCtx, err := s.validateJWT(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.repo.Cancel(ctx, req.GetId(), req.GetCancelReason(), userCtx.OrgID, userCtx.TenantID); err != nil {
 		if errors.Is(err, ports.ErrNotFound) {
 			return nil, status.Error(codes.NotFound, "green note not found")
 		}
@@ -445,46 +602,57 @@ func (n noopEventPublisher) PublishGreenNoteApproved(ctx context.Context, event 
 
 // normalizeStatus converts various textual representations into canonical
 // internal status values.
+// normalizeStatus converts various textual representations into canonical
+// internal status values (raw strings).
 func normalizeStatus(raw string) string {
 	s := strings.TrimSpace(strings.ToLower(raw))
+	if s == "" {
+		return ""
+	}
+	// Check for standard ones
 	switch s {
 	case "pending", "status_pending":
 		return statusPending
 	case "approved", "status_approved":
 		return statusApproved
-	case "rejected", "status_rejected":
+	case "rejected", "reject", "status_rejected":
 		return statusRejected
 	case "draft", "status_draft":
 		return statusDraft
-	default:
-		return ""
+	case "cancelled", "status_cancelled":
+		return statusCancelled
 	}
+	// For dynamic status, return as is (lowercase)
+	return s
 }
 
 // normalizeStatusOnCreate sets the default status for a newly created
-// GreenNote. If the client does not provide a valid status, "pending" is used.
+// GreenNote. Default is "pending".
 func normalizeStatusOnCreate(p *greennotepb.GreenNotePayload) {
 	if p == nil {
 		return
 	}
-	if s := normalizeStatus(p.GetStatus()); s != "" {
-		p.Status = s
-		return
+	// Since status is now an enum in proto, we might not get a string.
+	// But the user might have set DetailedStatus.
+	detailed := normalizeStatus(p.GetDetailedStatus())
+	if detailed != "" {
+		p.DetailedStatus = detailed
+	} else {
+		p.DetailedStatus = statusPending
 	}
-	p.Status = statusPending
 }
 
-// normalizeStatusOnUpdate keeps the existing status when the client omits it,
-// but normalizes any provided value.
+// normalizeStatusOnUpdate preserves or updates the status string.
 func normalizeStatusOnUpdate(existing, updated *greennotepb.GreenNotePayload) {
 	if existing == nil || updated == nil {
 		return
 	}
-	if s := normalizeStatus(updated.GetStatus()); s != "" {
-		updated.Status = s
-		return
+	detailed := normalizeStatus(updated.GetDetailedStatus())
+	if detailed != "" {
+		updated.DetailedStatus = detailed
+	} else {
+		updated.DetailedStatus = existing.GetDetailedStatus()
 	}
-	updated.Status = existing.GetStatus()
 }
 
 // applyDerivedFields computes financial and budget-related derived fields on
@@ -542,13 +710,13 @@ func (s *GreenNoteService) publishApprovedIfNeeded(ctx context.Context, id strin
 	if s == nil || s.events == nil || after == nil {
 		return
 	}
-	newStatus := normalizeStatus(after.GetStatus())
+	newStatus := normalizeStatus(after.GetDetailedStatus())
 	if newStatus != statusApproved {
 		return
 	}
 	oldStatus := ""
 	if before != nil {
-		oldStatus = normalizeStatus(before.GetStatus())
+		oldStatus = normalizeStatus(before.GetDetailedStatus())
 	}
 	if oldStatus == statusApproved {
 		return

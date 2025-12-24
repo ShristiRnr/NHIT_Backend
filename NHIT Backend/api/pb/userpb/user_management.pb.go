@@ -570,6 +570,9 @@ func (x *RoleResponse) GetCreatedBy() string {
 type ListRolesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TenantId      string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	Page          int32                  `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`
+	PageSize      int32                  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	OrgId         *string                `protobuf:"bytes,4,opt,name=org_id,json=orgId,proto3,oneof" json:"org_id,omitempty"` // Filter by organization
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -611,9 +614,31 @@ func (x *ListRolesRequest) GetTenantId() string {
 	return ""
 }
 
+func (x *ListRolesRequest) GetPage() int32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *ListRolesRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListRolesRequest) GetOrgId() string {
+	if x != nil && x.OrgId != nil {
+		return *x.OrgId
+	}
+	return ""
+}
+
 type ListRolesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Roles         []*RoleResponse        `protobuf:"bytes,1,rep,name=roles,proto3" json:"roles,omitempty"`
+	Pagination    *PaginationMetadata    `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -655,6 +680,13 @@ func (x *ListRolesResponse) GetRoles() []*RoleResponse {
 	return nil
 }
 
+func (x *ListRolesResponse) GetPagination() *PaginationMetadata {
+	if x != nil {
+		return x.Pagination
+	}
+	return nil
+}
+
 // ====================
 // Users
 // ====================
@@ -678,6 +710,7 @@ type User struct {
 	DeactivatedAt     *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=deactivated_at,json=deactivatedAt,proto3" json:"deactivated_at,omitempty"`               // When user was deactivated
 	DeactivatedBy     string                 `protobuf:"bytes,15,opt,name=deactivated_by,json=deactivatedBy,proto3" json:"deactivated_by,omitempty"`               // Who deactivated the user
 	DeactivatedByName string                 `protobuf:"bytes,18,opt,name=deactivated_by_name,json=deactivatedByName,proto3" json:"deactivated_by_name,omitempty"` // Name of the user who deactivated
+	SignatureUrl      string                 `protobuf:"bytes,19,opt,name=signature_url,json=signatureUrl,proto3" json:"signature_url,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -834,6 +867,13 @@ func (x *User) GetDeactivatedBy() string {
 func (x *User) GetDeactivatedByName() string {
 	if x != nil {
 		return x.DeactivatedByName
+	}
+	return ""
+}
+
+func (x *User) GetSignatureUrl() string {
+	if x != nil {
+		return x.SignatureUrl
 	}
 	return ""
 }
@@ -1011,6 +1051,9 @@ type UpdateUserRequest struct {
 	Email         string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
 	Password      string                 `protobuf:"bytes,4,opt,name=password,proto3" json:"password,omitempty"`
 	Roles         []string               `protobuf:"bytes,5,rep,name=roles,proto3" json:"roles,omitempty"`
+	DepartmentId  string                 `protobuf:"bytes,6,opt,name=department_id,json=departmentId,proto3" json:"department_id,omitempty"`
+	DesignationId string                 `protobuf:"bytes,7,opt,name=designation_id,json=designationId,proto3" json:"designation_id,omitempty"`
+	IsActive      bool                   `protobuf:"varint,8,opt,name=is_active,json=isActive,proto3" json:"is_active,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1078,6 +1121,27 @@ func (x *UpdateUserRequest) GetRoles() []string {
 		return x.Roles
 	}
 	return nil
+}
+
+func (x *UpdateUserRequest) GetDepartmentId() string {
+	if x != nil {
+		return x.DepartmentId
+	}
+	return ""
+}
+
+func (x *UpdateUserRequest) GetDesignationId() string {
+	if x != nil {
+		return x.DesignationId
+	}
+	return ""
+}
+
+func (x *UpdateUserRequest) GetIsActive() bool {
+	if x != nil {
+		return x.IsActive
+	}
+	return false
 }
 
 type DeleteUserRequest struct {
@@ -1231,7 +1295,7 @@ func (x *ListUsersRequest) GetPageSize() int32 {
 type ListUsersResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Users         []*User                `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
-	Pagination    *PageResponse          `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	Pagination    *PaginationMetadata    `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1273,7 +1337,7 @@ func (x *ListUsersResponse) GetUsers() []*User {
 	return nil
 }
 
-func (x *ListUsersResponse) GetPagination() *PageResponse {
+func (x *ListUsersResponse) GetPagination() *PaginationMetadata {
 	if x != nil {
 		return x.Pagination
 	}
@@ -1333,14 +1397,19 @@ func (x *AssignRolesRequest) GetRoles() []string {
 }
 
 type UserResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Email         string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
-	Roles         []string               `protobuf:"bytes,4,rep,name=roles,proto3" json:"roles,omitempty"`
-	Permissions   []string               `protobuf:"bytes,5,rep,name=permissions,proto3" json:"permissions,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	UserId          string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Name            string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Email           string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
+	Roles           []string               `protobuf:"bytes,4,rep,name=roles,proto3" json:"roles,omitempty"`
+	Permissions     []string               `protobuf:"bytes,5,rep,name=permissions,proto3" json:"permissions,omitempty"`
+	DepartmentId    string                 `protobuf:"bytes,6,opt,name=department_id,json=departmentId,proto3" json:"department_id,omitempty"`
+	DesignationId   string                 `protobuf:"bytes,7,opt,name=designation_id,json=designationId,proto3" json:"designation_id,omitempty"`
+	DepartmentName  string                 `protobuf:"bytes,8,opt,name=department_name,json=departmentName,proto3" json:"department_name,omitempty"`
+	DesignationName string                 `protobuf:"bytes,9,opt,name=designation_name,json=designationName,proto3" json:"designation_name,omitempty"`
+	IsActive        bool                   `protobuf:"varint,10,opt,name=is_active,json=isActive,proto3" json:"is_active,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *UserResponse) Reset() {
@@ -1406,6 +1475,41 @@ func (x *UserResponse) GetPermissions() []string {
 		return x.Permissions
 	}
 	return nil
+}
+
+func (x *UserResponse) GetDepartmentId() string {
+	if x != nil {
+		return x.DepartmentId
+	}
+	return ""
+}
+
+func (x *UserResponse) GetDesignationId() string {
+	if x != nil {
+		return x.DesignationId
+	}
+	return ""
+}
+
+func (x *UserResponse) GetDepartmentName() string {
+	if x != nil {
+		return x.DepartmentName
+	}
+	return ""
+}
+
+func (x *UserResponse) GetDesignationName() string {
+	if x != nil {
+		return x.DesignationName
+	}
+	return ""
+}
+
+func (x *UserResponse) GetIsActive() bool {
+	if x != nil {
+		return x.IsActive
+	}
+	return false
 }
 
 // ====================
@@ -1777,7 +1881,7 @@ func (x *ListUserLoginHistoriesRequest) GetPage() *PageRequest {
 type ListUserLoginHistoriesResponse struct {
 	state         protoimpl.MessageState      `protogen:"open.v1"`
 	Histories     []*UserLoginHistoryResponse `protobuf:"bytes,1,rep,name=histories,proto3" json:"histories,omitempty"`
-	Pagination    *PageResponse               `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	Pagination    *PaginationMetadata         `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1819,7 +1923,7 @@ func (x *ListUserLoginHistoriesResponse) GetHistories() []*UserLoginHistoryRespo
 	return nil
 }
 
-func (x *ListUserLoginHistoriesResponse) GetPagination() *PageResponse {
+func (x *ListUserLoginHistoriesResponse) GetPagination() *PaginationMetadata {
 	if x != nil {
 		return x.Pagination
 	}
@@ -1881,7 +1985,7 @@ func (x *PageRequest) GetPageSize() int32 {
 	return 0
 }
 
-type PageResponse struct {
+type PaginationMetadata struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Page          int32                  `protobuf:"varint,1,opt,name=page,proto3" json:"page,omitempty"`
 	PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
@@ -1891,20 +1995,20 @@ type PageResponse struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *PageResponse) Reset() {
-	*x = PageResponse{}
+func (x *PaginationMetadata) Reset() {
+	*x = PaginationMetadata{}
 	mi := &file_user_management_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *PageResponse) String() string {
+func (x *PaginationMetadata) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*PageResponse) ProtoMessage() {}
+func (*PaginationMetadata) ProtoMessage() {}
 
-func (x *PageResponse) ProtoReflect() protoreflect.Message {
+func (x *PaginationMetadata) ProtoReflect() protoreflect.Message {
 	mi := &file_user_management_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1916,33 +2020,33 @@ func (x *PageResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PageResponse.ProtoReflect.Descriptor instead.
-func (*PageResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use PaginationMetadata.ProtoReflect.Descriptor instead.
+func (*PaginationMetadata) Descriptor() ([]byte, []int) {
 	return file_user_management_proto_rawDescGZIP(), []int{26}
 }
 
-func (x *PageResponse) GetPage() int32 {
+func (x *PaginationMetadata) GetPage() int32 {
 	if x != nil {
 		return x.Page
 	}
 	return 0
 }
 
-func (x *PageResponse) GetPageSize() int32 {
+func (x *PaginationMetadata) GetPageSize() int32 {
 	if x != nil {
 		return x.PageSize
 	}
 	return 0
 }
 
-func (x *PageResponse) GetTotalPages() int32 {
+func (x *PaginationMetadata) GetTotalPages() int32 {
 	if x != nil {
 		return x.TotalPages
 	}
 	return 0
 }
 
-func (x *PageResponse) GetTotalItems() int32 {
+func (x *PaginationMetadata) GetTotalItems() int32 {
 	if x != nil {
 		return x.TotalItems
 	}
@@ -2521,7 +2625,7 @@ func (x *ListActivityLogsRequest) GetPage() *PageRequest {
 type ListActivityLogsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Logs          []*ActivityLog         `protobuf:"bytes,1,rep,name=logs,proto3" json:"logs,omitempty"`
-	Pagination    *PageResponse          `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	Pagination    *PaginationMetadata    `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2563,7 +2667,7 @@ func (x *ListActivityLogsResponse) GetLogs() []*ActivityLog {
 	return nil
 }
 
-func (x *ListActivityLogsResponse) GetPagination() *PageResponse {
+func (x *ListActivityLogsResponse) GetPagination() *PaginationMetadata {
 	if x != nil {
 		return x.Pagination
 	}
@@ -2896,7 +3000,7 @@ func (x *ListNotificationsRequest) GetPage() *PageRequest {
 type ListNotificationsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Notifications []*Notification        `protobuf:"bytes,1,rep,name=notifications,proto3" json:"notifications,omitempty"`
-	Pagination    *PageResponse          `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	Pagination    *PaginationMetadata    `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2938,7 +3042,7 @@ func (x *ListNotificationsResponse) GetNotifications() []*Notification {
 	return nil
 }
 
-func (x *ListNotificationsResponse) GetPagination() *PageResponse {
+func (x *ListNotificationsResponse) GetPagination() *PaginationMetadata {
 	if x != nil {
 		return x.Pagination
 	}
@@ -2997,6 +3101,8 @@ type ListRolesByOrganizationRequest struct {
 	OrgId              string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
 	TenantId           string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
 	IncludeSystemRoles bool                   `protobuf:"varint,3,opt,name=include_system_roles,json=includeSystemRoles,proto3" json:"include_system_roles,omitempty"` // Include system roles or only custom
+	Page               int32                  `protobuf:"varint,4,opt,name=page,proto3" json:"page,omitempty"`
+	PageSize           int32                  `protobuf:"varint,5,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -3050,6 +3156,20 @@ func (x *ListRolesByOrganizationRequest) GetIncludeSystemRoles() bool {
 		return x.IncludeSystemRoles
 	}
 	return false
+}
+
+func (x *ListRolesByOrganizationRequest) GetPage() int32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *ListRolesByOrganizationRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
 }
 
 type CloneRoleRequest struct {
@@ -4007,9 +4127,11 @@ func (x *RolesDropdownResponse) GetRoles() []*DropdownItem {
 // ====================
 type UploadSignatureRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`                      // User ID for signature upload
-	SignatureFile []byte                 `protobuf:"bytes,2,opt,name=signature_file,json=signatureFile,proto3" json:"signature_file,omitempty"` // Signature image file data
-	Filename      string                 `protobuf:"bytes,3,opt,name=filename,proto3" json:"filename,omitempty"`                                // Original filename
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	FileContent   []byte                 `protobuf:"bytes,2,opt,name=file_content,json=fileContent,proto3" json:"file_content,omitempty"`
+	SignatureFile []byte                 `protobuf:"bytes,3,opt,name=signature_file,json=signatureFile,proto3" json:"signature_file,omitempty"`
+	Filename      string                 `protobuf:"bytes,4,opt,name=filename,proto3" json:"filename,omitempty"`
+	SignatureUrl  string                 `protobuf:"bytes,5,opt,name=signature_url,json=signatureUrl,proto3" json:"signature_url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4051,6 +4173,13 @@ func (x *UploadSignatureRequest) GetUserId() string {
 	return ""
 }
 
+func (x *UploadSignatureRequest) GetFileContent() []byte {
+	if x != nil {
+		return x.FileContent
+	}
+	return nil
+}
+
 func (x *UploadSignatureRequest) GetSignatureFile() []byte {
 	if x != nil {
 		return x.SignatureFile
@@ -4065,10 +4194,23 @@ func (x *UploadSignatureRequest) GetFilename() string {
 	return ""
 }
 
+func (x *UploadSignatureRequest) GetSignatureUrl() string {
+	if x != nil {
+		return x.SignatureUrl
+	}
+	return ""
+}
+
 type UploadSignatureResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	SignatureUrl  string                 `protobuf:"bytes,1,opt,name=signature_url,json=signatureUrl,proto3" json:"signature_url,omitempty"` // MinIO URL/path to uploaded signature
-	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`                               // Success/error message
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	SignatureUrl  string                 `protobuf:"bytes,4,opt,name=signature_url,json=signatureUrl,proto3" json:"signature_url,omitempty"`
+	FileName      string                 `protobuf:"bytes,5,opt,name=file_name,json=fileName,proto3" json:"file_name,omitempty"`
+	MimeType      string                 `protobuf:"bytes,6,opt,name=mime_type,json=mimeType,proto3" json:"mime_type,omitempty"`
+	FileSize      int64                  `protobuf:"varint,7,opt,name=file_size,json=fileSize,proto3" json:"file_size,omitempty"`
+	UploadedAt    *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=uploaded_at,json=uploadedAt,proto3" json:"uploaded_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4103,11 +4245,11 @@ func (*UploadSignatureResponse) Descriptor() ([]byte, []int) {
 	return file_user_management_proto_rawDescGZIP(), []int{62}
 }
 
-func (x *UploadSignatureResponse) GetSignatureUrl() string {
+func (x *UploadSignatureResponse) GetSuccess() bool {
 	if x != nil {
-		return x.SignatureUrl
+		return x.Success
 	}
-	return ""
+	return false
 }
 
 func (x *UploadSignatureResponse) GetMessage() string {
@@ -4115,6 +4257,48 @@ func (x *UploadSignatureResponse) GetMessage() string {
 		return x.Message
 	}
 	return ""
+}
+
+func (x *UploadSignatureResponse) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *UploadSignatureResponse) GetSignatureUrl() string {
+	if x != nil {
+		return x.SignatureUrl
+	}
+	return ""
+}
+
+func (x *UploadSignatureResponse) GetFileName() string {
+	if x != nil {
+		return x.FileName
+	}
+	return ""
+}
+
+func (x *UploadSignatureResponse) GetMimeType() string {
+	if x != nil {
+		return x.MimeType
+	}
+	return ""
+}
+
+func (x *UploadSignatureResponse) GetFileSize() int64 {
+	if x != nil {
+		return x.FileSize
+	}
+	return 0
+}
+
+func (x *UploadSignatureResponse) GetUploadedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UploadedAt
+	}
+	return nil
 }
 
 var File_user_management_proto protoreflect.FileDescriptor
@@ -4172,11 +4356,18 @@ const file_user_management_proto_rawDesc = "" +
 	"\x06org_id\x18\x05 \x01(\tR\x05orgId\x12 \n" +
 	"\vdescription\x18\x06 \x01(\tR\vdescription\x12\x1d\n" +
 	"\n" +
-	"created_by\x18\a \x01(\tR\tcreatedBy\"/\n" +
+	"created_by\x18\a \x01(\tR\tcreatedBy\"\x87\x01\n" +
 	"\x10ListRolesRequest\x12\x1b\n" +
-	"\ttenant_id\x18\x01 \x01(\tR\btenantId\"8\n" +
+	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x12\n" +
+	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x1b\n" +
+	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\x12\x1a\n" +
+	"\x06org_id\x18\x04 \x01(\tH\x00R\x05orgId\x88\x01\x01B\t\n" +
+	"\a_org_id\"m\n" +
 	"\x11ListRolesResponse\x12#\n" +
-	"\x05roles\x18\x01 \x03(\v2\r.RoleResponseR\x05roles\"\x8f\x06\n" +
+	"\x05roles\x18\x01 \x03(\v2\r.RoleResponseR\x05roles\x123\n" +
+	"\n" +
+	"pagination\x18\x02 \x01(\v2\x13.PaginationMetadataR\n" +
+	"pagination\"\xb4\x06\n" +
 	"\x04User\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
@@ -4199,7 +4390,8 @@ const file_user_management_proto_rawDesc = "" +
 	"\tis_active\x18\r \x01(\bR\bisActive\x12A\n" +
 	"\x0edeactivated_at\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampR\rdeactivatedAt\x12%\n" +
 	"\x0edeactivated_by\x18\x0f \x01(\tR\rdeactivatedBy\x12.\n" +
-	"\x13deactivated_by_name\x18\x12 \x01(\tR\x11deactivatedByName\"\xa2\x04\n" +
+	"\x13deactivated_by_name\x18\x12 \x01(\tR\x11deactivatedByName\x12#\n" +
+	"\rsignature_url\x18\x13 \x01(\tR\fsignatureUrl\"\xa2\x04\n" +
 	"\x11CreateUserRequest\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x15\n" +
 	"\x06org_id\x18\x02 \x01(\tR\x05orgId\x12\x14\n" +
@@ -4219,13 +4411,16 @@ const file_user_management_proto_rawDesc = "" +
 	"\x13bank_account_number\x18\r \x01(\tR\x11bankAccountNumber\x12\x1b\n" +
 	"\tifsc_code\x18\x0e \x01(\tR\bifscCode\x12%\n" +
 	"\x0esignature_file\x18\x0f \x01(\fR\rsignatureFile\x12-\n" +
-	"\x12signature_filename\x18\x10 \x01(\tR\x11signatureFilename\"\x88\x01\n" +
+	"\x12signature_filename\x18\x10 \x01(\tR\x11signatureFilename\"\xf1\x01\n" +
 	"\x11UpdateUserRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
 	"\x05email\x18\x03 \x01(\tR\x05email\x12\x1a\n" +
 	"\bpassword\x18\x04 \x01(\tR\bpassword\x12\x14\n" +
-	"\x05roles\x18\x05 \x03(\tR\x05roles\",\n" +
+	"\x05roles\x18\x05 \x03(\tR\x05roles\x12#\n" +
+	"\rdepartment_id\x18\x06 \x01(\tR\fdepartmentId\x12%\n" +
+	"\x0edesignation_id\x18\a \x01(\tR\rdesignationId\x12\x1b\n" +
+	"\tis_active\x18\b \x01(\bR\bisActive\",\n" +
 	"\x11DeleteUserRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\")\n" +
 	"\x0eGetUserRequest\x12\x17\n" +
@@ -4233,21 +4428,27 @@ const file_user_management_proto_rawDesc = "" +
 	"\x10ListUsersRequest\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x12\n" +
 	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x1b\n" +
-	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\"_\n" +
+	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\"e\n" +
 	"\x11ListUsersResponse\x12\x1b\n" +
-	"\x05users\x18\x01 \x03(\v2\x05.UserR\x05users\x12-\n" +
+	"\x05users\x18\x01 \x03(\v2\x05.UserR\x05users\x123\n" +
 	"\n" +
-	"pagination\x18\x02 \x01(\v2\r.PageResponseR\n" +
+	"pagination\x18\x02 \x01(\v2\x13.PaginationMetadataR\n" +
 	"pagination\"C\n" +
 	"\x12AssignRolesRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x14\n" +
-	"\x05roles\x18\x02 \x03(\tR\x05roles\"\x89\x01\n" +
+	"\x05roles\x18\x02 \x03(\tR\x05roles\"\xc6\x02\n" +
 	"\fUserResponse\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
 	"\x05email\x18\x03 \x01(\tR\x05email\x12\x14\n" +
 	"\x05roles\x18\x04 \x03(\tR\x05roles\x12 \n" +
-	"\vpermissions\x18\x05 \x03(\tR\vpermissions\"[\n" +
+	"\vpermissions\x18\x05 \x03(\tR\vpermissions\x12#\n" +
+	"\rdepartment_id\x18\x06 \x01(\tR\fdepartmentId\x12%\n" +
+	"\x0edesignation_id\x18\a \x01(\tR\rdesignationId\x12'\n" +
+	"\x0fdepartment_name\x18\b \x01(\tR\x0edepartmentName\x12)\n" +
+	"\x10designation_name\x18\t \x01(\tR\x0fdesignationName\x12\x1b\n" +
+	"\tis_active\x18\n" +
+	" \x01(\bR\bisActive\"[\n" +
 	"\x13CreateTenantRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1a\n" +
@@ -4277,16 +4478,16 @@ const file_user_management_proto_rawDesc = "" +
 	"login_time\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tloginTime\"Z\n" +
 	"\x1dListUserLoginHistoriesRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12 \n" +
-	"\x04page\x18\x02 \x01(\v2\f.PageRequestR\x04page\"\x88\x01\n" +
+	"\x04page\x18\x02 \x01(\v2\f.PageRequestR\x04page\"\x8e\x01\n" +
 	"\x1eListUserLoginHistoriesResponse\x127\n" +
-	"\thistories\x18\x01 \x03(\v2\x19.UserLoginHistoryResponseR\thistories\x12-\n" +
+	"\thistories\x18\x01 \x03(\v2\x19.UserLoginHistoryResponseR\thistories\x123\n" +
 	"\n" +
-	"pagination\x18\x02 \x01(\v2\r.PageResponseR\n" +
+	"pagination\x18\x02 \x01(\v2\x13.PaginationMetadataR\n" +
 	"pagination\">\n" +
 	"\vPageRequest\x12\x12\n" +
 	"\x04page\x18\x01 \x01(\x05R\x04page\x12\x1b\n" +
-	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\"\x81\x01\n" +
-	"\fPageResponse\x12\x12\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\"\x87\x01\n" +
+	"\x12PaginationMetadata\x12\x12\n" +
 	"\x04page\x18\x01 \x01(\x05R\x04page\x12\x1b\n" +
 	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1f\n" +
 	"\vtotal_pages\x18\x03 \x01(\x05R\n" +
@@ -4329,11 +4530,11 @@ const file_user_management_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\";\n" +
 	"\x17ListActivityLogsRequest\x12 \n" +
-	"\x04page\x18\x01 \x01(\v2\f.PageRequestR\x04page\"k\n" +
+	"\x04page\x18\x01 \x01(\v2\f.PageRequestR\x04page\"q\n" +
 	"\x18ListActivityLogsResponse\x12 \n" +
-	"\x04logs\x18\x01 \x03(\v2\f.ActivityLogR\x04logs\x12-\n" +
+	"\x04logs\x18\x01 \x03(\v2\f.ActivityLogR\x04logs\x123\n" +
 	"\n" +
-	"pagination\x18\x02 \x01(\v2\r.PageResponseR\n" +
+	"pagination\x18\x02 \x01(\v2\x13.PaginationMetadataR\n" +
 	"pagination\"\xa7\x02\n" +
 	"\fNotification\x12'\n" +
 	"\x0fnotification_id\x18\x01 \x01(\tR\x0enotificationId\x12!\n" +
@@ -4363,18 +4564,20 @@ const file_user_management_proto_rawDesc = "" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1f\n" +
 	"\vunread_only\x18\x02 \x01(\bR\n" +
 	"unreadOnly\x12 \n" +
-	"\x04page\x18\x03 \x01(\v2\f.PageRequestR\x04page\"\x7f\n" +
+	"\x04page\x18\x03 \x01(\v2\f.PageRequestR\x04page\"\x85\x01\n" +
 	"\x19ListNotificationsResponse\x123\n" +
-	"\rnotifications\x18\x01 \x03(\v2\r.NotificationR\rnotifications\x12-\n" +
+	"\rnotifications\x18\x01 \x03(\v2\r.NotificationR\rnotifications\x123\n" +
 	"\n" +
-	"pagination\x18\x02 \x01(\v2\r.PageResponseR\n" +
+	"pagination\x18\x02 \x01(\v2\x13.PaginationMetadataR\n" +
 	"pagination\"H\n" +
 	"\x1dMarkNotificationAsReadRequest\x12'\n" +
-	"\x0fnotification_id\x18\x01 \x01(\tR\x0enotificationId\"\x86\x01\n" +
+	"\x0fnotification_id\x18\x01 \x01(\tR\x0enotificationId\"\xb7\x01\n" +
 	"\x1eListRolesByOrganizationRequest\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12\x1b\n" +
 	"\ttenant_id\x18\x02 \x01(\tR\btenantId\x120\n" +
-	"\x14include_system_roles\x18\x03 \x01(\bR\x12includeSystemRoles\"\x94\x01\n" +
+	"\x14include_system_roles\x18\x03 \x01(\bR\x12includeSystemRoles\x12\x12\n" +
+	"\x04page\x18\x04 \x01(\x05R\x04page\x12\x1b\n" +
+	"\tpage_size\x18\x05 \x01(\x05R\bpageSize\"\x94\x01\n" +
 	"\x10CloneRoleRequest\x12$\n" +
 	"\x0esource_role_id\x18\x01 \x01(\tR\fsourceRoleId\x12\"\n" +
 	"\rtarget_org_id\x18\x02 \x01(\tR\vtargetOrgId\x12\x19\n" +
@@ -4440,14 +4643,23 @@ const file_user_management_proto_rawDesc = "" +
 	"\x1cDesignationsDropdownResponse\x121\n" +
 	"\fdesignations\x18\x01 \x03(\v2\r.DropdownItemR\fdesignations\"<\n" +
 	"\x15RolesDropdownResponse\x12#\n" +
-	"\x05roles\x18\x01 \x03(\v2\r.DropdownItemR\x05roles\"t\n" +
+	"\x05roles\x18\x01 \x03(\v2\r.DropdownItemR\x05roles\"\xbc\x01\n" +
 	"\x16UploadSignatureRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\x12%\n" +
-	"\x0esignature_file\x18\x02 \x01(\fR\rsignatureFile\x12\x1a\n" +
-	"\bfilename\x18\x03 \x01(\tR\bfilename\"X\n" +
-	"\x17UploadSignatureResponse\x12#\n" +
-	"\rsignature_url\x18\x01 \x01(\tR\fsignatureUrl\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage2\xb7\x1b\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12!\n" +
+	"\ffile_content\x18\x02 \x01(\fR\vfileContent\x12%\n" +
+	"\x0esignature_file\x18\x03 \x01(\fR\rsignatureFile\x12\x1a\n" +
+	"\bfilename\x18\x04 \x01(\tR\bfilename\x12#\n" +
+	"\rsignature_url\x18\x05 \x01(\tR\fsignatureUrl\"\x9f\x02\n" +
+	"\x17UploadSignatureResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\x12\x17\n" +
+	"\auser_id\x18\x03 \x01(\tR\x06userId\x12#\n" +
+	"\rsignature_url\x18\x04 \x01(\tR\fsignatureUrl\x12\x1b\n" +
+	"\tfile_name\x18\x05 \x01(\tR\bfileName\x12\x1b\n" +
+	"\tmime_type\x18\x06 \x01(\tR\bmimeType\x12\x1b\n" +
+	"\tfile_size\x18\a \x01(\x03R\bfileSize\x12;\n" +
+	"\vuploaded_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"uploadedAt2\xb7\x1b\n" +
 	"\x0eUserManagement\x12Q\n" +
 	"\fCreateTenant\x12\x14.CreateTenantRequest\x1a\x0f.TenantResponse\"\x1a\x82\xd3\xe4\x93\x02\x14:\x01*\"\x0f/api/v1/tenants\x12T\n" +
 	"\tGetTenant\x12\x11.GetTenantRequest\x1a\x0f.TenantResponse\"#\x82\xd3\xe4\x93\x02\x1d\x12\x1b/api/v1/tenants/{tenant_id}\x12I\n" +
@@ -4533,7 +4745,7 @@ var file_user_management_proto_goTypes = []any{
 	(*ListUserLoginHistoriesRequest)(nil),     // 23: ListUserLoginHistoriesRequest
 	(*ListUserLoginHistoriesResponse)(nil),    // 24: ListUserLoginHistoriesResponse
 	(*PageRequest)(nil),                       // 25: PageRequest
-	(*PageResponse)(nil),                      // 26: PageResponse
+	(*PaginationMetadata)(nil),                // 26: PaginationMetadata
 	(*ListUsersPaginatedRequest)(nil),         // 27: ListUsersPaginatedRequest
 	(*ListUsersPaginatedResponse)(nil),        // 28: ListUsersPaginatedResponse
 	(*CountUsersByTenantRequest)(nil),         // 29: CountUsersByTenantRequest
@@ -4577,115 +4789,117 @@ var file_user_management_proto_depIdxs = []int32{
 	63, // 0: Role.created_at:type_name -> google.protobuf.Timestamp
 	63, // 1: Role.updated_at:type_name -> google.protobuf.Timestamp
 	6,  // 2: ListRolesResponse.roles:type_name -> RoleResponse
-	63, // 3: User.email_verified_at:type_name -> google.protobuf.Timestamp
-	63, // 4: User.last_login_at:type_name -> google.protobuf.Timestamp
-	63, // 5: User.last_logout_at:type_name -> google.protobuf.Timestamp
-	63, // 6: User.created_at:type_name -> google.protobuf.Timestamp
-	63, // 7: User.updated_at:type_name -> google.protobuf.Timestamp
-	63, // 8: User.deactivated_at:type_name -> google.protobuf.Timestamp
-	9,  // 9: ListUsersResponse.users:type_name -> User
-	26, // 10: ListUsersResponse.pagination:type_name -> PageResponse
-	63, // 11: UserLoginHistoryResponse.login_time:type_name -> google.protobuf.Timestamp
-	25, // 12: ListUserLoginHistoriesRequest.page:type_name -> PageRequest
-	22, // 13: ListUserLoginHistoriesResponse.histories:type_name -> UserLoginHistoryResponse
-	26, // 14: ListUserLoginHistoriesResponse.pagination:type_name -> PageResponse
-	9,  // 15: ListUsersPaginatedResponse.users:type_name -> User
-	63, // 16: ActivityLog.created_at:type_name -> google.protobuf.Timestamp
-	63, // 17: ActivityLogResponse.created_at:type_name -> google.protobuf.Timestamp
-	25, // 18: ListActivityLogsRequest.page:type_name -> PageRequest
-	33, // 19: ListActivityLogsResponse.logs:type_name -> ActivityLog
-	26, // 20: ListActivityLogsResponse.pagination:type_name -> PageResponse
-	63, // 21: Notification.created_at:type_name -> google.protobuf.Timestamp
-	63, // 22: Notification.read_at:type_name -> google.protobuf.Timestamp
-	63, // 23: NotificationResponse.created_at:type_name -> google.protobuf.Timestamp
-	25, // 24: ListNotificationsRequest.page:type_name -> PageRequest
-	38, // 25: ListNotificationsResponse.notifications:type_name -> Notification
-	26, // 26: ListNotificationsResponse.pagination:type_name -> PageResponse
-	50, // 27: ListPermissionsResponse.permissions:type_name -> PermissionResponse
-	55, // 28: ListUserOrganizationsResponse.organizations:type_name -> UserOrganizationInfo
-	63, // 29: UserOrganizationInfo.joined_at:type_name -> google.protobuf.Timestamp
-	57, // 30: DepartmentsDropdownResponse.departments:type_name -> DropdownItem
-	57, // 31: DesignationsDropdownResponse.designations:type_name -> DropdownItem
-	57, // 32: RolesDropdownResponse.roles:type_name -> DropdownItem
-	18, // 33: UserManagement.CreateTenant:input_type -> CreateTenantRequest
-	19, // 34: UserManagement.GetTenant:input_type -> GetTenantRequest
-	2,  // 35: UserManagement.CreateRole:input_type -> CreateRoleRequest
-	7,  // 36: UserManagement.ListRoles:input_type -> ListRolesRequest
-	44, // 37: UserManagement.ListRolesByOrganization:input_type -> ListRolesByOrganizationRequest
-	4,  // 38: UserManagement.GetRole:input_type -> GetRoleRequest
-	3,  // 39: UserManagement.UpdateRole:input_type -> UpdateRoleRequest
-	5,  // 40: UserManagement.DeleteRole:input_type -> DeleteRoleRequest
-	45, // 41: UserManagement.CloneRole:input_type -> CloneRoleRequest
-	46, // 42: UserManagement.ListPermissions:input_type -> ListPermissionsRequest
-	48, // 43: UserManagement.GetPermissionsByModule:input_type -> GetPermissionsByModuleRequest
-	49, // 44: UserManagement.CreateCustomPermission:input_type -> CreateCustomPermissionRequest
-	10, // 45: UserManagement.CreateUser:input_type -> CreateUserRequest
-	13, // 46: UserManagement.GetUser:input_type -> GetUserRequest
-	14, // 47: UserManagement.ListUsers:input_type -> ListUsersRequest
-	11, // 48: UserManagement.UpdateUser:input_type -> UpdateUserRequest
-	12, // 49: UserManagement.DeleteUser:input_type -> DeleteUserRequest
-	16, // 50: UserManagement.AssignRolesToUser:input_type -> AssignRolesRequest
-	13, // 51: UserManagement.ListRolesOfUser:input_type -> GetUserRequest
-	21, // 52: UserManagement.CreateUserLoginHistory:input_type -> CreateUserLoginHistoryRequest
-	23, // 53: UserManagement.ListUserLoginHistories:input_type -> ListUserLoginHistoriesRequest
-	31, // 54: UserManagement.DeactivateUser:input_type -> DeactivateUserRequest
-	32, // 55: UserManagement.ReactivateUser:input_type -> ReactivateUserRequest
-	34, // 56: UserManagement.CreateActivityLog:input_type -> CreateActivityLogRequest
-	36, // 57: UserManagement.ListActivityLogs:input_type -> ListActivityLogsRequest
-	39, // 58: UserManagement.CreateNotification:input_type -> CreateNotificationRequest
-	41, // 59: UserManagement.ListNotifications:input_type -> ListNotificationsRequest
-	43, // 60: UserManagement.MarkNotificationAsRead:input_type -> MarkNotificationAsReadRequest
-	51, // 61: UserManagement.AddUserToOrganization:input_type -> AddUserToOrganizationRequest
-	52, // 62: UserManagement.RemoveUserFromOrganization:input_type -> RemoveUserFromOrganizationRequest
-	53, // 63: UserManagement.ListUserOrganizations:input_type -> ListUserOrganizationsRequest
-	56, // 64: UserManagement.GetDepartmentsDropdown:input_type -> GetDropdownRequest
-	56, // 65: UserManagement.GetDesignationsDropdown:input_type -> GetDropdownRequest
-	56, // 66: UserManagement.GetRolesDropdown:input_type -> GetDropdownRequest
-	61, // 67: UserManagement.UploadUserSignature:input_type -> UploadSignatureRequest
-	27, // 68: UserManagement.ListUsersPaginated:input_type -> ListUsersPaginatedRequest
-	29, // 69: UserManagement.CountUsersByTenant:input_type -> CountUsersByTenantRequest
-	20, // 70: UserManagement.CreateTenant:output_type -> TenantResponse
-	20, // 71: UserManagement.GetTenant:output_type -> TenantResponse
-	6,  // 72: UserManagement.CreateRole:output_type -> RoleResponse
-	8,  // 73: UserManagement.ListRoles:output_type -> ListRolesResponse
-	8,  // 74: UserManagement.ListRolesByOrganization:output_type -> ListRolesResponse
-	6,  // 75: UserManagement.GetRole:output_type -> RoleResponse
-	6,  // 76: UserManagement.UpdateRole:output_type -> RoleResponse
-	64, // 77: UserManagement.DeleteRole:output_type -> google.protobuf.Empty
-	6,  // 78: UserManagement.CloneRole:output_type -> RoleResponse
-	47, // 79: UserManagement.ListPermissions:output_type -> ListPermissionsResponse
-	47, // 80: UserManagement.GetPermissionsByModule:output_type -> ListPermissionsResponse
-	50, // 81: UserManagement.CreateCustomPermission:output_type -> PermissionResponse
-	17, // 82: UserManagement.CreateUser:output_type -> UserResponse
-	17, // 83: UserManagement.GetUser:output_type -> UserResponse
-	15, // 84: UserManagement.ListUsers:output_type -> ListUsersResponse
-	17, // 85: UserManagement.UpdateUser:output_type -> UserResponse
-	64, // 86: UserManagement.DeleteUser:output_type -> google.protobuf.Empty
-	17, // 87: UserManagement.AssignRolesToUser:output_type -> UserResponse
-	8,  // 88: UserManagement.ListRolesOfUser:output_type -> ListRolesResponse
-	22, // 89: UserManagement.CreateUserLoginHistory:output_type -> UserLoginHistoryResponse
-	24, // 90: UserManagement.ListUserLoginHistories:output_type -> ListUserLoginHistoriesResponse
-	17, // 91: UserManagement.DeactivateUser:output_type -> UserResponse
-	17, // 92: UserManagement.ReactivateUser:output_type -> UserResponse
-	35, // 93: UserManagement.CreateActivityLog:output_type -> ActivityLogResponse
-	37, // 94: UserManagement.ListActivityLogs:output_type -> ListActivityLogsResponse
-	40, // 95: UserManagement.CreateNotification:output_type -> NotificationResponse
-	42, // 96: UserManagement.ListNotifications:output_type -> ListNotificationsResponse
-	40, // 97: UserManagement.MarkNotificationAsRead:output_type -> NotificationResponse
-	17, // 98: UserManagement.AddUserToOrganization:output_type -> UserResponse
-	64, // 99: UserManagement.RemoveUserFromOrganization:output_type -> google.protobuf.Empty
-	54, // 100: UserManagement.ListUserOrganizations:output_type -> ListUserOrganizationsResponse
-	58, // 101: UserManagement.GetDepartmentsDropdown:output_type -> DepartmentsDropdownResponse
-	59, // 102: UserManagement.GetDesignationsDropdown:output_type -> DesignationsDropdownResponse
-	60, // 103: UserManagement.GetRolesDropdown:output_type -> RolesDropdownResponse
-	62, // 104: UserManagement.UploadUserSignature:output_type -> UploadSignatureResponse
-	28, // 105: UserManagement.ListUsersPaginated:output_type -> ListUsersPaginatedResponse
-	30, // 106: UserManagement.CountUsersByTenant:output_type -> CountUsersByTenantResponse
-	70, // [70:107] is the sub-list for method output_type
-	33, // [33:70] is the sub-list for method input_type
-	33, // [33:33] is the sub-list for extension type_name
-	33, // [33:33] is the sub-list for extension extendee
-	0,  // [0:33] is the sub-list for field type_name
+	26, // 3: ListRolesResponse.pagination:type_name -> PaginationMetadata
+	63, // 4: User.email_verified_at:type_name -> google.protobuf.Timestamp
+	63, // 5: User.last_login_at:type_name -> google.protobuf.Timestamp
+	63, // 6: User.last_logout_at:type_name -> google.protobuf.Timestamp
+	63, // 7: User.created_at:type_name -> google.protobuf.Timestamp
+	63, // 8: User.updated_at:type_name -> google.protobuf.Timestamp
+	63, // 9: User.deactivated_at:type_name -> google.protobuf.Timestamp
+	9,  // 10: ListUsersResponse.users:type_name -> User
+	26, // 11: ListUsersResponse.pagination:type_name -> PaginationMetadata
+	63, // 12: UserLoginHistoryResponse.login_time:type_name -> google.protobuf.Timestamp
+	25, // 13: ListUserLoginHistoriesRequest.page:type_name -> PageRequest
+	22, // 14: ListUserLoginHistoriesResponse.histories:type_name -> UserLoginHistoryResponse
+	26, // 15: ListUserLoginHistoriesResponse.pagination:type_name -> PaginationMetadata
+	9,  // 16: ListUsersPaginatedResponse.users:type_name -> User
+	63, // 17: ActivityLog.created_at:type_name -> google.protobuf.Timestamp
+	63, // 18: ActivityLogResponse.created_at:type_name -> google.protobuf.Timestamp
+	25, // 19: ListActivityLogsRequest.page:type_name -> PageRequest
+	33, // 20: ListActivityLogsResponse.logs:type_name -> ActivityLog
+	26, // 21: ListActivityLogsResponse.pagination:type_name -> PaginationMetadata
+	63, // 22: Notification.created_at:type_name -> google.protobuf.Timestamp
+	63, // 23: Notification.read_at:type_name -> google.protobuf.Timestamp
+	63, // 24: NotificationResponse.created_at:type_name -> google.protobuf.Timestamp
+	25, // 25: ListNotificationsRequest.page:type_name -> PageRequest
+	38, // 26: ListNotificationsResponse.notifications:type_name -> Notification
+	26, // 27: ListNotificationsResponse.pagination:type_name -> PaginationMetadata
+	50, // 28: ListPermissionsResponse.permissions:type_name -> PermissionResponse
+	55, // 29: ListUserOrganizationsResponse.organizations:type_name -> UserOrganizationInfo
+	63, // 30: UserOrganizationInfo.joined_at:type_name -> google.protobuf.Timestamp
+	57, // 31: DepartmentsDropdownResponse.departments:type_name -> DropdownItem
+	57, // 32: DesignationsDropdownResponse.designations:type_name -> DropdownItem
+	57, // 33: RolesDropdownResponse.roles:type_name -> DropdownItem
+	63, // 34: UploadSignatureResponse.uploaded_at:type_name -> google.protobuf.Timestamp
+	18, // 35: UserManagement.CreateTenant:input_type -> CreateTenantRequest
+	19, // 36: UserManagement.GetTenant:input_type -> GetTenantRequest
+	2,  // 37: UserManagement.CreateRole:input_type -> CreateRoleRequest
+	7,  // 38: UserManagement.ListRoles:input_type -> ListRolesRequest
+	44, // 39: UserManagement.ListRolesByOrganization:input_type -> ListRolesByOrganizationRequest
+	4,  // 40: UserManagement.GetRole:input_type -> GetRoleRequest
+	3,  // 41: UserManagement.UpdateRole:input_type -> UpdateRoleRequest
+	5,  // 42: UserManagement.DeleteRole:input_type -> DeleteRoleRequest
+	45, // 43: UserManagement.CloneRole:input_type -> CloneRoleRequest
+	46, // 44: UserManagement.ListPermissions:input_type -> ListPermissionsRequest
+	48, // 45: UserManagement.GetPermissionsByModule:input_type -> GetPermissionsByModuleRequest
+	49, // 46: UserManagement.CreateCustomPermission:input_type -> CreateCustomPermissionRequest
+	10, // 47: UserManagement.CreateUser:input_type -> CreateUserRequest
+	13, // 48: UserManagement.GetUser:input_type -> GetUserRequest
+	14, // 49: UserManagement.ListUsers:input_type -> ListUsersRequest
+	11, // 50: UserManagement.UpdateUser:input_type -> UpdateUserRequest
+	12, // 51: UserManagement.DeleteUser:input_type -> DeleteUserRequest
+	16, // 52: UserManagement.AssignRolesToUser:input_type -> AssignRolesRequest
+	13, // 53: UserManagement.ListRolesOfUser:input_type -> GetUserRequest
+	21, // 54: UserManagement.CreateUserLoginHistory:input_type -> CreateUserLoginHistoryRequest
+	23, // 55: UserManagement.ListUserLoginHistories:input_type -> ListUserLoginHistoriesRequest
+	31, // 56: UserManagement.DeactivateUser:input_type -> DeactivateUserRequest
+	32, // 57: UserManagement.ReactivateUser:input_type -> ReactivateUserRequest
+	34, // 58: UserManagement.CreateActivityLog:input_type -> CreateActivityLogRequest
+	36, // 59: UserManagement.ListActivityLogs:input_type -> ListActivityLogsRequest
+	39, // 60: UserManagement.CreateNotification:input_type -> CreateNotificationRequest
+	41, // 61: UserManagement.ListNotifications:input_type -> ListNotificationsRequest
+	43, // 62: UserManagement.MarkNotificationAsRead:input_type -> MarkNotificationAsReadRequest
+	51, // 63: UserManagement.AddUserToOrganization:input_type -> AddUserToOrganizationRequest
+	52, // 64: UserManagement.RemoveUserFromOrganization:input_type -> RemoveUserFromOrganizationRequest
+	53, // 65: UserManagement.ListUserOrganizations:input_type -> ListUserOrganizationsRequest
+	56, // 66: UserManagement.GetDepartmentsDropdown:input_type -> GetDropdownRequest
+	56, // 67: UserManagement.GetDesignationsDropdown:input_type -> GetDropdownRequest
+	56, // 68: UserManagement.GetRolesDropdown:input_type -> GetDropdownRequest
+	61, // 69: UserManagement.UploadUserSignature:input_type -> UploadSignatureRequest
+	27, // 70: UserManagement.ListUsersPaginated:input_type -> ListUsersPaginatedRequest
+	29, // 71: UserManagement.CountUsersByTenant:input_type -> CountUsersByTenantRequest
+	20, // 72: UserManagement.CreateTenant:output_type -> TenantResponse
+	20, // 73: UserManagement.GetTenant:output_type -> TenantResponse
+	6,  // 74: UserManagement.CreateRole:output_type -> RoleResponse
+	8,  // 75: UserManagement.ListRoles:output_type -> ListRolesResponse
+	8,  // 76: UserManagement.ListRolesByOrganization:output_type -> ListRolesResponse
+	6,  // 77: UserManagement.GetRole:output_type -> RoleResponse
+	6,  // 78: UserManagement.UpdateRole:output_type -> RoleResponse
+	64, // 79: UserManagement.DeleteRole:output_type -> google.protobuf.Empty
+	6,  // 80: UserManagement.CloneRole:output_type -> RoleResponse
+	47, // 81: UserManagement.ListPermissions:output_type -> ListPermissionsResponse
+	47, // 82: UserManagement.GetPermissionsByModule:output_type -> ListPermissionsResponse
+	50, // 83: UserManagement.CreateCustomPermission:output_type -> PermissionResponse
+	17, // 84: UserManagement.CreateUser:output_type -> UserResponse
+	17, // 85: UserManagement.GetUser:output_type -> UserResponse
+	15, // 86: UserManagement.ListUsers:output_type -> ListUsersResponse
+	17, // 87: UserManagement.UpdateUser:output_type -> UserResponse
+	64, // 88: UserManagement.DeleteUser:output_type -> google.protobuf.Empty
+	17, // 89: UserManagement.AssignRolesToUser:output_type -> UserResponse
+	8,  // 90: UserManagement.ListRolesOfUser:output_type -> ListRolesResponse
+	22, // 91: UserManagement.CreateUserLoginHistory:output_type -> UserLoginHistoryResponse
+	24, // 92: UserManagement.ListUserLoginHistories:output_type -> ListUserLoginHistoriesResponse
+	17, // 93: UserManagement.DeactivateUser:output_type -> UserResponse
+	17, // 94: UserManagement.ReactivateUser:output_type -> UserResponse
+	35, // 95: UserManagement.CreateActivityLog:output_type -> ActivityLogResponse
+	37, // 96: UserManagement.ListActivityLogs:output_type -> ListActivityLogsResponse
+	40, // 97: UserManagement.CreateNotification:output_type -> NotificationResponse
+	42, // 98: UserManagement.ListNotifications:output_type -> ListNotificationsResponse
+	40, // 99: UserManagement.MarkNotificationAsRead:output_type -> NotificationResponse
+	17, // 100: UserManagement.AddUserToOrganization:output_type -> UserResponse
+	64, // 101: UserManagement.RemoveUserFromOrganization:output_type -> google.protobuf.Empty
+	54, // 102: UserManagement.ListUserOrganizations:output_type -> ListUserOrganizationsResponse
+	58, // 103: UserManagement.GetDepartmentsDropdown:output_type -> DepartmentsDropdownResponse
+	59, // 104: UserManagement.GetDesignationsDropdown:output_type -> DesignationsDropdownResponse
+	60, // 105: UserManagement.GetRolesDropdown:output_type -> RolesDropdownResponse
+	62, // 106: UserManagement.UploadUserSignature:output_type -> UploadSignatureResponse
+	28, // 107: UserManagement.ListUsersPaginated:output_type -> ListUsersPaginatedResponse
+	30, // 108: UserManagement.CountUsersByTenant:output_type -> CountUsersByTenantResponse
+	72, // [72:109] is the sub-list for method output_type
+	35, // [35:72] is the sub-list for method input_type
+	35, // [35:35] is the sub-list for extension type_name
+	35, // [35:35] is the sub-list for extension extendee
+	0,  // [0:35] is the sub-list for field type_name
 }
 
 func init() { file_user_management_proto_init() }
@@ -4693,6 +4907,7 @@ func file_user_management_proto_init() {
 	if File_user_management_proto != nil {
 		return
 	}
+	file_user_management_proto_msgTypes[7].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

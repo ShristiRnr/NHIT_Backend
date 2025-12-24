@@ -146,7 +146,7 @@ func (h *DesignationHandler) ListDesignations(
 
     orgID := getOrgIDFromContext(ctx)
 
-    list, err := h.service.ListDesignations(ctx, orgID, req.Page, req.PageSize)
+    list, total, err := h.service.ListDesignations(ctx, orgID, req.Page, req.PageSize)
     if err != nil {
         return nil, handleError(err)
     }
@@ -162,8 +162,16 @@ func (h *DesignationHandler) ListDesignations(
         }
     }
 
+	totalPages := (int32(total) + req.PageSize - 1) / req.PageSize
+
     return &designationpb.ListDesignationsResponse{
         Designations: result,
+		Pagination: &designationpb.PaginationMetadata{
+			CurrentPage: req.Page,
+			PageSize:    req.PageSize,
+			TotalItems:  total,
+			TotalPages:  totalPages,
+		},
     }, nil
 }
 

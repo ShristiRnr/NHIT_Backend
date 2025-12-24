@@ -21,3 +21,7 @@ FROM designations
 WHERE ($1::uuid IS NULL OR org_id = $1)
 ORDER BY name ASC
 LIMIT $2 OFFSET $3;
+
+-- name: CountDesignations :one
+SELECT COUNT(*) FROM designations
+WHERE ($1::uuid IS NULL OR org_id = $1);

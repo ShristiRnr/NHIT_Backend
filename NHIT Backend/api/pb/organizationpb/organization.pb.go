@@ -1231,6 +1231,161 @@ func (x *ListOrganizationsResponse) GetPagination() *PaginationMetadata {
 	return nil
 }
 
+// ====================
+// Logo Upload Messages
+// ====================
+type UploadLogoRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	OrgId         string                 `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	FileContent   []byte                 `protobuf:"bytes,2,opt,name=file_content,json=fileContent,proto3" json:"file_content,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UploadLogoRequest) Reset() {
+	*x = UploadLogoRequest{}
+	mi := &file_organization_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UploadLogoRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UploadLogoRequest) ProtoMessage() {}
+
+func (x *UploadLogoRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_organization_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UploadLogoRequest.ProtoReflect.Descriptor instead.
+func (*UploadLogoRequest) Descriptor() ([]byte, []int) {
+	return file_organization_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *UploadLogoRequest) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+func (x *UploadLogoRequest) GetFileContent() []byte {
+	if x != nil {
+		return x.FileContent
+	}
+	return nil
+}
+
+type UploadLogoResponse struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Success        bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	Message        string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	OrganizationId string                 `protobuf:"bytes,3,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
+	LogoUrl        string                 `protobuf:"bytes,4,opt,name=logo_url,json=logoUrl,proto3" json:"logo_url,omitempty"`
+	FileName       string                 `protobuf:"bytes,5,opt,name=file_name,json=fileName,proto3" json:"file_name,omitempty"`
+	MimeType       string                 `protobuf:"bytes,6,opt,name=mime_type,json=mimeType,proto3" json:"mime_type,omitempty"`
+	FileSize       int64                  `protobuf:"varint,7,opt,name=file_size,json=fileSize,proto3" json:"file_size,omitempty"`
+	UploadedAt     *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=uploaded_at,json=uploadedAt,proto3" json:"uploaded_at,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *UploadLogoResponse) Reset() {
+	*x = UploadLogoResponse{}
+	mi := &file_organization_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UploadLogoResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UploadLogoResponse) ProtoMessage() {}
+
+func (x *UploadLogoResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_organization_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UploadLogoResponse.ProtoReflect.Descriptor instead.
+func (*UploadLogoResponse) Descriptor() ([]byte, []int) {
+	return file_organization_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *UploadLogoResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *UploadLogoResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *UploadLogoResponse) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
+	}
+	return ""
+}
+
+func (x *UploadLogoResponse) GetLogoUrl() string {
+	if x != nil {
+		return x.LogoUrl
+	}
+	return ""
+}
+
+func (x *UploadLogoResponse) GetFileName() string {
+	if x != nil {
+		return x.FileName
+	}
+	return ""
+}
+
+func (x *UploadLogoResponse) GetMimeType() string {
+	if x != nil {
+		return x.MimeType
+	}
+	return ""
+}
+
+func (x *UploadLogoResponse) GetFileSize() int64 {
+	if x != nil {
+		return x.FileSize
+	}
+	return 0
+}
+
+func (x *UploadLogoResponse) GetUploadedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UploadedAt
+	}
+	return nil
+}
+
 var File_organization_proto protoreflect.FileDescriptor
 
 const file_organization_proto_rawDesc = "" +
@@ -1330,11 +1485,23 @@ const file_organization_proto_rawDesc = "" +
 	"totalCount\x12A\n" +
 	"\n" +
 	"pagination\x18\x03 \x01(\v2!.organizations.PaginationMetadataR\n" +
-	"pagination*4\n" +
+	"pagination\"M\n" +
+	"\x11UploadLogoRequest\x12\x15\n" +
+	"\x06org_id\x18\x01 \x01(\tR\x05orgId\x12!\n" +
+	"\ffile_content\x18\x02 \x01(\fR\vfileContent\"\xa0\x02\n" +
+	"\x12UploadLogoResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\x12'\n" +
+	"\x0forganization_id\x18\x03 \x01(\tR\x0eorganizationId\x12\x19\n" +
+	"\blogo_url\x18\x04 \x01(\tR\alogoUrl\x12\x1b\n" +
+	"\tfile_name\x18\x05 \x01(\tR\bfileName\x12\x1b\n" +
+	"\tmime_type\x18\x06 \x01(\tR\bmimeType\x12\x1b\n" +
+	"\tfile_size\x18\a \x01(\x03R\bfileSize\x12;\n" +
+	"\vuploaded_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"uploadedAt*4\n" +
 	"\x12OrganizationStatus\x12\r\n" +
 	"\tactivated\x10\x00\x12\x0f\n" +
-	"\vdeactivated\x10\x012\xfd\n" +
-	"\n" +
+	"\vdeactivated\x10\x012\x8d\f\n" +
 	"\x13OrganizationService\x12\x85\x01\n" +
 	"\x12CreateOrganization\x12(.organizations.CreateOrganizationRequest\x1a#.organizations.OrganizationResponse\" \x82\xd3\xe4\x93\x02\x1a:\x01*\"\x15/api/v1/organizations\x12\x85\x01\n" +
 	"\x11ListOrganizations\x12'.organizations.ListOrganizationsRequest\x1a(.organizations.ListOrganizationsResponse\"\x1d\x82\xd3\xe4\x93\x02\x17\x12\x15/api/v1/organizations\x12\xa9\x01\n" +
@@ -1344,7 +1511,8 @@ const file_organization_proto_rawDesc = "" +
 	"\x1bGetOrganizationWithProjects\x121.organizations.GetOrganizationWithProjectsRequest\x1a2.organizations.GetOrganizationWithProjectsResponse\"4\x82\xd3\xe4\x93\x02.\x12,/api/v1/organizations/{org_id}/with-projects\x12\x94\x01\n" +
 	"\x15GetOrganizationByCode\x12+.organizations.GetOrganizationByCodeRequest\x1a#.organizations.OrganizationResponse\")\x82\xd3\xe4\x93\x02#\x12!/api/v1/organizations/code/{code}\x12\x8e\x01\n" +
 	"\x12UpdateOrganization\x12(.organizations.UpdateOrganizationRequest\x1a#.organizations.OrganizationResponse\")\x82\xd3\xe4\x93\x02#:\x01*\x1a\x1e/api/v1/organizations/{org_id}\x12\x91\x01\n" +
-	"\x12DeleteOrganization\x12(.organizations.DeleteOrganizationRequest\x1a).organizations.DeleteOrganizationResponse\"&\x82\xd3\xe4\x93\x02 *\x1e/api/v1/organizations/{org_id}B:Z8github.com/ShristiRnr/NHIT_Backend/api/pb/organizationpbb\x06proto3"
+	"\x12DeleteOrganization\x12(.organizations.DeleteOrganizationRequest\x1a).organizations.DeleteOrganizationResponse\"&\x82\xd3\xe4\x93\x02 *\x1e/api/v1/organizations/{org_id}\x12\x8d\x01\n" +
+	"\x16UploadOrganizationLogo\x12 .organizations.UploadLogoRequest\x1a!.organizations.UploadLogoResponse\".\x82\xd3\xe4\x93\x02(:\x01*\"#/api/v1/organizations/{org_id}/logoB:Z8github.com/ShristiRnr/NHIT_Backend/api/pb/organizationpbb\x06proto3"
 
 var (
 	file_organization_proto_rawDescOnce sync.Once
@@ -1359,7 +1527,7 @@ func file_organization_proto_rawDescGZIP() []byte {
 }
 
 var file_organization_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_organization_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_organization_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_organization_proto_goTypes = []any{
 	(OrganizationStatus)(0),                     // 0: organizations.OrganizationStatus
 	(*SuperAdminDetails)(nil),                   // 1: organizations.SuperAdminDetails
@@ -1379,15 +1547,17 @@ var file_organization_proto_goTypes = []any{
 	(*GetOrganizationByCodeRequest)(nil),        // 15: organizations.GetOrganizationByCodeRequest
 	(*PaginationMetadata)(nil),                  // 16: organizations.PaginationMetadata
 	(*ListOrganizationsResponse)(nil),           // 17: organizations.ListOrganizationsResponse
-	(*timestamppb.Timestamp)(nil),               // 18: google.protobuf.Timestamp
+	(*UploadLogoRequest)(nil),                   // 18: organizations.UploadLogoRequest
+	(*UploadLogoResponse)(nil),                  // 19: organizations.UploadLogoResponse
+	(*timestamppb.Timestamp)(nil),               // 20: google.protobuf.Timestamp
 }
 var file_organization_proto_depIdxs = []int32{
-	18, // 0: organizations.Project.created_at:type_name -> google.protobuf.Timestamp
-	18, // 1: organizations.Project.updated_at:type_name -> google.protobuf.Timestamp
+	20, // 0: organizations.Project.created_at:type_name -> google.protobuf.Timestamp
+	20, // 1: organizations.Project.updated_at:type_name -> google.protobuf.Timestamp
 	1,  // 2: organizations.Organization.super_admin:type_name -> organizations.SuperAdminDetails
 	0,  // 3: organizations.Organization.status:type_name -> organizations.OrganizationStatus
-	18, // 4: organizations.Organization.created_at:type_name -> google.protobuf.Timestamp
-	18, // 5: organizations.Organization.updated_at:type_name -> google.protobuf.Timestamp
+	20, // 4: organizations.Organization.created_at:type_name -> google.protobuf.Timestamp
+	20, // 5: organizations.Organization.updated_at:type_name -> google.protobuf.Timestamp
 	1,  // 6: organizations.CreateOrganizationRequest.super_admin:type_name -> organizations.SuperAdminDetails
 	0,  // 7: organizations.CreateOrganizationRequest.status:type_name -> organizations.OrganizationStatus
 	3,  // 8: organizations.OrganizationResponse.organization:type_name -> organizations.Organization
@@ -1396,29 +1566,32 @@ var file_organization_proto_depIdxs = []int32{
 	0,  // 11: organizations.UpdateOrganizationRequest.status:type_name -> organizations.OrganizationStatus
 	3,  // 12: organizations.ListOrganizationsResponse.organizations:type_name -> organizations.Organization
 	16, // 13: organizations.ListOrganizationsResponse.pagination:type_name -> organizations.PaginationMetadata
-	4,  // 14: organizations.OrganizationService.CreateOrganization:input_type -> organizations.CreateOrganizationRequest
-	12, // 15: organizations.OrganizationService.ListOrganizations:input_type -> organizations.ListOrganizationsRequest
-	13, // 16: organizations.OrganizationService.ListOrganizationsByTenant:input_type -> organizations.ListOrganizationsByTenantRequest
-	14, // 17: organizations.OrganizationService.ListChildOrganizations:input_type -> organizations.ListChildOrganizationsRequest
-	6,  // 18: organizations.OrganizationService.GetOrganization:input_type -> organizations.GetOrganizationRequest
-	7,  // 19: organizations.OrganizationService.GetOrganizationWithProjects:input_type -> organizations.GetOrganizationWithProjectsRequest
-	15, // 20: organizations.OrganizationService.GetOrganizationByCode:input_type -> organizations.GetOrganizationByCodeRequest
-	9,  // 21: organizations.OrganizationService.UpdateOrganization:input_type -> organizations.UpdateOrganizationRequest
-	10, // 22: organizations.OrganizationService.DeleteOrganization:input_type -> organizations.DeleteOrganizationRequest
-	5,  // 23: organizations.OrganizationService.CreateOrganization:output_type -> organizations.OrganizationResponse
-	17, // 24: organizations.OrganizationService.ListOrganizations:output_type -> organizations.ListOrganizationsResponse
-	17, // 25: organizations.OrganizationService.ListOrganizationsByTenant:output_type -> organizations.ListOrganizationsResponse
-	17, // 26: organizations.OrganizationService.ListChildOrganizations:output_type -> organizations.ListOrganizationsResponse
-	5,  // 27: organizations.OrganizationService.GetOrganization:output_type -> organizations.OrganizationResponse
-	8,  // 28: organizations.OrganizationService.GetOrganizationWithProjects:output_type -> organizations.GetOrganizationWithProjectsResponse
-	5,  // 29: organizations.OrganizationService.GetOrganizationByCode:output_type -> organizations.OrganizationResponse
-	5,  // 30: organizations.OrganizationService.UpdateOrganization:output_type -> organizations.OrganizationResponse
-	11, // 31: organizations.OrganizationService.DeleteOrganization:output_type -> organizations.DeleteOrganizationResponse
-	23, // [23:32] is the sub-list for method output_type
-	14, // [14:23] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	20, // 14: organizations.UploadLogoResponse.uploaded_at:type_name -> google.protobuf.Timestamp
+	4,  // 15: organizations.OrganizationService.CreateOrganization:input_type -> organizations.CreateOrganizationRequest
+	12, // 16: organizations.OrganizationService.ListOrganizations:input_type -> organizations.ListOrganizationsRequest
+	13, // 17: organizations.OrganizationService.ListOrganizationsByTenant:input_type -> organizations.ListOrganizationsByTenantRequest
+	14, // 18: organizations.OrganizationService.ListChildOrganizations:input_type -> organizations.ListChildOrganizationsRequest
+	6,  // 19: organizations.OrganizationService.GetOrganization:input_type -> organizations.GetOrganizationRequest
+	7,  // 20: organizations.OrganizationService.GetOrganizationWithProjects:input_type -> organizations.GetOrganizationWithProjectsRequest
+	15, // 21: organizations.OrganizationService.GetOrganizationByCode:input_type -> organizations.GetOrganizationByCodeRequest
+	9,  // 22: organizations.OrganizationService.UpdateOrganization:input_type -> organizations.UpdateOrganizationRequest
+	10, // 23: organizations.OrganizationService.DeleteOrganization:input_type -> organizations.DeleteOrganizationRequest
+	18, // 24: organizations.OrganizationService.UploadOrganizationLogo:input_type -> organizations.UploadLogoRequest
+	5,  // 25: organizations.OrganizationService.CreateOrganization:output_type -> organizations.OrganizationResponse
+	17, // 26: organizations.OrganizationService.ListOrganizations:output_type -> organizations.ListOrganizationsResponse
+	17, // 27: organizations.OrganizationService.ListOrganizationsByTenant:output_type -> organizations.ListOrganizationsResponse
+	17, // 28: organizations.OrganizationService.ListChildOrganizations:output_type -> organizations.ListOrganizationsResponse
+	5,  // 29: organizations.OrganizationService.GetOrganization:output_type -> organizations.OrganizationResponse
+	8,  // 30: organizations.OrganizationService.GetOrganizationWithProjects:output_type -> organizations.GetOrganizationWithProjectsResponse
+	5,  // 31: organizations.OrganizationService.GetOrganizationByCode:output_type -> organizations.OrganizationResponse
+	5,  // 32: organizations.OrganizationService.UpdateOrganization:output_type -> organizations.OrganizationResponse
+	11, // 33: organizations.OrganizationService.DeleteOrganization:output_type -> organizations.DeleteOrganizationResponse
+	19, // 34: organizations.OrganizationService.UploadOrganizationLogo:output_type -> organizations.UploadLogoResponse
+	25, // [25:35] is the sub-list for method output_type
+	15, // [15:25] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_organization_proto_init() }
@@ -1432,7 +1605,7 @@ func file_organization_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_organization_proto_rawDesc), len(file_organization_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   17,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

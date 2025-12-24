@@ -35,7 +35,12 @@ func (r *activityLogRepository) Create(ctx context.Context, log *domain.Activity
 	}, nil
 }
 
-func (r *activityLogRepository) List(ctx context.Context, limit, offset int32) ([]*domain.ActivityLog, error) {
+func (r *activityLogRepository) List(ctx context.Context, limit, offset int32) ([]*domain.ActivityLog, int64, error) {
+	total, err := r.queries.CountActivityLogs(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+
 	params := sqlc.ListActivityLogsParams{
 		Limit:  limit,
 		Offset: offset,
@@ -43,7 +48,7 @@ func (r *activityLogRepository) List(ctx context.Context, limit, offset int32) (
 
 	logs, err := r.queries.ListActivityLogs(ctx, params)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	result := make([]*domain.ActivityLog, len(logs))
@@ -56,7 +61,7 @@ func (r *activityLogRepository) List(ctx context.Context, limit, offset int32) (
 		}
 	}
 
-	return result, nil
+	return result, total, nil
 }
 
 func (r *activityLogRepository) Count(ctx context.Context) (int64, error) {

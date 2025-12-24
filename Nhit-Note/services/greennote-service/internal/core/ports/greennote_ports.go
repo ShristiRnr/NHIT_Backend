@@ -16,24 +16,22 @@ var ErrNotFound = errors.New("not found")
 type GreenNoteRepository interface {
 	// List returns a lightweight paginated list of green notes based on the
 	// filtering and pagination options in the request.
-	List(ctx context.Context, req *greennotepb.ListGreenNotesRequest) (*greennotepb.ListGreenNotesResponse, error)
+	List(ctx context.Context, req *greennotepb.ListGreenNotesRequest, orgID, tenantID string) (*greennotepb.ListGreenNotesResponse, error)
 
 	// Get returns the full payload for a single green note by its identifier.
 	// The identifier is modeled as a UUID string at the API boundary.
-	Get(ctx context.Context, id string) (*greennotepb.GreenNotePayload, error)
+	Get(ctx context.Context, id string) (*greennotepb.GreenNotePayload, string, string, error)
 
 	// Create persists a new green note and returns its generated identifier as a
 	// UUID string.
-	Create(ctx context.Context, payload *greennotepb.GreenNotePayload) (string, error)
+	Create(ctx context.Context, payload *greennotepb.GreenNotePayload, orgID, tenantID string) (string, error)
 
 	// Update applies changes from payload to an existing green note, addressed
 	// by its UUID string identifier.
-	Update(ctx context.Context, id string, payload *greennotepb.GreenNotePayload) error
+	Update(ctx context.Context, id string, payload *greennotepb.GreenNotePayload, orgID, tenantID string) error
 
-	// Cancel performs a logical cancellation of the green note, storing the
-	// provided cancel reason according to the underlying persistence model.
-	// The note is addressed by its UUID string identifier.
-	Cancel(ctx context.Context, id string, reason string) error
+	// Cancel transitions a green note into the cancelled status.
+	Cancel(ctx context.Context, id string, reason string, orgID, tenantID string) error
 }
 
 // GreenNoteApprovedEvent is emitted when a GreenNote is fully approved and a payment note draft is created.

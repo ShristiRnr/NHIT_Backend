@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 	"fmt"
+	"bytes"
 	"log"
 	"strings"
 	"time"
@@ -11,6 +12,7 @@ import (
 	pb "github.com/ShristiRnr/NHIT_Backend/api/pb/organizationpb"
 	projectpb "github.com/ShristiRnr/NHIT_Backend/api/pb/projectpb"
 	"github.com/ShristiRnr/NHIT_Backend/services/organization-service/internal/core/ports"
+	"github.com/ShristiRnr/NHIT_Backend/services/organization-service/internal/storage"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
@@ -29,17 +31,19 @@ type OrganizationHandler struct {
 	authClient authpb.AuthServiceClient
 	kafka      ports.KafkaPublisher
 	logger     *log.Logger
+	minioClient *storage.MinIOClient
 	// optional: clock or logger
 }
 
 // NewOrganizationHandler constructor
-func NewOrganizationHandler(repo ports.Repository, db *pgxpool.Pool, authClient authpb.AuthServiceClient, kafka ports.KafkaPublisher) *OrganizationHandler {
+func NewOrganizationHandler(repo ports.Repository, db *pgxpool.Pool, authClient authpb.AuthServiceClient, kafka ports.KafkaPublisher, minioClient *storage.MinIOClient) *OrganizationHandler {
 	return &OrganizationHandler{
-		repo:       repo,
-		db:         db,
-		authClient: authClient,
-		kafka:      kafka,
-		logger:     log.Default(),
+		repo:        repo,
+		db:          db,
+		authClient:  authClient,
+		kafka:       kafka,
+		logger:      log.Default(),
+		minioClient: minioClient,
 	}
 }
 
@@ -616,5 +620,51 @@ func (h *OrganizationHandler) DeleteOrganization(ctx context.Context, req *pb.De
 	return &pb.DeleteOrganizationResponse{
 		Success: true,
 		Message: "organization deleted",
+	}, nil
+}
+
+// UploadOrganizationLogo uploads an organization logo
+func (h *OrganizationHandler) UploadOrganizationLogo(ctx context.Context, req *pb.UploadLogoRequest) (*pb.UploadLogoResponse, error) {
+	if req.OrgId == "" {
+		return nil, status.Error(codes.InvalidArgument, "org_id is required")
+	}
+	
+	if len(req.FileContent) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "file_content is required")
+	}
+
+	// Upload to MinIO
+	filename := fmt.Sprintf("logo_%s_%d.png", req.OrgId, time.Now().Unix())
+	fileSize := int64(len(req.FileContent))
+	fileReader := bytes.NewReader(req.FileContent)
+
+	logoURL, err := h.minioClient.UploadLogo(ctx, req.OrgId, filename, fileReader, fileSize)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to upload logo: %v", err)
+	}
+
+	// Update organization record
+	org, err := h.repo.GetOrganizationByID(ctx, req.OrgId)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "organization not found: %v", err)
+	}
+
+	org.Logo = &logoURL
+	org.UpdatedAt = time.Now().UTC()
+
+	_, err = h.repo.UpdateOrganization(ctx, org)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to update organization logo: %v", err)
+	}
+
+	return &pb.UploadLogoResponse{
+		Success:        true,
+		Message:        "Logo uploaded successfully",
+		OrganizationId: req.OrgId,
+		LogoUrl:        logoURL,
+		FileName:       filename,
+		MimeType:       "image/png",
+		FileSize:       fileSize,
+		UploadedAt:     timestamppb.Now(),
 	}, nil
 }

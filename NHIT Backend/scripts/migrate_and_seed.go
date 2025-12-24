@@ -32,6 +32,7 @@ func main() {
         "services/designation-service/migrations",
         "services/project-service/migrations",
         "services/vendor-service/migrations",
+        "../Nhit-Note/services/greennote-service/migrations",
     }
 
     for _, migrationDir := range migrationDirs {

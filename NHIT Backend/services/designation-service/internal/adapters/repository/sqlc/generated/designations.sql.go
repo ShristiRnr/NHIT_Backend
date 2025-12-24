@@ -12,6 +12,18 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countDesignations = `-- name: CountDesignations :one
+SELECT COUNT(*) FROM designations
+WHERE ($1::uuid IS NULL OR org_id = $1)
+`
+
+func (q *Queries) CountDesignations(ctx context.Context, dollar_1 pgtype.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countDesignations, dollar_1)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createDesignation = `-- name: CreateDesignation :one
 INSERT INTO designations (id, name, description, created_at, updated_at, org_id)
 VALUES ($1, $2, $3, $4, $5, $6)

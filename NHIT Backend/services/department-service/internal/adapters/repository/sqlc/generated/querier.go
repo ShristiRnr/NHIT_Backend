@@ -8,10 +8,11 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
-	CountDepartments(ctx context.Context) (int64, error)
+	CountDepartments(ctx context.Context, dollar_1 pgtype.UUID) (int64, error)
 	CreateDepartment(ctx context.Context, arg CreateDepartmentParams) (*Department, error)
 	DeleteDepartment(ctx context.Context, id uuid.UUID) error
 	DepartmentExists(ctx context.Context, name string) (bool, error)

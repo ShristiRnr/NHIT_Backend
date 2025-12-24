@@ -14,16 +14,9 @@ func (h *AuthHandler) ForgotPasswordWithOTP(ctx context.Context, req *authpb.For
 	if req.Email == "" {
 		return nil, status.Errorf(codes.InvalidArgument, "email is required")
 	}
-	if req.TenantId == "" {
-		return nil, status.Errorf(codes.InvalidArgument, "tenant_id is required")
-	}
 
-	tenantID, err := uuid.Parse(req.TenantId)
-	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "invalid tenant ID: %v", err)
-	}
-
-	if err := h.authService.ForgotPasswordWithOTP(ctx, req.Email, tenantID); err != nil {
+	// tenant_id is now optional - will be fetched from email
+	if err := h.authService.ForgotPasswordWithOTPByEmail(ctx, req.Email); err != nil {
 		return &authpb.ForgotPasswordOTPResponse{
 			Message: err.Error(),
 			Success: false,
@@ -41,9 +34,6 @@ func (h *AuthHandler) VerifyOTPAndResetPassword(ctx context.Context, req *authpb
 	if req.Email == "" {
 		return nil, status.Errorf(codes.InvalidArgument, "email is required")
 	}
-	if req.TenantId == "" {
-		return nil, status.Errorf(codes.InvalidArgument, "tenant_id is required")
-	}
 	if req.Otp == "" {
 		return nil, status.Errorf(codes.InvalidArgument, "otp is required")
 	}
@@ -51,16 +41,26 @@ func (h *AuthHandler) VerifyOTPAndResetPassword(ctx context.Context, req *authpb
 		return nil, status.Errorf(codes.InvalidArgument, "new_password is required")
 	}
 
-	tenantID, err := uuid.Parse(req.TenantId)
-	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "invalid tenant ID: %v", err)
-	}
+	// tenant_id is now optional - will be fetched from email if not provided
+	if req.TenantId == "" {
+		if err := h.authService.VerifyOTPAndResetPasswordByEmail(ctx, req.Email, req.Otp, req.NewPassword); err != nil {
+			return &authpb.VerifyOTPAndResetPasswordResponse{
+				Message: err.Error(),
+				Success: false,
+			}, nil
+		}
+	} else {
+		tenantID, err := uuid.Parse(req.TenantId)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid tenant ID: %v", err)
+		}
 
-	if err := h.authService.VerifyOTPAndResetPassword(ctx, req.Email, req.Otp, req.NewPassword, tenantID); err != nil {
-		return &authpb.VerifyOTPAndResetPasswordResponse{
-			Message: err.Error(),
-			Success: false,
-		}, nil
+		if err := h.authService.VerifyOTPAndResetPassword(ctx, req.Email, req.Otp, req.NewPassword, tenantID); err != nil {
+			return &authpb.VerifyOTPAndResetPasswordResponse{
+				Message: err.Error(),
+				Success: false,
+			}, nil
+		}
 	}
 
 	return &authpb.VerifyOTPAndResetPasswordResponse{

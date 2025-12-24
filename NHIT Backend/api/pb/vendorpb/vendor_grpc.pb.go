@@ -36,6 +36,7 @@ const (
 	VendorService_DeleteVendorAccount_FullMethodName     = "/vendor.v1.VendorService/DeleteVendorAccount"
 	VendorService_ToggleAccountStatus_FullMethodName     = "/vendor.v1.VendorService/ToggleAccountStatus"
 	VendorService_GetProjectsDropdown_FullMethodName     = "/vendor.v1.VendorService/GetProjectsDropdown"
+	VendorService_UploadVendorSignature_FullMethodName   = "/vendor.v1.VendorService/UploadVendorSignature"
 )
 
 // VendorServiceClient is the client API for VendorService service.
@@ -64,6 +65,8 @@ type VendorServiceClient interface {
 	ToggleAccountStatus(ctx context.Context, in *ToggleAccountStatusRequest, opts ...grpc.CallOption) (*VendorAccountResponse, error)
 	// Dropdown endpoints
 	GetProjectsDropdown(ctx context.Context, in *GetProjectsDropdownRequest, opts ...grpc.CallOption) (*GetProjectsDropdownResponse, error)
+	// Upload Vendor Signature
+	UploadVendorSignature(ctx context.Context, in *UploadVendorSignatureRequest, opts ...grpc.CallOption) (*UploadVendorSignatureResponse, error)
 }
 
 type vendorServiceClient struct {
@@ -234,6 +237,16 @@ func (c *vendorServiceClient) GetProjectsDropdown(ctx context.Context, in *GetPr
 	return out, nil
 }
 
+func (c *vendorServiceClient) UploadVendorSignature(ctx context.Context, in *UploadVendorSignatureRequest, opts ...grpc.CallOption) (*UploadVendorSignatureResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UploadVendorSignatureResponse)
+	err := c.cc.Invoke(ctx, VendorService_UploadVendorSignature_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // VendorServiceServer is the server API for VendorService service.
 // All implementations must embed UnimplementedVendorServiceServer
 // for forward compatibility.
@@ -260,6 +273,8 @@ type VendorServiceServer interface {
 	ToggleAccountStatus(context.Context, *ToggleAccountStatusRequest) (*VendorAccountResponse, error)
 	// Dropdown endpoints
 	GetProjectsDropdown(context.Context, *GetProjectsDropdownRequest) (*GetProjectsDropdownResponse, error)
+	// Upload Vendor Signature
+	UploadVendorSignature(context.Context, *UploadVendorSignatureRequest) (*UploadVendorSignatureResponse, error)
 	mustEmbedUnimplementedVendorServiceServer()
 }
 
@@ -317,6 +332,9 @@ func (UnimplementedVendorServiceServer) ToggleAccountStatus(context.Context, *To
 }
 func (UnimplementedVendorServiceServer) GetProjectsDropdown(context.Context, *GetProjectsDropdownRequest) (*GetProjectsDropdownResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetProjectsDropdown not implemented")
+}
+func (UnimplementedVendorServiceServer) UploadVendorSignature(context.Context, *UploadVendorSignatureRequest) (*UploadVendorSignatureResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UploadVendorSignature not implemented")
 }
 func (UnimplementedVendorServiceServer) mustEmbedUnimplementedVendorServiceServer() {}
 func (UnimplementedVendorServiceServer) testEmbeddedByValue()                       {}
@@ -627,6 +645,24 @@ func _VendorService_GetProjectsDropdown_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _VendorService_UploadVendorSignature_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UploadVendorSignatureRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VendorServiceServer).UploadVendorSignature(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VendorService_UploadVendorSignature_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VendorServiceServer).UploadVendorSignature(ctx, req.(*UploadVendorSignatureRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // VendorService_ServiceDesc is the grpc.ServiceDesc for VendorService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -697,6 +733,10 @@ var VendorService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetProjectsDropdown",
 			Handler:    _VendorService_GetProjectsDropdown_Handler,
+		},
+		{
+			MethodName: "UploadVendorSignature",
+			Handler:    _VendorService_UploadVendorSignature_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

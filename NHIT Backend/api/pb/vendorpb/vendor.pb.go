@@ -192,9 +192,6 @@ type Vendor struct {
 	Gstin                  *string                `protobuf:"bytes,12,opt,name=gstin,proto3,oneof" json:"gstin,omitempty"`
 	Pan                    string                 `protobuf:"bytes,13,opt,name=pan,proto3" json:"pan,omitempty"`
 	Pin                    *string                `protobuf:"bytes,14,opt,name=pin,proto3,oneof" json:"pin,omitempty"`
-	CountryId              *string                `protobuf:"bytes,15,opt,name=country_id,json=countryId,proto3,oneof" json:"country_id,omitempty"`
-	StateId                *string                `protobuf:"bytes,16,opt,name=state_id,json=stateId,proto3,oneof" json:"state_id,omitempty"`
-	CityId                 *string                `protobuf:"bytes,17,opt,name=city_id,json=cityId,proto3,oneof" json:"city_id,omitempty"`
 	CountryName            *string                `protobuf:"bytes,18,opt,name=country_name,json=countryName,proto3,oneof" json:"country_name,omitempty"`
 	StateName              *string                `protobuf:"bytes,19,opt,name=state_name,json=stateName,proto3,oneof" json:"state_name,omitempty"`
 	CityName               *string                `protobuf:"bytes,20,opt,name=city_name,json=cityName,proto3,oneof" json:"city_name,omitempty"`
@@ -226,7 +223,8 @@ type Vendor struct {
 	AccountNumber *string `protobuf:"bytes,45,opt,name=account_number,json=accountNumber,proto3,oneof" json:"account_number,omitempty"`
 	NameOfBank    *string `protobuf:"bytes,46,opt,name=name_of_bank,json=nameOfBank,proto3,oneof" json:"name_of_bank,omitempty"`
 	IfscCode      *string `protobuf:"bytes,47,opt,name=ifsc_code,json=ifscCode,proto3,oneof" json:"ifsc_code,omitempty"`
-	IfscCodeId    *string `protobuf:"bytes,48,opt,name=ifsc_code_id,json=ifscCodeId,proto3,oneof" json:"ifsc_code_id,omitempty"`
+	Address       *string `protobuf:"bytes,48,opt,name=address,proto3,oneof" json:"address,omitempty"`
+	SignatureUrl  *string `protobuf:"bytes,49,opt,name=signature_url,json=signatureUrl,proto3,oneof" json:"signature_url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -355,27 +353,6 @@ func (x *Vendor) GetPan() string {
 func (x *Vendor) GetPin() string {
 	if x != nil && x.Pin != nil {
 		return *x.Pin
-	}
-	return ""
-}
-
-func (x *Vendor) GetCountryId() string {
-	if x != nil && x.CountryId != nil {
-		return *x.CountryId
-	}
-	return ""
-}
-
-func (x *Vendor) GetStateId() string {
-	if x != nil && x.StateId != nil {
-		return *x.StateId
-	}
-	return ""
-}
-
-func (x *Vendor) GetCityId() string {
-	if x != nil && x.CityId != nil {
-		return *x.CityId
 	}
 	return ""
 }
@@ -590,9 +567,16 @@ func (x *Vendor) GetIfscCode() string {
 	return ""
 }
 
-func (x *Vendor) GetIfscCodeId() string {
-	if x != nil && x.IfscCodeId != nil {
-		return *x.IfscCodeId
+func (x *Vendor) GetAddress() string {
+	if x != nil && x.Address != nil {
+		return *x.Address
+	}
+	return ""
+}
+
+func (x *Vendor) GetSignatureUrl() string {
+	if x != nil && x.SignatureUrl != nil {
+		return *x.SignatureUrl
 	}
 	return ""
 }
@@ -868,9 +852,6 @@ type CreateVendorRequest struct {
 	Gstin                  *string                `protobuf:"bytes,10,opt,name=gstin,proto3,oneof" json:"gstin,omitempty"`
 	Pan                    string                 `protobuf:"bytes,11,opt,name=pan,proto3" json:"pan,omitempty"`
 	Pin                    *string                `protobuf:"bytes,12,opt,name=pin,proto3,oneof" json:"pin,omitempty"`
-	CountryId              *string                `protobuf:"bytes,13,opt,name=country_id,proto3,oneof" json:"country_id,omitempty"`
-	StateId                *string                `protobuf:"bytes,14,opt,name=state_id,proto3,oneof" json:"state_id,omitempty"`
-	CityId                 *string                `protobuf:"bytes,15,opt,name=city_id,proto3,oneof" json:"city_id,omitempty"`
 	CountryName            *string                `protobuf:"bytes,16,opt,name=country_name,proto3,oneof" json:"country_name,omitempty"`
 	StateName              *string                `protobuf:"bytes,17,opt,name=state_name,proto3,oneof" json:"state_name,omitempty"`
 	CityName               *string                `protobuf:"bytes,18,opt,name=city_name,proto3,oneof" json:"city_name,omitempty"`
@@ -894,13 +875,12 @@ type CreateVendorRequest struct {
 	Parent                 *string                `protobuf:"bytes,36,opt,name=parent,proto3,oneof" json:"parent,omitempty"`
 	FilePaths              []string               `protobuf:"bytes,37,rep,name=file_paths,proto3" json:"file_paths,omitempty"`
 	CreatedBy              string                 `protobuf:"bytes,38,opt,name=created_by,proto3" json:"created_by,omitempty"`
-	// Banking details (for creating primary account)
-	AccountNumber *string `protobuf:"bytes,39,opt,name=account_number,proto3,oneof" json:"account_number,omitempty"`
-	NameOfBank    *string `protobuf:"bytes,40,opt,name=name_of_bank,proto3,oneof" json:"name_of_bank,omitempty"`
-	IfscCode      *string `protobuf:"bytes,41,opt,name=ifsc_code,proto3,oneof" json:"ifsc_code,omitempty"`
-	IfscCodeId    *string `protobuf:"bytes,42,opt,name=ifsc_code_id,proto3,oneof" json:"ifsc_code_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	AccountNumber          *string                `protobuf:"bytes,39,opt,name=account_number,proto3,oneof" json:"account_number,omitempty"`
+	NameOfBank             *string                `protobuf:"bytes,40,opt,name=name_of_bank,proto3,oneof" json:"name_of_bank,omitempty"`
+	IfscCode               *string                `protobuf:"bytes,41,opt,name=ifsc_code,proto3,oneof" json:"ifsc_code,omitempty"`
+	Address                *string                `protobuf:"bytes,42,opt,name=address,proto3,oneof" json:"address,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *CreateVendorRequest) Reset() {
@@ -1013,27 +993,6 @@ func (x *CreateVendorRequest) GetPan() string {
 func (x *CreateVendorRequest) GetPin() string {
 	if x != nil && x.Pin != nil {
 		return *x.Pin
-	}
-	return ""
-}
-
-func (x *CreateVendorRequest) GetCountryId() string {
-	if x != nil && x.CountryId != nil {
-		return *x.CountryId
-	}
-	return ""
-}
-
-func (x *CreateVendorRequest) GetStateId() string {
-	if x != nil && x.StateId != nil {
-		return *x.StateId
-	}
-	return ""
-}
-
-func (x *CreateVendorRequest) GetCityId() string {
-	if x != nil && x.CityId != nil {
-		return *x.CityId
 	}
 	return ""
 }
@@ -1220,9 +1179,9 @@ func (x *CreateVendorRequest) GetIfscCode() string {
 	return ""
 }
 
-func (x *CreateVendorRequest) GetIfscCodeId() string {
-	if x != nil && x.IfscCodeId != nil {
-		return *x.IfscCodeId
+func (x *CreateVendorRequest) GetAddress() string {
+	if x != nil && x.Address != nil {
+		return *x.Address
 	}
 	return ""
 }
@@ -1338,7 +1297,7 @@ type UpdateVendorRequest struct {
 	VendorName             *string                `protobuf:"bytes,3,opt,name=vendor_name,json=vendorName,proto3,oneof" json:"vendor_name,omitempty"`
 	VendorEmail            *string                `protobuf:"bytes,4,opt,name=vendor_email,json=vendorEmail,proto3,oneof" json:"vendor_email,omitempty"`
 	VendorMobile           *string                `protobuf:"bytes,5,opt,name=vendor_mobile,json=vendorMobile,proto3,oneof" json:"vendor_mobile,omitempty"`
-	VendorType             *string                `protobuf:"bytes,6,opt,name=vendor_type,json=vendorType,proto3,oneof" json:"vendor_type,omitempty"`
+	AccountType            *string                `protobuf:"bytes,6,opt,name=account_type,json=accountType,proto3,oneof" json:"account_type,omitempty"`
 	VendorNickName         *string                `protobuf:"bytes,7,opt,name=vendor_nick_name,json=vendorNickName,proto3,oneof" json:"vendor_nick_name,omitempty"`
 	ActivityType           *string                `protobuf:"bytes,8,opt,name=activity_type,json=activityType,proto3,oneof" json:"activity_type,omitempty"`
 	Email                  *string                `protobuf:"bytes,9,opt,name=email,proto3,oneof" json:"email,omitempty"`
@@ -1346,32 +1305,30 @@ type UpdateVendorRequest struct {
 	Gstin                  *string                `protobuf:"bytes,11,opt,name=gstin,proto3,oneof" json:"gstin,omitempty"`
 	Pan                    *string                `protobuf:"bytes,12,opt,name=pan,proto3,oneof" json:"pan,omitempty"`
 	Pin                    *string                `protobuf:"bytes,13,opt,name=pin,proto3,oneof" json:"pin,omitempty"`
-	CountryId              *string                `protobuf:"bytes,14,opt,name=country_id,json=countryId,proto3,oneof" json:"country_id,omitempty"`
-	StateId                *string                `protobuf:"bytes,15,opt,name=state_id,json=stateId,proto3,oneof" json:"state_id,omitempty"`
-	CityId                 *string                `protobuf:"bytes,16,opt,name=city_id,json=cityId,proto3,oneof" json:"city_id,omitempty"`
-	CountryName            *string                `protobuf:"bytes,17,opt,name=country_name,json=countryName,proto3,oneof" json:"country_name,omitempty"`
-	StateName              *string                `protobuf:"bytes,18,opt,name=state_name,json=stateName,proto3,oneof" json:"state_name,omitempty"`
-	CityName               *string                `protobuf:"bytes,19,opt,name=city_name,json=cityName,proto3,oneof" json:"city_name,omitempty"`
-	MsmeClassification     *string                `protobuf:"bytes,20,opt,name=msme_classification,json=msmeClassification,proto3,oneof" json:"msme_classification,omitempty"`
-	Msme                   *string                `protobuf:"bytes,21,opt,name=msme,proto3,oneof" json:"msme,omitempty"`
-	MsmeRegistrationNumber *string                `protobuf:"bytes,22,opt,name=msme_registration_number,json=msmeRegistrationNumber,proto3,oneof" json:"msme_registration_number,omitempty"`
-	MsmeStartDate          *string                `protobuf:"bytes,23,opt,name=msme_start_date,json=msmeStartDate,proto3,oneof" json:"msme_start_date,omitempty"`
-	MsmeEndDate            *string                `protobuf:"bytes,24,opt,name=msme_end_date,json=msmeEndDate,proto3,oneof" json:"msme_end_date,omitempty"`
-	MaterialNature         *string                `protobuf:"bytes,25,opt,name=material_nature,json=materialNature,proto3,oneof" json:"material_nature,omitempty"`
-	GstDefaulted           *string                `protobuf:"bytes,26,opt,name=gst_defaulted,json=gstDefaulted,proto3,oneof" json:"gst_defaulted,omitempty"`
-	Section_206AbVerified  *string                `protobuf:"bytes,27,opt,name=section_206ab_verified,json=section206abVerified,proto3,oneof" json:"section_206ab_verified,omitempty"`
-	BeneficiaryName        *string                `protobuf:"bytes,28,opt,name=beneficiary_name,json=beneficiaryName,proto3,oneof" json:"beneficiary_name,omitempty"`
-	RemarksAddress         *string                `protobuf:"bytes,29,opt,name=remarks_address,json=remarksAddress,proto3,oneof" json:"remarks_address,omitempty"`
-	CommonBankDetails      *string                `protobuf:"bytes,30,opt,name=common_bank_details,json=commonBankDetails,proto3,oneof" json:"common_bank_details,omitempty"`
-	IncomeTaxType          *string                `protobuf:"bytes,31,opt,name=income_tax_type,json=incomeTaxType,proto3,oneof" json:"income_tax_type,omitempty"`
-	Project                *string                `protobuf:"bytes,32,opt,name=project,proto3,oneof" json:"project,omitempty"`
-	Status                 *string                `protobuf:"bytes,33,opt,name=status,proto3,oneof" json:"status,omitempty"`
-	FromAccountType        *string                `protobuf:"bytes,34,opt,name=from_account_type,json=fromAccountType,proto3,oneof" json:"from_account_type,omitempty"`
-	AccountName            *string                `protobuf:"bytes,35,opt,name=account_name,json=accountName,proto3,oneof" json:"account_name,omitempty"`
-	ShortName              *string                `protobuf:"bytes,36,opt,name=short_name,json=shortName,proto3,oneof" json:"short_name,omitempty"`
-	Parent                 *string                `protobuf:"bytes,37,opt,name=parent,proto3,oneof" json:"parent,omitempty"`
-	FilePaths              []string               `protobuf:"bytes,38,rep,name=file_paths,json=filePaths,proto3" json:"file_paths,omitempty"`
-	IsActive               *bool                  `protobuf:"varint,39,opt,name=is_active,json=isActive,proto3,oneof" json:"is_active,omitempty"`
+	CountryName            *string                `protobuf:"bytes,14,opt,name=country_name,json=countryName,proto3,oneof" json:"country_name,omitempty"`
+	StateName              *string                `protobuf:"bytes,15,opt,name=state_name,json=stateName,proto3,oneof" json:"state_name,omitempty"`
+	CityName               *string                `protobuf:"bytes,16,opt,name=city_name,json=cityName,proto3,oneof" json:"city_name,omitempty"`
+	MsmeClassification     *string                `protobuf:"bytes,17,opt,name=msme_classification,json=msmeClassification,proto3,oneof" json:"msme_classification,omitempty"`
+	Msme                   *string                `protobuf:"bytes,18,opt,name=msme,proto3,oneof" json:"msme,omitempty"`
+	MsmeRegistrationNumber *string                `protobuf:"bytes,19,opt,name=msme_registration_number,json=msmeRegistrationNumber,proto3,oneof" json:"msme_registration_number,omitempty"`
+	MsmeStartDate          *string                `protobuf:"bytes,20,opt,name=msme_start_date,json=msmeStartDate,proto3,oneof" json:"msme_start_date,omitempty"`
+	MsmeEndDate            *string                `protobuf:"bytes,21,opt,name=msme_end_date,json=msmeEndDate,proto3,oneof" json:"msme_end_date,omitempty"`
+	MaterialNature         *string                `protobuf:"bytes,22,opt,name=material_nature,json=materialNature,proto3,oneof" json:"material_nature,omitempty"`
+	GstDefaulted           *string                `protobuf:"bytes,23,opt,name=gst_defaulted,json=gstDefaulted,proto3,oneof" json:"gst_defaulted,omitempty"`
+	Section_206AbVerified  *string                `protobuf:"bytes,24,opt,name=section_206ab_verified,json=section206abVerified,proto3,oneof" json:"section_206ab_verified,omitempty"`
+	BeneficiaryName        *string                `protobuf:"bytes,25,opt,name=beneficiary_name,json=beneficiaryName,proto3,oneof" json:"beneficiary_name,omitempty"`
+	RemarksAddress         *string                `protobuf:"bytes,26,opt,name=remarks_address,json=remarksAddress,proto3,oneof" json:"remarks_address,omitempty"`
+	CommonBankDetails      *string                `protobuf:"bytes,27,opt,name=common_bank_details,json=commonBankDetails,proto3,oneof" json:"common_bank_details,omitempty"`
+	IncomeTaxType          *string                `protobuf:"bytes,28,opt,name=income_tax_type,json=incomeTaxType,proto3,oneof" json:"income_tax_type,omitempty"`
+	Project                *string                `protobuf:"bytes,29,opt,name=project,proto3,oneof" json:"project,omitempty"`
+	Status                 *string                `protobuf:"bytes,30,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	FromAccountType        *string                `protobuf:"bytes,31,opt,name=from_account_type,json=fromAccountType,proto3,oneof" json:"from_account_type,omitempty"`
+	AccountName            *string                `protobuf:"bytes,32,opt,name=account_name,json=accountName,proto3,oneof" json:"account_name,omitempty"`
+	ShortName              *string                `protobuf:"bytes,33,opt,name=short_name,json=shortName,proto3,oneof" json:"short_name,omitempty"`
+	Parent                 *string                `protobuf:"bytes,34,opt,name=parent,proto3,oneof" json:"parent,omitempty"`
+	FilePaths              []string               `protobuf:"bytes,35,rep,name=file_paths,json=filePaths,proto3" json:"file_paths,omitempty"`
+	IsActive               *bool                  `protobuf:"varint,36,opt,name=is_active,json=isActive,proto3,oneof" json:"is_active,omitempty"`
+	Address                *string                `protobuf:"bytes,37,opt,name=address,proto3,oneof" json:"address,omitempty"`
 	UpdatedBy              string                 `protobuf:"bytes,40,opt,name=updated_by,json=updatedBy,proto3" json:"updated_by,omitempty"`
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
@@ -1442,9 +1399,9 @@ func (x *UpdateVendorRequest) GetVendorMobile() string {
 	return ""
 }
 
-func (x *UpdateVendorRequest) GetVendorType() string {
-	if x != nil && x.VendorType != nil {
-		return *x.VendorType
+func (x *UpdateVendorRequest) GetAccountType() string {
+	if x != nil && x.AccountType != nil {
+		return *x.AccountType
 	}
 	return ""
 }
@@ -1494,27 +1451,6 @@ func (x *UpdateVendorRequest) GetPan() string {
 func (x *UpdateVendorRequest) GetPin() string {
 	if x != nil && x.Pin != nil {
 		return *x.Pin
-	}
-	return ""
-}
-
-func (x *UpdateVendorRequest) GetCountryId() string {
-	if x != nil && x.CountryId != nil {
-		return *x.CountryId
-	}
-	return ""
-}
-
-func (x *UpdateVendorRequest) GetStateId() string {
-	if x != nil && x.StateId != nil {
-		return *x.StateId
-	}
-	return ""
-}
-
-func (x *UpdateVendorRequest) GetCityId() string {
-	if x != nil && x.CityId != nil {
-		return *x.CityId
 	}
 	return ""
 }
@@ -1680,6 +1616,13 @@ func (x *UpdateVendorRequest) GetIsActive() bool {
 	return false
 }
 
+func (x *UpdateVendorRequest) GetAddress() string {
+	if x != nil && x.Address != nil {
+		return *x.Address
+	}
+	return ""
+}
+
 func (x *UpdateVendorRequest) GetUpdatedBy() string {
 	if x != nil {
 		return x.UpdatedBy
@@ -1750,6 +1693,8 @@ type ListVendorsRequest struct {
 	Offset        int32                  `protobuf:"varint,7,opt,name=offset,proto3" json:"offset,omitempty"`
 	SortBy        *string                `protobuf:"bytes,8,opt,name=sort_by,json=sortBy,proto3,oneof" json:"sort_by,omitempty"`
 	SortOrder     *string                `protobuf:"bytes,9,opt,name=sort_order,json=sortOrder,proto3,oneof" json:"sort_order,omitempty"`
+	Page          int32                  `protobuf:"varint,10,opt,name=page,proto3" json:"page,omitempty"`
+	PageSize      int32                  `protobuf:"varint,11,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1847,6 +1792,88 @@ func (x *ListVendorsRequest) GetSortOrder() string {
 	return ""
 }
 
+func (x *ListVendorsRequest) GetPage() int32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *ListVendorsRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+type PaginationMetadata struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CurrentPage   int32                  `protobuf:"varint,1,opt,name=current_page,json=currentPage,proto3" json:"current_page,omitempty"`
+	PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	TotalItems    int64                  `protobuf:"varint,3,opt,name=total_items,json=totalItems,proto3" json:"total_items,omitempty"`
+	TotalPages    int32                  `protobuf:"varint,4,opt,name=total_pages,json=totalPages,proto3" json:"total_pages,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PaginationMetadata) Reset() {
+	*x = PaginationMetadata{}
+	mi := &file_api_proto_vendor_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PaginationMetadata) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PaginationMetadata) ProtoMessage() {}
+
+func (x *PaginationMetadata) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_vendor_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PaginationMetadata.ProtoReflect.Descriptor instead.
+func (*PaginationMetadata) Descriptor() ([]byte, []int) {
+	return file_api_proto_vendor_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *PaginationMetadata) GetCurrentPage() int32 {
+	if x != nil {
+		return x.CurrentPage
+	}
+	return 0
+}
+
+func (x *PaginationMetadata) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *PaginationMetadata) GetTotalItems() int64 {
+	if x != nil {
+		return x.TotalItems
+	}
+	return 0
+}
+
+func (x *PaginationMetadata) GetTotalPages() int32 {
+	if x != nil {
+		return x.TotalPages
+	}
+	return 0
+}
+
 type GenerateVendorCodeRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	VendorName    string                 `protobuf:"bytes,1,opt,name=vendor_name,json=vendorName,proto3" json:"vendor_name,omitempty"`
@@ -1857,7 +1884,7 @@ type GenerateVendorCodeRequest struct {
 
 func (x *GenerateVendorCodeRequest) Reset() {
 	*x = GenerateVendorCodeRequest{}
-	mi := &file_api_proto_vendor_proto_msgTypes[9]
+	mi := &file_api_proto_vendor_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1869,7 +1896,7 @@ func (x *GenerateVendorCodeRequest) String() string {
 func (*GenerateVendorCodeRequest) ProtoMessage() {}
 
 func (x *GenerateVendorCodeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_vendor_proto_msgTypes[9]
+	mi := &file_api_proto_vendor_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1882,7 +1909,7 @@ func (x *GenerateVendorCodeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GenerateVendorCodeRequest.ProtoReflect.Descriptor instead.
 func (*GenerateVendorCodeRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_vendor_proto_rawDescGZIP(), []int{9}
+	return file_api_proto_vendor_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GenerateVendorCodeRequest) GetVendorName() string {
@@ -1910,7 +1937,7 @@ type UpdateVendorCodeRequest struct {
 
 func (x *UpdateVendorCodeRequest) Reset() {
 	*x = UpdateVendorCodeRequest{}
-	mi := &file_api_proto_vendor_proto_msgTypes[10]
+	mi := &file_api_proto_vendor_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1922,7 +1949,7 @@ func (x *UpdateVendorCodeRequest) String() string {
 func (*UpdateVendorCodeRequest) ProtoMessage() {}
 
 func (x *UpdateVendorCodeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_vendor_proto_msgTypes[10]
+	mi := &file_api_proto_vendor_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1935,7 +1962,7 @@ func (x *UpdateVendorCodeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateVendorCodeRequest.ProtoReflect.Descriptor instead.
 func (*UpdateVendorCodeRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_vendor_proto_rawDescGZIP(), []int{10}
+	return file_api_proto_vendor_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *UpdateVendorCodeRequest) GetTenantId() string {
@@ -1969,7 +1996,7 @@ type RegenerateVendorCodeRequest struct {
 
 func (x *RegenerateVendorCodeRequest) Reset() {
 	*x = RegenerateVendorCodeRequest{}
-	mi := &file_api_proto_vendor_proto_msgTypes[11]
+	mi := &file_api_proto_vendor_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1981,7 +2008,7 @@ func (x *RegenerateVendorCodeRequest) String() string {
 func (*RegenerateVendorCodeRequest) ProtoMessage() {}
 
 func (x *RegenerateVendorCodeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_vendor_proto_msgTypes[11]
+	mi := &file_api_proto_vendor_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1994,7 +2021,7 @@ func (x *RegenerateVendorCodeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegenerateVendorCodeRequest.ProtoReflect.Descriptor instead.
 func (*RegenerateVendorCodeRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_vendor_proto_rawDescGZIP(), []int{11}
+	return file_api_proto_vendor_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *RegenerateVendorCodeRequest) GetTenantId() string {
@@ -2030,7 +2057,7 @@ type CreateVendorAccountRequest struct {
 
 func (x *CreateVendorAccountRequest) Reset() {
 	*x = CreateVendorAccountRequest{}
-	mi := &file_api_proto_vendor_proto_msgTypes[12]
+	mi := &file_api_proto_vendor_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2042,7 +2069,7 @@ func (x *CreateVendorAccountRequest) String() string {
 func (*CreateVendorAccountRequest) ProtoMessage() {}
 
 func (x *CreateVendorAccountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_vendor_proto_msgTypes[12]
+	mi := &file_api_proto_vendor_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2055,7 +2082,7 @@ func (x *CreateVendorAccountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateVendorAccountRequest.ProtoReflect.Descriptor instead.
 func (*CreateVendorAccountRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_vendor_proto_rawDescGZIP(), []int{12}
+	return file_api_proto_vendor_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *CreateVendorAccountRequest) GetVendorId() string {
@@ -2144,7 +2171,7 @@ type GetVendorAccountsRequest struct {
 
 func (x *GetVendorAccountsRequest) Reset() {
 	*x = GetVendorAccountsRequest{}
-	mi := &file_api_proto_vendor_proto_msgTypes[13]
+	mi := &file_api_proto_vendor_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2156,7 +2183,7 @@ func (x *GetVendorAccountsRequest) String() string {
 func (*GetVendorAccountsRequest) ProtoMessage() {}
 
 func (x *GetVendorAccountsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_vendor_proto_msgTypes[13]
+	mi := &file_api_proto_vendor_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2169,7 +2196,7 @@ func (x *GetVendorAccountsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetVendorAccountsRequest.ProtoReflect.Descriptor instead.
 func (*GetVendorAccountsRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_vendor_proto_rawDescGZIP(), []int{13}
+	return file_api_proto_vendor_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *GetVendorAccountsRequest) GetVendorId() string {
@@ -2189,7 +2216,7 @@ type GetVendorBankingDetailsRequest struct {
 
 func (x *GetVendorBankingDetailsRequest) Reset() {
 	*x = GetVendorBankingDetailsRequest{}
-	mi := &file_api_proto_vendor_proto_msgTypes[14]
+	mi := &file_api_proto_vendor_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2201,7 +2228,7 @@ func (x *GetVendorBankingDetailsRequest) String() string {
 func (*GetVendorBankingDetailsRequest) ProtoMessage() {}
 
 func (x *GetVendorBankingDetailsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_vendor_proto_msgTypes[14]
+	mi := &file_api_proto_vendor_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2214,7 +2241,7 @@ func (x *GetVendorBankingDetailsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetVendorBankingDetailsRequest.ProtoReflect.Descriptor instead.
 func (*GetVendorBankingDetailsRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_vendor_proto_rawDescGZIP(), []int{14}
+	return file_api_proto_vendor_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *GetVendorBankingDetailsRequest) GetVendorId() string {
@@ -2251,7 +2278,7 @@ type UpdateVendorAccountRequest struct {
 
 func (x *UpdateVendorAccountRequest) Reset() {
 	*x = UpdateVendorAccountRequest{}
-	mi := &file_api_proto_vendor_proto_msgTypes[15]
+	mi := &file_api_proto_vendor_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2263,7 +2290,7 @@ func (x *UpdateVendorAccountRequest) String() string {
 func (*UpdateVendorAccountRequest) ProtoMessage() {}
 
 func (x *UpdateVendorAccountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_vendor_proto_msgTypes[15]
+	mi := &file_api_proto_vendor_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2276,7 +2303,7 @@ func (x *UpdateVendorAccountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateVendorAccountRequest.ProtoReflect.Descriptor instead.
 func (*UpdateVendorAccountRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_vendor_proto_rawDescGZIP(), []int{15}
+	return file_api_proto_vendor_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *UpdateVendorAccountRequest) GetAccountId() string {
@@ -2372,7 +2399,7 @@ type DeleteVendorAccountRequest struct {
 
 func (x *DeleteVendorAccountRequest) Reset() {
 	*x = DeleteVendorAccountRequest{}
-	mi := &file_api_proto_vendor_proto_msgTypes[16]
+	mi := &file_api_proto_vendor_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2384,7 +2411,7 @@ func (x *DeleteVendorAccountRequest) String() string {
 func (*DeleteVendorAccountRequest) ProtoMessage() {}
 
 func (x *DeleteVendorAccountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_vendor_proto_msgTypes[16]
+	mi := &file_api_proto_vendor_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2397,7 +2424,7 @@ func (x *DeleteVendorAccountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteVendorAccountRequest.ProtoReflect.Descriptor instead.
 func (*DeleteVendorAccountRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_vendor_proto_rawDescGZIP(), []int{16}
+	return file_api_proto_vendor_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *DeleteVendorAccountRequest) GetAccountId() string {
@@ -2416,7 +2443,7 @@ type ToggleAccountStatusRequest struct {
 
 func (x *ToggleAccountStatusRequest) Reset() {
 	*x = ToggleAccountStatusRequest{}
-	mi := &file_api_proto_vendor_proto_msgTypes[17]
+	mi := &file_api_proto_vendor_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2428,7 +2455,7 @@ func (x *ToggleAccountStatusRequest) String() string {
 func (*ToggleAccountStatusRequest) ProtoMessage() {}
 
 func (x *ToggleAccountStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_vendor_proto_msgTypes[17]
+	mi := &file_api_proto_vendor_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2441,7 +2468,7 @@ func (x *ToggleAccountStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ToggleAccountStatusRequest.ProtoReflect.Descriptor instead.
 func (*ToggleAccountStatusRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_vendor_proto_rawDescGZIP(), []int{17}
+	return file_api_proto_vendor_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *ToggleAccountStatusRequest) GetAccountId() string {
@@ -2461,7 +2488,7 @@ type VendorResponse struct {
 
 func (x *VendorResponse) Reset() {
 	*x = VendorResponse{}
-	mi := &file_api_proto_vendor_proto_msgTypes[18]
+	mi := &file_api_proto_vendor_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2473,7 +2500,7 @@ func (x *VendorResponse) String() string {
 func (*VendorResponse) ProtoMessage() {}
 
 func (x *VendorResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_vendor_proto_msgTypes[18]
+	mi := &file_api_proto_vendor_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2486,7 +2513,7 @@ func (x *VendorResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VendorResponse.ProtoReflect.Descriptor instead.
 func (*VendorResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_vendor_proto_rawDescGZIP(), []int{18}
+	return file_api_proto_vendor_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *VendorResponse) GetVendor() *Vendor {
@@ -2500,13 +2527,14 @@ type ListVendorsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Vendors       []*Vendor              `protobuf:"bytes,1,rep,name=vendors,proto3" json:"vendors,omitempty"`
 	TotalCount    int64                  `protobuf:"varint,2,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
+	Pagination    *PaginationMetadata    `protobuf:"bytes,3,opt,name=pagination,proto3" json:"pagination,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListVendorsResponse) Reset() {
 	*x = ListVendorsResponse{}
-	mi := &file_api_proto_vendor_proto_msgTypes[19]
+	mi := &file_api_proto_vendor_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2518,7 +2546,7 @@ func (x *ListVendorsResponse) String() string {
 func (*ListVendorsResponse) ProtoMessage() {}
 
 func (x *ListVendorsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_vendor_proto_msgTypes[19]
+	mi := &file_api_proto_vendor_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2531,7 +2559,7 @@ func (x *ListVendorsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListVendorsResponse.ProtoReflect.Descriptor instead.
 func (*ListVendorsResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_vendor_proto_rawDescGZIP(), []int{19}
+	return file_api_proto_vendor_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *ListVendorsResponse) GetVendors() []*Vendor {
@@ -2548,6 +2576,13 @@ func (x *ListVendorsResponse) GetTotalCount() int64 {
 	return 0
 }
 
+func (x *ListVendorsResponse) GetPagination() *PaginationMetadata {
+	if x != nil {
+		return x.Pagination
+	}
+	return nil
+}
+
 type GenerateVendorCodeResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	VendorCode    string                 `protobuf:"bytes,1,opt,name=vendor_code,json=vendorCode,proto3" json:"vendor_code,omitempty"`
@@ -2557,7 +2592,7 @@ type GenerateVendorCodeResponse struct {
 
 func (x *GenerateVendorCodeResponse) Reset() {
 	*x = GenerateVendorCodeResponse{}
-	mi := &file_api_proto_vendor_proto_msgTypes[20]
+	mi := &file_api_proto_vendor_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2569,7 +2604,7 @@ func (x *GenerateVendorCodeResponse) String() string {
 func (*GenerateVendorCodeResponse) ProtoMessage() {}
 
 func (x *GenerateVendorCodeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_vendor_proto_msgTypes[20]
+	mi := &file_api_proto_vendor_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2582,7 +2617,7 @@ func (x *GenerateVendorCodeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GenerateVendorCodeResponse.ProtoReflect.Descriptor instead.
 func (*GenerateVendorCodeResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_vendor_proto_rawDescGZIP(), []int{20}
+	return file_api_proto_vendor_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *GenerateVendorCodeResponse) GetVendorCode() string {
@@ -2601,7 +2636,7 @@ type VendorAccountResponse struct {
 
 func (x *VendorAccountResponse) Reset() {
 	*x = VendorAccountResponse{}
-	mi := &file_api_proto_vendor_proto_msgTypes[21]
+	mi := &file_api_proto_vendor_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2613,7 +2648,7 @@ func (x *VendorAccountResponse) String() string {
 func (*VendorAccountResponse) ProtoMessage() {}
 
 func (x *VendorAccountResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_vendor_proto_msgTypes[21]
+	mi := &file_api_proto_vendor_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2626,7 +2661,7 @@ func (x *VendorAccountResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VendorAccountResponse.ProtoReflect.Descriptor instead.
 func (*VendorAccountResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_vendor_proto_rawDescGZIP(), []int{21}
+	return file_api_proto_vendor_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *VendorAccountResponse) GetAccount() *VendorAccount {
@@ -2645,7 +2680,7 @@ type GetVendorAccountsResponse struct {
 
 func (x *GetVendorAccountsResponse) Reset() {
 	*x = GetVendorAccountsResponse{}
-	mi := &file_api_proto_vendor_proto_msgTypes[22]
+	mi := &file_api_proto_vendor_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2657,7 +2692,7 @@ func (x *GetVendorAccountsResponse) String() string {
 func (*GetVendorAccountsResponse) ProtoMessage() {}
 
 func (x *GetVendorAccountsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_vendor_proto_msgTypes[22]
+	mi := &file_api_proto_vendor_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2670,7 +2705,7 @@ func (x *GetVendorAccountsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetVendorAccountsResponse.ProtoReflect.Descriptor instead.
 func (*GetVendorAccountsResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_vendor_proto_rawDescGZIP(), []int{22}
+	return file_api_proto_vendor_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *GetVendorAccountsResponse) GetAccounts() []*VendorAccount {
@@ -2689,7 +2724,7 @@ type BankingDetailsResponse struct {
 
 func (x *BankingDetailsResponse) Reset() {
 	*x = BankingDetailsResponse{}
-	mi := &file_api_proto_vendor_proto_msgTypes[23]
+	mi := &file_api_proto_vendor_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2701,7 +2736,7 @@ func (x *BankingDetailsResponse) String() string {
 func (*BankingDetailsResponse) ProtoMessage() {}
 
 func (x *BankingDetailsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_vendor_proto_msgTypes[23]
+	mi := &file_api_proto_vendor_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2714,7 +2749,7 @@ func (x *BankingDetailsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BankingDetailsResponse.ProtoReflect.Descriptor instead.
 func (*BankingDetailsResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_vendor_proto_rawDescGZIP(), []int{23}
+	return file_api_proto_vendor_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *BankingDetailsResponse) GetBankingDetails() *BankingDetails {
@@ -2735,7 +2770,7 @@ type GetVendorAccountRequest struct {
 
 func (x *GetVendorAccountRequest) Reset() {
 	*x = GetVendorAccountRequest{}
-	mi := &file_api_proto_vendor_proto_msgTypes[24]
+	mi := &file_api_proto_vendor_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2747,7 +2782,7 @@ func (x *GetVendorAccountRequest) String() string {
 func (*GetVendorAccountRequest) ProtoMessage() {}
 
 func (x *GetVendorAccountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_vendor_proto_msgTypes[24]
+	mi := &file_api_proto_vendor_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2760,7 +2795,7 @@ func (x *GetVendorAccountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetVendorAccountRequest.ProtoReflect.Descriptor instead.
 func (*GetVendorAccountRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_vendor_proto_rawDescGZIP(), []int{24}
+	return file_api_proto_vendor_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *GetVendorAccountRequest) GetAccountId() string {
@@ -2786,7 +2821,7 @@ type SetPrimaryAccountRequest struct {
 
 func (x *SetPrimaryAccountRequest) Reset() {
 	*x = SetPrimaryAccountRequest{}
-	mi := &file_api_proto_vendor_proto_msgTypes[25]
+	mi := &file_api_proto_vendor_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2798,7 +2833,7 @@ func (x *SetPrimaryAccountRequest) String() string {
 func (*SetPrimaryAccountRequest) ProtoMessage() {}
 
 func (x *SetPrimaryAccountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_vendor_proto_msgTypes[25]
+	mi := &file_api_proto_vendor_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2811,7 +2846,7 @@ func (x *SetPrimaryAccountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetPrimaryAccountRequest.ProtoReflect.Descriptor instead.
 func (*SetPrimaryAccountRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_vendor_proto_rawDescGZIP(), []int{25}
+	return file_api_proto_vendor_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *SetPrimaryAccountRequest) GetAccountId() string {
@@ -2830,7 +2865,7 @@ type GetProjectsDropdownRequest struct {
 
 func (x *GetProjectsDropdownRequest) Reset() {
 	*x = GetProjectsDropdownRequest{}
-	mi := &file_api_proto_vendor_proto_msgTypes[26]
+	mi := &file_api_proto_vendor_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2842,7 +2877,7 @@ func (x *GetProjectsDropdownRequest) String() string {
 func (*GetProjectsDropdownRequest) ProtoMessage() {}
 
 func (x *GetProjectsDropdownRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_vendor_proto_msgTypes[26]
+	mi := &file_api_proto_vendor_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2855,7 +2890,7 @@ func (x *GetProjectsDropdownRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetProjectsDropdownRequest.ProtoReflect.Descriptor instead.
 func (*GetProjectsDropdownRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_vendor_proto_rawDescGZIP(), []int{26}
+	return file_api_proto_vendor_proto_rawDescGZIP(), []int{27}
 }
 
 type ProjectDropdownItem struct {
@@ -2868,7 +2903,7 @@ type ProjectDropdownItem struct {
 
 func (x *ProjectDropdownItem) Reset() {
 	*x = ProjectDropdownItem{}
-	mi := &file_api_proto_vendor_proto_msgTypes[27]
+	mi := &file_api_proto_vendor_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2880,7 +2915,7 @@ func (x *ProjectDropdownItem) String() string {
 func (*ProjectDropdownItem) ProtoMessage() {}
 
 func (x *ProjectDropdownItem) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_vendor_proto_msgTypes[27]
+	mi := &file_api_proto_vendor_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2893,7 +2928,7 @@ func (x *ProjectDropdownItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProjectDropdownItem.ProtoReflect.Descriptor instead.
 func (*ProjectDropdownItem) Descriptor() ([]byte, []int) {
-	return file_api_proto_vendor_proto_rawDescGZIP(), []int{27}
+	return file_api_proto_vendor_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *ProjectDropdownItem) GetId() string {
@@ -2919,7 +2954,7 @@ type GetProjectsDropdownResponse struct {
 
 func (x *GetProjectsDropdownResponse) Reset() {
 	*x = GetProjectsDropdownResponse{}
-	mi := &file_api_proto_vendor_proto_msgTypes[28]
+	mi := &file_api_proto_vendor_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2931,7 +2966,7 @@ func (x *GetProjectsDropdownResponse) String() string {
 func (*GetProjectsDropdownResponse) ProtoMessage() {}
 
 func (x *GetProjectsDropdownResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_vendor_proto_msgTypes[28]
+	mi := &file_api_proto_vendor_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2944,7 +2979,7 @@ func (x *GetProjectsDropdownResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetProjectsDropdownResponse.ProtoReflect.Descriptor instead.
 func (*GetProjectsDropdownResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_vendor_proto_rawDescGZIP(), []int{28}
+	return file_api_proto_vendor_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *GetProjectsDropdownResponse) GetProjects() []*ProjectDropdownItem {
@@ -2954,11 +2989,166 @@ func (x *GetProjectsDropdownResponse) GetProjects() []*ProjectDropdownItem {
 	return nil
 }
 
+// ====================
+// Vendor Signature Upload Messages
+// ====================
+type UploadVendorSignatureRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	VendorId      string                 `protobuf:"bytes,1,opt,name=vendor_id,json=vendorId,proto3" json:"vendor_id,omitempty"`
+	FileContent   []byte                 `protobuf:"bytes,2,opt,name=file_content,json=fileContent,proto3" json:"file_content,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UploadVendorSignatureRequest) Reset() {
+	*x = UploadVendorSignatureRequest{}
+	mi := &file_api_proto_vendor_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UploadVendorSignatureRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UploadVendorSignatureRequest) ProtoMessage() {}
+
+func (x *UploadVendorSignatureRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_vendor_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UploadVendorSignatureRequest.ProtoReflect.Descriptor instead.
+func (*UploadVendorSignatureRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_vendor_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *UploadVendorSignatureRequest) GetVendorId() string {
+	if x != nil {
+		return x.VendorId
+	}
+	return ""
+}
+
+func (x *UploadVendorSignatureRequest) GetFileContent() []byte {
+	if x != nil {
+		return x.FileContent
+	}
+	return nil
+}
+
+type UploadVendorSignatureResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	VendorId      string                 `protobuf:"bytes,3,opt,name=vendor_id,json=vendorId,proto3" json:"vendor_id,omitempty"`
+	SignatureUrl  string                 `protobuf:"bytes,4,opt,name=signature_url,json=signatureUrl,proto3" json:"signature_url,omitempty"`
+	FileName      string                 `protobuf:"bytes,5,opt,name=file_name,json=fileName,proto3" json:"file_name,omitempty"`
+	MimeType      string                 `protobuf:"bytes,6,opt,name=mime_type,json=mimeType,proto3" json:"mime_type,omitempty"`
+	FileSize      int64                  `protobuf:"varint,7,opt,name=file_size,json=fileSize,proto3" json:"file_size,omitempty"`
+	UploadedAt    *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=uploaded_at,json=uploadedAt,proto3" json:"uploaded_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UploadVendorSignatureResponse) Reset() {
+	*x = UploadVendorSignatureResponse{}
+	mi := &file_api_proto_vendor_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UploadVendorSignatureResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UploadVendorSignatureResponse) ProtoMessage() {}
+
+func (x *UploadVendorSignatureResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_vendor_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UploadVendorSignatureResponse.ProtoReflect.Descriptor instead.
+func (*UploadVendorSignatureResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_vendor_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *UploadVendorSignatureResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *UploadVendorSignatureResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *UploadVendorSignatureResponse) GetVendorId() string {
+	if x != nil {
+		return x.VendorId
+	}
+	return ""
+}
+
+func (x *UploadVendorSignatureResponse) GetSignatureUrl() string {
+	if x != nil {
+		return x.SignatureUrl
+	}
+	return ""
+}
+
+func (x *UploadVendorSignatureResponse) GetFileName() string {
+	if x != nil {
+		return x.FileName
+	}
+	return ""
+}
+
+func (x *UploadVendorSignatureResponse) GetMimeType() string {
+	if x != nil {
+		return x.MimeType
+	}
+	return ""
+}
+
+func (x *UploadVendorSignatureResponse) GetFileSize() int64 {
+	if x != nil {
+		return x.FileSize
+	}
+	return 0
+}
+
+func (x *UploadVendorSignatureResponse) GetUploadedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UploadedAt
+	}
+	return nil
+}
+
 var File_api_proto_vendor_proto protoreflect.FileDescriptor
 
 const file_api_proto_vendor_proto_rawDesc = "" +
 	"\n" +
-	"\x16api/proto/vendor.proto\x12\tvendor.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf2\x12\n" +
+	"\x16api/proto/vendor.proto\x12\tvendor.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x97\x12\n" +
 	"\x06Vendor\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
 	"\ttenant_id\x18\x02 \x01(\tR\btenantId\x12\x1f\n" +
@@ -2976,35 +3166,31 @@ const file_api_proto_vendor_proto_rawDesc = "" +
 	"\x06mobile\x18\v \x01(\tH\x04R\x06mobile\x88\x01\x01\x12\x19\n" +
 	"\x05gstin\x18\f \x01(\tH\x05R\x05gstin\x88\x01\x01\x12\x10\n" +
 	"\x03pan\x18\r \x01(\tR\x03pan\x12\x15\n" +
-	"\x03pin\x18\x0e \x01(\tH\x06R\x03pin\x88\x01\x01\x12\"\n" +
+	"\x03pin\x18\x0e \x01(\tH\x06R\x03pin\x88\x01\x01\x12&\n" +
+	"\fcountry_name\x18\x12 \x01(\tH\aR\vcountryName\x88\x01\x01\x12\"\n" +
 	"\n" +
-	"country_id\x18\x0f \x01(\tH\aR\tcountryId\x88\x01\x01\x12\x1e\n" +
-	"\bstate_id\x18\x10 \x01(\tH\bR\astateId\x88\x01\x01\x12\x1c\n" +
-	"\acity_id\x18\x11 \x01(\tH\tR\x06cityId\x88\x01\x01\x12&\n" +
-	"\fcountry_name\x18\x12 \x01(\tH\n" +
-	"R\vcountryName\x88\x01\x01\x12\"\n" +
-	"\n" +
-	"state_name\x18\x13 \x01(\tH\vR\tstateName\x88\x01\x01\x12 \n" +
-	"\tcity_name\x18\x14 \x01(\tH\fR\bcityName\x88\x01\x01\x12/\n" +
+	"state_name\x18\x13 \x01(\tH\bR\tstateName\x88\x01\x01\x12 \n" +
+	"\tcity_name\x18\x14 \x01(\tH\tR\bcityName\x88\x01\x01\x12/\n" +
 	"\x13msme_classification\x18\x15 \x01(\tR\x12msmeClassification\x12\x17\n" +
-	"\x04msme\x18\x16 \x01(\tH\rR\x04msme\x88\x01\x01\x12=\n" +
-	"\x18msme_registration_number\x18\x17 \x01(\tH\x0eR\x16msmeRegistrationNumber\x88\x01\x01\x12G\n" +
-	"\x0fmsme_start_date\x18\x18 \x01(\v2\x1a.google.protobuf.TimestampH\x0fR\rmsmeStartDate\x88\x01\x01\x12C\n" +
-	"\rmsme_end_date\x18\x19 \x01(\v2\x1a.google.protobuf.TimestampH\x10R\vmsmeEndDate\x88\x01\x01\x12,\n" +
-	"\x0fmaterial_nature\x18\x1a \x01(\tH\x11R\x0ematerialNature\x88\x01\x01\x12(\n" +
-	"\rgst_defaulted\x18\x1b \x01(\tH\x12R\fgstDefaulted\x88\x01\x01\x129\n" +
-	"\x16section_206ab_verified\x18\x1c \x01(\tH\x13R\x14section206abVerified\x88\x01\x01\x12)\n" +
+	"\x04msme\x18\x16 \x01(\tH\n" +
+	"R\x04msme\x88\x01\x01\x12=\n" +
+	"\x18msme_registration_number\x18\x17 \x01(\tH\vR\x16msmeRegistrationNumber\x88\x01\x01\x12G\n" +
+	"\x0fmsme_start_date\x18\x18 \x01(\v2\x1a.google.protobuf.TimestampH\fR\rmsmeStartDate\x88\x01\x01\x12C\n" +
+	"\rmsme_end_date\x18\x19 \x01(\v2\x1a.google.protobuf.TimestampH\rR\vmsmeEndDate\x88\x01\x01\x12,\n" +
+	"\x0fmaterial_nature\x18\x1a \x01(\tH\x0eR\x0ematerialNature\x88\x01\x01\x12(\n" +
+	"\rgst_defaulted\x18\x1b \x01(\tH\x0fR\fgstDefaulted\x88\x01\x01\x129\n" +
+	"\x16section_206ab_verified\x18\x1c \x01(\tH\x10R\x14section206abVerified\x88\x01\x01\x12)\n" +
 	"\x10beneficiary_name\x18\x1d \x01(\tR\x0fbeneficiaryName\x12,\n" +
-	"\x0fremarks_address\x18\x1e \x01(\tH\x14R\x0eremarksAddress\x88\x01\x01\x123\n" +
-	"\x13common_bank_details\x18\x1f \x01(\tH\x15R\x11commonBankDetails\x88\x01\x01\x12+\n" +
-	"\x0fincome_tax_type\x18  \x01(\tH\x16R\rincomeTaxType\x88\x01\x01\x12\x1d\n" +
-	"\aproject\x18! \x01(\tH\x17R\aproject\x88\x01\x01\x12\x16\n" +
+	"\x0fremarks_address\x18\x1e \x01(\tH\x11R\x0eremarksAddress\x88\x01\x01\x123\n" +
+	"\x13common_bank_details\x18\x1f \x01(\tH\x12R\x11commonBankDetails\x88\x01\x01\x12+\n" +
+	"\x0fincome_tax_type\x18  \x01(\tH\x13R\rincomeTaxType\x88\x01\x01\x12\x1d\n" +
+	"\aproject\x18! \x01(\tH\x14R\aproject\x88\x01\x01\x12\x16\n" +
 	"\x06status\x18\" \x01(\tR\x06status\x12/\n" +
-	"\x11from_account_type\x18# \x01(\tH\x18R\x0ffromAccountType\x88\x01\x01\x12&\n" +
-	"\faccount_name\x18$ \x01(\tH\x19R\vaccountName\x88\x01\x01\x12\"\n" +
+	"\x11from_account_type\x18# \x01(\tH\x15R\x0ffromAccountType\x88\x01\x01\x12&\n" +
+	"\faccount_name\x18$ \x01(\tH\x16R\vaccountName\x88\x01\x01\x12\"\n" +
 	"\n" +
-	"short_name\x18% \x01(\tH\x1aR\tshortName\x88\x01\x01\x12\x1b\n" +
-	"\x06parent\x18& \x01(\tH\x1bR\x06parent\x88\x01\x01\x12\x1d\n" +
+	"short_name\x18% \x01(\tH\x17R\tshortName\x88\x01\x01\x12\x1b\n" +
+	"\x06parent\x18& \x01(\tH\x18R\x06parent\x88\x01\x01\x12\x1d\n" +
 	"\n" +
 	"file_paths\x18' \x03(\tR\tfilePaths\x12.\n" +
 	"\x13code_auto_generated\x18( \x01(\bR\x11codeAutoGenerated\x12\x1b\n" +
@@ -3015,23 +3201,19 @@ const file_api_proto_vendor_proto_rawDesc = "" +
 	"created_at\x18+ \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
 	"updated_at\x18, \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12*\n" +
-	"\x0eaccount_number\x18- \x01(\tH\x1cR\raccountNumber\x88\x01\x01\x12%\n" +
-	"\fname_of_bank\x18. \x01(\tH\x1dR\n" +
+	"\x0eaccount_number\x18- \x01(\tH\x19R\raccountNumber\x88\x01\x01\x12%\n" +
+	"\fname_of_bank\x18. \x01(\tH\x1aR\n" +
 	"nameOfBank\x88\x01\x01\x12 \n" +
-	"\tifsc_code\x18/ \x01(\tH\x1eR\bifscCode\x88\x01\x01\x12%\n" +
-	"\fifsc_code_id\x180 \x01(\tH\x1fR\n" +
-	"ifscCodeId\x88\x01\x01B\x10\n" +
+	"\tifsc_code\x18/ \x01(\tH\x1bR\bifscCode\x88\x01\x01\x12\x1d\n" +
+	"\aaddress\x180 \x01(\tH\x1cR\aaddress\x88\x01\x01\x12(\n" +
+	"\rsignature_url\x181 \x01(\tH\x1dR\fsignatureUrl\x88\x01\x01B\x10\n" +
 	"\x0e_vendor_mobileB\x13\n" +
 	"\x11_vendor_nick_nameB\x10\n" +
 	"\x0e_activity_typeB\b\n" +
 	"\x06_emailB\t\n" +
 	"\a_mobileB\b\n" +
 	"\x06_gstinB\x06\n" +
-	"\x04_pinB\r\n" +
-	"\v_country_idB\v\n" +
-	"\t_state_idB\n" +
-	"\n" +
-	"\b_city_idB\x0f\n" +
+	"\x04_pinB\x0f\n" +
 	"\r_country_nameB\r\n" +
 	"\v_state_nameB\f\n" +
 	"\n" +
@@ -3055,8 +3237,10 @@ const file_api_proto_vendor_proto_rawDesc = "" +
 	"\x0f_account_numberB\x0f\n" +
 	"\r_name_of_bankB\f\n" +
 	"\n" +
-	"_ifsc_codeB\x0f\n" +
-	"\r_ifsc_code_id\"\xe3\x04\n" +
+	"_ifsc_codeB\n" +
+	"\n" +
+	"\b_addressB\x10\n" +
+	"\x0e_signature_url\"\xe3\x04\n" +
 	"\rVendorAccount\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
 	"\tvendor_id\x18\x02 \x01(\tR\bvendorId\x12!\n" +
@@ -3102,7 +3286,7 @@ const file_api_proto_vendor_proto_rawDesc = "" +
 	"\f_branch_nameB\r\n" +
 	"\v_swift_codeB\n" +
 	"\n" +
-	"\b_remarks\"\xfe\x10\n" +
+	"\b_remarks\"\xe2\x0f\n" +
 	"\x13CreateVendorRequest\x12\x1c\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\ttenant_id\x12 \n" +
 	"\vvendor_name\x18\x02 \x01(\tR\vvendor_name\x12\"\n" +
@@ -3116,59 +3300,50 @@ const file_api_proto_vendor_proto_rawDesc = "" +
 	"\x05gstin\x18\n" +
 	" \x01(\tH\x05R\x05gstin\x88\x01\x01\x12\x10\n" +
 	"\x03pan\x18\v \x01(\tR\x03pan\x12\x15\n" +
-	"\x03pin\x18\f \x01(\tH\x06R\x03pin\x88\x01\x01\x12#\n" +
+	"\x03pin\x18\f \x01(\tH\x06R\x03pin\x88\x01\x01\x12'\n" +
+	"\fcountry_name\x18\x10 \x01(\tH\aR\fcountry_name\x88\x01\x01\x12#\n" +
 	"\n" +
-	"country_id\x18\r \x01(\tH\aR\n" +
-	"country_id\x88\x01\x01\x12\x1f\n" +
-	"\bstate_id\x18\x0e \x01(\tH\bR\bstate_id\x88\x01\x01\x12\x1d\n" +
-	"\acity_id\x18\x0f \x01(\tH\tR\acity_id\x88\x01\x01\x12'\n" +
-	"\fcountry_name\x18\x10 \x01(\tH\n" +
-	"R\fcountry_name\x88\x01\x01\x12#\n" +
-	"\n" +
-	"state_name\x18\x11 \x01(\tH\vR\n" +
+	"state_name\x18\x11 \x01(\tH\bR\n" +
 	"state_name\x88\x01\x01\x12!\n" +
-	"\tcity_name\x18\x12 \x01(\tH\fR\tcity_name\x88\x01\x01\x120\n" +
+	"\tcity_name\x18\x12 \x01(\tH\tR\tcity_name\x88\x01\x01\x120\n" +
 	"\x13msme_classification\x18\x13 \x01(\tR\x13msme_classification\x12\x17\n" +
-	"\x04msme\x18\x14 \x01(\tH\rR\x04msme\x88\x01\x01\x12?\n" +
-	"\x18msme_registration_number\x18\x15 \x01(\tH\x0eR\x18msme_registration_number\x88\x01\x01\x12-\n" +
-	"\x0fmsme_start_date\x18\x16 \x01(\tH\x0fR\x0fmsme_start_date\x88\x01\x01\x12)\n" +
-	"\rmsme_end_date\x18\x17 \x01(\tH\x10R\rmsme_end_date\x88\x01\x01\x12-\n" +
-	"\x0fmaterial_nature\x18\x18 \x01(\tH\x11R\x0fmaterial_nature\x88\x01\x01\x12)\n" +
-	"\rgst_defaulted\x18\x19 \x01(\tH\x12R\rgst_defaulted\x88\x01\x01\x12;\n" +
-	"\x16section_206ab_verified\x18\x1a \x01(\tH\x13R\x16section_206ab_verified\x88\x01\x01\x12*\n" +
+	"\x04msme\x18\x14 \x01(\tH\n" +
+	"R\x04msme\x88\x01\x01\x12?\n" +
+	"\x18msme_registration_number\x18\x15 \x01(\tH\vR\x18msme_registration_number\x88\x01\x01\x12-\n" +
+	"\x0fmsme_start_date\x18\x16 \x01(\tH\fR\x0fmsme_start_date\x88\x01\x01\x12)\n" +
+	"\rmsme_end_date\x18\x17 \x01(\tH\rR\rmsme_end_date\x88\x01\x01\x12-\n" +
+	"\x0fmaterial_nature\x18\x18 \x01(\tH\x0eR\x0fmaterial_nature\x88\x01\x01\x12)\n" +
+	"\rgst_defaulted\x18\x19 \x01(\tH\x0fR\rgst_defaulted\x88\x01\x01\x12;\n" +
+	"\x16section_206ab_verified\x18\x1a \x01(\tH\x10R\x16section_206ab_verified\x88\x01\x01\x12*\n" +
 	"\x10beneficiary_name\x18\x1b \x01(\tR\x10beneficiary_name\x12-\n" +
-	"\x0fremarks_address\x18\x1c \x01(\tH\x14R\x0fremarks_address\x88\x01\x01\x125\n" +
-	"\x13common_bank_details\x18\x1d \x01(\tH\x15R\x13common_bank_details\x88\x01\x01\x12-\n" +
-	"\x0fincome_tax_type\x18\x1e \x01(\tH\x16R\x0fincome_tax_type\x88\x01\x01\x12\x1d\n" +
-	"\aproject\x18\x1f \x01(\tH\x17R\aproject\x88\x01\x01\x12\x16\n" +
+	"\x0fremarks_address\x18\x1c \x01(\tH\x11R\x0fremarks_address\x88\x01\x01\x125\n" +
+	"\x13common_bank_details\x18\x1d \x01(\tH\x12R\x13common_bank_details\x88\x01\x01\x12-\n" +
+	"\x0fincome_tax_type\x18\x1e \x01(\tH\x13R\x0fincome_tax_type\x88\x01\x01\x12\x1d\n" +
+	"\aproject\x18\x1f \x01(\tH\x14R\aproject\x88\x01\x01\x12\x16\n" +
 	"\x06status\x18  \x01(\tR\x06status\x121\n" +
-	"\x11from_account_type\x18! \x01(\tH\x18R\x11from_account_type\x88\x01\x01\x12'\n" +
-	"\faccount_name\x18\" \x01(\tH\x19R\faccount_name\x88\x01\x01\x12#\n" +
+	"\x11from_account_type\x18! \x01(\tH\x15R\x11from_account_type\x88\x01\x01\x12'\n" +
+	"\faccount_name\x18\" \x01(\tH\x16R\faccount_name\x88\x01\x01\x12#\n" +
 	"\n" +
-	"short_name\x18# \x01(\tH\x1aR\n" +
+	"short_name\x18# \x01(\tH\x17R\n" +
 	"short_name\x88\x01\x01\x12\x1b\n" +
-	"\x06parent\x18$ \x01(\tH\x1bR\x06parent\x88\x01\x01\x12\x1e\n" +
+	"\x06parent\x18$ \x01(\tH\x18R\x06parent\x88\x01\x01\x12\x1e\n" +
 	"\n" +
 	"file_paths\x18% \x03(\tR\n" +
 	"file_paths\x12\x1e\n" +
 	"\n" +
 	"created_by\x18& \x01(\tR\n" +
 	"created_by\x12+\n" +
-	"\x0eaccount_number\x18' \x01(\tH\x1cR\x0eaccount_number\x88\x01\x01\x12'\n" +
-	"\fname_of_bank\x18( \x01(\tH\x1dR\fname_of_bank\x88\x01\x01\x12!\n" +
-	"\tifsc_code\x18) \x01(\tH\x1eR\tifsc_code\x88\x01\x01\x12'\n" +
-	"\fifsc_code_id\x18* \x01(\tH\x1fR\fifsc_code_id\x88\x01\x01B\x10\n" +
+	"\x0eaccount_number\x18' \x01(\tH\x19R\x0eaccount_number\x88\x01\x01\x12'\n" +
+	"\fname_of_bank\x18( \x01(\tH\x1aR\fname_of_bank\x88\x01\x01\x12!\n" +
+	"\tifsc_code\x18) \x01(\tH\x1bR\tifsc_code\x88\x01\x01\x12\x1d\n" +
+	"\aaddress\x18* \x01(\tH\x1cR\aaddress\x88\x01\x01B\x10\n" +
 	"\x0e_vendor_mobileB\x13\n" +
 	"\x11_vendor_nick_nameB\x10\n" +
 	"\x0e_activity_typeB\b\n" +
 	"\x06_emailB\t\n" +
 	"\a_mobileB\b\n" +
 	"\x06_gstinB\x06\n" +
-	"\x04_pinB\r\n" +
-	"\v_country_idB\v\n" +
-	"\t_state_idB\n" +
-	"\n" +
-	"\b_city_idB\x0f\n" +
+	"\x04_pinB\x0f\n" +
 	"\r_country_nameB\r\n" +
 	"\v_state_nameB\f\n" +
 	"\n" +
@@ -3192,24 +3367,24 @@ const file_api_proto_vendor_proto_rawDesc = "" +
 	"\x0f_account_numberB\x0f\n" +
 	"\r_name_of_bankB\f\n" +
 	"\n" +
-	"_ifsc_codeB\x0f\n" +
-	"\r_ifsc_code_id\"L\n" +
+	"_ifsc_codeB\n" +
+	"\n" +
+	"\b_address\"L\n" +
 	"\x10GetVendorRequest\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x1b\n" +
 	"\tvendor_id\x18\x02 \x01(\tR\bvendorId\"V\n" +
 	"\x16GetVendorByCodeRequest\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x1f\n" +
 	"\vvendor_code\x18\x02 \x01(\tR\n" +
-	"vendorCode\"\xd3\x10\n" +
+	"vendorCode\"\xf7\x0f\n" +
 	"\x13UpdateVendorRequest\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x1b\n" +
 	"\tvendor_id\x18\x02 \x01(\tR\bvendorId\x12$\n" +
 	"\vvendor_name\x18\x03 \x01(\tH\x00R\n" +
 	"vendorName\x88\x01\x01\x12&\n" +
 	"\fvendor_email\x18\x04 \x01(\tH\x01R\vvendorEmail\x88\x01\x01\x12(\n" +
-	"\rvendor_mobile\x18\x05 \x01(\tH\x02R\fvendorMobile\x88\x01\x01\x12$\n" +
-	"\vvendor_type\x18\x06 \x01(\tH\x03R\n" +
-	"vendorType\x88\x01\x01\x12-\n" +
+	"\rvendor_mobile\x18\x05 \x01(\tH\x02R\fvendorMobile\x88\x01\x01\x12&\n" +
+	"\faccount_type\x18\x06 \x01(\tH\x03R\vaccountType\x88\x01\x01\x12-\n" +
 	"\x10vendor_nick_name\x18\a \x01(\tH\x04R\x0evendorNickName\x88\x01\x01\x12(\n" +
 	"\ractivity_type\x18\b \x01(\tH\x05R\factivityType\x88\x01\x01\x12\x19\n" +
 	"\x05email\x18\t \x01(\tH\x06R\x05email\x88\x01\x01\x12\x1b\n" +
@@ -3218,54 +3393,47 @@ const file_api_proto_vendor_proto_rawDesc = "" +
 	"\x05gstin\x18\v \x01(\tH\bR\x05gstin\x88\x01\x01\x12\x15\n" +
 	"\x03pan\x18\f \x01(\tH\tR\x03pan\x88\x01\x01\x12\x15\n" +
 	"\x03pin\x18\r \x01(\tH\n" +
-	"R\x03pin\x88\x01\x01\x12\"\n" +
+	"R\x03pin\x88\x01\x01\x12&\n" +
+	"\fcountry_name\x18\x0e \x01(\tH\vR\vcountryName\x88\x01\x01\x12\"\n" +
 	"\n" +
-	"country_id\x18\x0e \x01(\tH\vR\tcountryId\x88\x01\x01\x12\x1e\n" +
-	"\bstate_id\x18\x0f \x01(\tH\fR\astateId\x88\x01\x01\x12\x1c\n" +
-	"\acity_id\x18\x10 \x01(\tH\rR\x06cityId\x88\x01\x01\x12&\n" +
-	"\fcountry_name\x18\x11 \x01(\tH\x0eR\vcountryName\x88\x01\x01\x12\"\n" +
+	"state_name\x18\x0f \x01(\tH\fR\tstateName\x88\x01\x01\x12 \n" +
+	"\tcity_name\x18\x10 \x01(\tH\rR\bcityName\x88\x01\x01\x124\n" +
+	"\x13msme_classification\x18\x11 \x01(\tH\x0eR\x12msmeClassification\x88\x01\x01\x12\x17\n" +
+	"\x04msme\x18\x12 \x01(\tH\x0fR\x04msme\x88\x01\x01\x12=\n" +
+	"\x18msme_registration_number\x18\x13 \x01(\tH\x10R\x16msmeRegistrationNumber\x88\x01\x01\x12+\n" +
+	"\x0fmsme_start_date\x18\x14 \x01(\tH\x11R\rmsmeStartDate\x88\x01\x01\x12'\n" +
+	"\rmsme_end_date\x18\x15 \x01(\tH\x12R\vmsmeEndDate\x88\x01\x01\x12,\n" +
+	"\x0fmaterial_nature\x18\x16 \x01(\tH\x13R\x0ematerialNature\x88\x01\x01\x12(\n" +
+	"\rgst_defaulted\x18\x17 \x01(\tH\x14R\fgstDefaulted\x88\x01\x01\x129\n" +
+	"\x16section_206ab_verified\x18\x18 \x01(\tH\x15R\x14section206abVerified\x88\x01\x01\x12.\n" +
+	"\x10beneficiary_name\x18\x19 \x01(\tH\x16R\x0fbeneficiaryName\x88\x01\x01\x12,\n" +
+	"\x0fremarks_address\x18\x1a \x01(\tH\x17R\x0eremarksAddress\x88\x01\x01\x123\n" +
+	"\x13common_bank_details\x18\x1b \x01(\tH\x18R\x11commonBankDetails\x88\x01\x01\x12+\n" +
+	"\x0fincome_tax_type\x18\x1c \x01(\tH\x19R\rincomeTaxType\x88\x01\x01\x12\x1d\n" +
+	"\aproject\x18\x1d \x01(\tH\x1aR\aproject\x88\x01\x01\x12\x1b\n" +
+	"\x06status\x18\x1e \x01(\tH\x1bR\x06status\x88\x01\x01\x12/\n" +
+	"\x11from_account_type\x18\x1f \x01(\tH\x1cR\x0ffromAccountType\x88\x01\x01\x12&\n" +
+	"\faccount_name\x18  \x01(\tH\x1dR\vaccountName\x88\x01\x01\x12\"\n" +
 	"\n" +
-	"state_name\x18\x12 \x01(\tH\x0fR\tstateName\x88\x01\x01\x12 \n" +
-	"\tcity_name\x18\x13 \x01(\tH\x10R\bcityName\x88\x01\x01\x124\n" +
-	"\x13msme_classification\x18\x14 \x01(\tH\x11R\x12msmeClassification\x88\x01\x01\x12\x17\n" +
-	"\x04msme\x18\x15 \x01(\tH\x12R\x04msme\x88\x01\x01\x12=\n" +
-	"\x18msme_registration_number\x18\x16 \x01(\tH\x13R\x16msmeRegistrationNumber\x88\x01\x01\x12+\n" +
-	"\x0fmsme_start_date\x18\x17 \x01(\tH\x14R\rmsmeStartDate\x88\x01\x01\x12'\n" +
-	"\rmsme_end_date\x18\x18 \x01(\tH\x15R\vmsmeEndDate\x88\x01\x01\x12,\n" +
-	"\x0fmaterial_nature\x18\x19 \x01(\tH\x16R\x0ematerialNature\x88\x01\x01\x12(\n" +
-	"\rgst_defaulted\x18\x1a \x01(\tH\x17R\fgstDefaulted\x88\x01\x01\x129\n" +
-	"\x16section_206ab_verified\x18\x1b \x01(\tH\x18R\x14section206abVerified\x88\x01\x01\x12.\n" +
-	"\x10beneficiary_name\x18\x1c \x01(\tH\x19R\x0fbeneficiaryName\x88\x01\x01\x12,\n" +
-	"\x0fremarks_address\x18\x1d \x01(\tH\x1aR\x0eremarksAddress\x88\x01\x01\x123\n" +
-	"\x13common_bank_details\x18\x1e \x01(\tH\x1bR\x11commonBankDetails\x88\x01\x01\x12+\n" +
-	"\x0fincome_tax_type\x18\x1f \x01(\tH\x1cR\rincomeTaxType\x88\x01\x01\x12\x1d\n" +
-	"\aproject\x18  \x01(\tH\x1dR\aproject\x88\x01\x01\x12\x1b\n" +
-	"\x06status\x18! \x01(\tH\x1eR\x06status\x88\x01\x01\x12/\n" +
-	"\x11from_account_type\x18\" \x01(\tH\x1fR\x0ffromAccountType\x88\x01\x01\x12&\n" +
-	"\faccount_name\x18# \x01(\tH R\vaccountName\x88\x01\x01\x12\"\n" +
+	"short_name\x18! \x01(\tH\x1eR\tshortName\x88\x01\x01\x12\x1b\n" +
+	"\x06parent\x18\" \x01(\tH\x1fR\x06parent\x88\x01\x01\x12\x1d\n" +
 	"\n" +
-	"short_name\x18$ \x01(\tH!R\tshortName\x88\x01\x01\x12\x1b\n" +
-	"\x06parent\x18% \x01(\tH\"R\x06parent\x88\x01\x01\x12\x1d\n" +
-	"\n" +
-	"file_paths\x18& \x03(\tR\tfilePaths\x12 \n" +
-	"\tis_active\x18' \x01(\bH#R\bisActive\x88\x01\x01\x12\x1d\n" +
+	"file_paths\x18# \x03(\tR\tfilePaths\x12 \n" +
+	"\tis_active\x18$ \x01(\bH R\bisActive\x88\x01\x01\x12\x1d\n" +
+	"\aaddress\x18% \x01(\tH!R\aaddress\x88\x01\x01\x12\x1d\n" +
 	"\n" +
 	"updated_by\x18( \x01(\tR\tupdatedByB\x0e\n" +
 	"\f_vendor_nameB\x0f\n" +
 	"\r_vendor_emailB\x10\n" +
-	"\x0e_vendor_mobileB\x0e\n" +
-	"\f_vendor_typeB\x13\n" +
+	"\x0e_vendor_mobileB\x0f\n" +
+	"\r_account_typeB\x13\n" +
 	"\x11_vendor_nick_nameB\x10\n" +
 	"\x0e_activity_typeB\b\n" +
 	"\x06_emailB\t\n" +
 	"\a_mobileB\b\n" +
 	"\x06_gstinB\x06\n" +
 	"\x04_panB\x06\n" +
-	"\x04_pinB\r\n" +
-	"\v_country_idB\v\n" +
-	"\t_state_idB\n" +
-	"\n" +
-	"\b_city_idB\x0f\n" +
+	"\x04_pinB\x0f\n" +
 	"\r_country_nameB\r\n" +
 	"\v_state_nameB\f\n" +
 	"\n" +
@@ -3290,10 +3458,12 @@ const file_api_proto_vendor_proto_rawDesc = "" +
 	"\v_short_nameB\t\n" +
 	"\a_parentB\f\n" +
 	"\n" +
-	"_is_active\"O\n" +
+	"_is_activeB\n" +
+	"\n" +
+	"\b_address\"O\n" +
 	"\x13DeleteVendorRequest\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x1b\n" +
-	"\tvendor_id\x18\x02 \x01(\tR\bvendorId\"\xf8\x02\n" +
+	"\tvendor_id\x18\x02 \x01(\tR\bvendorId\"\xa9\x03\n" +
 	"\x12ListVendorsRequest\x12\x1b\n" +
 	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x1b\n" +
 	"\x06search\x18\x02 \x01(\tH\x00R\x06search\x88\x01\x01\x12 \n" +
@@ -3304,7 +3474,10 @@ const file_api_proto_vendor_proto_rawDesc = "" +
 	"\x06offset\x18\a \x01(\x05R\x06offset\x12\x1c\n" +
 	"\asort_by\x18\b \x01(\tH\x04R\x06sortBy\x88\x01\x01\x12\"\n" +
 	"\n" +
-	"sort_order\x18\t \x01(\tH\x05R\tsortOrder\x88\x01\x01B\t\n" +
+	"sort_order\x18\t \x01(\tH\x05R\tsortOrder\x88\x01\x01\x12\x12\n" +
+	"\x04page\x18\n" +
+	" \x01(\x05R\x04page\x12\x1b\n" +
+	"\tpage_size\x18\v \x01(\x05R\bpageSizeB\t\n" +
 	"\a_searchB\f\n" +
 	"\n" +
 	"_is_activeB\x0f\n" +
@@ -3313,7 +3486,14 @@ const file_api_proto_vendor_proto_rawDesc = "" +
 	"\b_projectB\n" +
 	"\n" +
 	"\b_sort_byB\r\n" +
-	"\v_sort_order\"_\n" +
+	"\v_sort_order\"\x96\x01\n" +
+	"\x12PaginationMetadata\x12!\n" +
+	"\fcurrent_page\x18\x01 \x01(\x05R\vcurrentPage\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1f\n" +
+	"\vtotal_items\x18\x03 \x01(\x03R\n" +
+	"totalItems\x12\x1f\n" +
+	"\vtotal_pages\x18\x04 \x01(\x05R\n" +
+	"totalPages\"_\n" +
 	"\x19GenerateVendorCodeRequest\x12\x1f\n" +
 	"\vvendor_name\x18\x01 \x01(\tR\n" +
 	"vendorName\x12!\n" +
@@ -3396,11 +3576,14 @@ const file_api_proto_vendor_proto_rawDesc = "" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tR\taccountId\";\n" +
 	"\x0eVendorResponse\x12)\n" +
-	"\x06vendor\x18\x01 \x01(\v2\x11.vendor.v1.VendorR\x06vendor\"c\n" +
+	"\x06vendor\x18\x01 \x01(\v2\x11.vendor.v1.VendorR\x06vendor\"\xa2\x01\n" +
 	"\x13ListVendorsResponse\x12+\n" +
 	"\avendors\x18\x01 \x03(\v2\x11.vendor.v1.VendorR\avendors\x12\x1f\n" +
 	"\vtotal_count\x18\x02 \x01(\x03R\n" +
-	"totalCount\"=\n" +
+	"totalCount\x12=\n" +
+	"\n" +
+	"pagination\x18\x03 \x01(\v2\x1d.vendor.v1.PaginationMetadataR\n" +
+	"pagination\"=\n" +
 	"\x1aGenerateVendorCodeResponse\x12\x1f\n" +
 	"\vvendor_code\x18\x01 \x01(\tR\n" +
 	"vendorCode\"K\n" +
@@ -3424,7 +3607,20 @@ const file_api_proto_vendor_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\"Y\n" +
 	"\x1bGetProjectsDropdownResponse\x12:\n" +
-	"\bprojects\x18\x01 \x03(\v2\x1e.vendor.v1.ProjectDropdownItemR\bprojects*G\n" +
+	"\bprojects\x18\x01 \x03(\v2\x1e.vendor.v1.ProjectDropdownItemR\bprojects\"^\n" +
+	"\x1cUploadVendorSignatureRequest\x12\x1b\n" +
+	"\tvendor_id\x18\x01 \x01(\tR\bvendorId\x12!\n" +
+	"\ffile_content\x18\x02 \x01(\fR\vfileContent\"\xa9\x02\n" +
+	"\x1dUploadVendorSignatureResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\x12\x1b\n" +
+	"\tvendor_id\x18\x03 \x01(\tR\bvendorId\x12#\n" +
+	"\rsignature_url\x18\x04 \x01(\tR\fsignatureUrl\x12\x1b\n" +
+	"\tfile_name\x18\x05 \x01(\tR\bfileName\x12\x1b\n" +
+	"\tmime_type\x18\x06 \x01(\tR\bmimeType\x12\x1b\n" +
+	"\tfile_size\x18\a \x01(\x03R\bfileSize\x12;\n" +
+	"\vuploaded_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"uploadedAt*G\n" +
 	"\vAccountType\x12\x1c\n" +
 	"\x18ACCOUNT_TYPE_UNSPECIFIED\x10\x00\x12\f\n" +
 	"\bINTERNAL\x10\x01\x12\f\n" +
@@ -3439,7 +3635,7 @@ const file_api_proto_vendor_proto_rawDesc = "" +
 	"\x05MICRO\x10\x01\x12\t\n" +
 	"\x05SMALL\x10\x02\x12\n" +
 	"\n" +
-	"\x06MEDIUM\x10\x032\xd3\x10\n" +
+	"\x06MEDIUM\x10\x032\xf2\x11\n" +
 	"\rVendorService\x12e\n" +
 	"\fCreateVendor\x12\x1e.vendor.v1.CreateVendorRequest\x1a\x19.vendor.v1.VendorResponse\"\x1a\x82\xd3\xe4\x93\x02\x14:\x01*\"\x0f/api/v1/vendors\x12h\n" +
 	"\tGetVendor\x12\x1b.vendor.v1.GetVendorRequest\x1a\x19.vendor.v1.VendorResponse\"#\x82\xd3\xe4\x93\x02\x1d\x12\x1b/api/v1/vendors/{vendor_id}\x12{\n" +
@@ -3456,7 +3652,8 @@ const file_api_proto_vendor_proto_rawDesc = "" +
 	"\x13UpdateVendorAccount\x12%.vendor.v1.UpdateVendorAccountRequest\x1a .vendor.v1.VendorAccountResponse\"0\x82\xd3\xe4\x93\x02*:\x01*\x1a%/api/v1/vendors/accounts/{account_id}\x12\x83\x01\n" +
 	"\x13DeleteVendorAccount\x12%.vendor.v1.DeleteVendorAccountRequest\x1a\x16.google.protobuf.Empty\"-\x82\xd3\xe4\x93\x02'*%/api/v1/vendors/accounts/{account_id}\x12\x9e\x01\n" +
 	"\x13ToggleAccountStatus\x12%.vendor.v1.ToggleAccountStatusRequest\x1a .vendor.v1.VendorAccountResponse\">\x82\xd3\xe4\x93\x028:\x01*\"3/api/v1/vendors/accounts/{account_id}/toggle-status\x12\x90\x01\n" +
-	"\x13GetProjectsDropdown\x12%.vendor.v1.GetProjectsDropdownRequest\x1a&.vendor.v1.GetProjectsDropdownResponse\"*\x82\xd3\xe4\x93\x02$\x12\"/api/v1/vendors/dropdowns/projectsB4Z2github.com/ShristiRnr/NHIT_Backend/api/pb/vendorpbb\x06proto3"
+	"\x13GetProjectsDropdown\x12%.vendor.v1.GetProjectsDropdownRequest\x1a&.vendor.v1.GetProjectsDropdownResponse\"*\x82\xd3\xe4\x93\x02$\x12\"/api/v1/vendors/dropdowns/projects\x12\x9c\x01\n" +
+	"\x15UploadVendorSignature\x12'.vendor.v1.UploadVendorSignatureRequest\x1a(.vendor.v1.UploadVendorSignatureResponse\"0\x82\xd3\xe4\x93\x02*:\x01*\"%/api/v1/vendors/{vendor_id}/signatureB4Z2github.com/ShristiRnr/NHIT_Backend/api/pb/vendorpbb\x06proto3"
 
 var (
 	file_api_proto_vendor_proto_rawDescOnce sync.Once
@@ -3471,7 +3668,7 @@ func file_api_proto_vendor_proto_rawDescGZIP() []byte {
 }
 
 var file_api_proto_vendor_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_api_proto_vendor_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
+var file_api_proto_vendor_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
 var file_api_proto_vendor_proto_goTypes = []any{
 	(AccountType)(0),                       // 0: vendor.v1.AccountType
 	(VendorStatus)(0),                      // 1: vendor.v1.VendorStatus
@@ -3485,79 +3682,86 @@ var file_api_proto_vendor_proto_goTypes = []any{
 	(*UpdateVendorRequest)(nil),            // 9: vendor.v1.UpdateVendorRequest
 	(*DeleteVendorRequest)(nil),            // 10: vendor.v1.DeleteVendorRequest
 	(*ListVendorsRequest)(nil),             // 11: vendor.v1.ListVendorsRequest
-	(*GenerateVendorCodeRequest)(nil),      // 12: vendor.v1.GenerateVendorCodeRequest
-	(*UpdateVendorCodeRequest)(nil),        // 13: vendor.v1.UpdateVendorCodeRequest
-	(*RegenerateVendorCodeRequest)(nil),    // 14: vendor.v1.RegenerateVendorCodeRequest
-	(*CreateVendorAccountRequest)(nil),     // 15: vendor.v1.CreateVendorAccountRequest
-	(*GetVendorAccountsRequest)(nil),       // 16: vendor.v1.GetVendorAccountsRequest
-	(*GetVendorBankingDetailsRequest)(nil), // 17: vendor.v1.GetVendorBankingDetailsRequest
-	(*UpdateVendorAccountRequest)(nil),     // 18: vendor.v1.UpdateVendorAccountRequest
-	(*DeleteVendorAccountRequest)(nil),     // 19: vendor.v1.DeleteVendorAccountRequest
-	(*ToggleAccountStatusRequest)(nil),     // 20: vendor.v1.ToggleAccountStatusRequest
-	(*VendorResponse)(nil),                 // 21: vendor.v1.VendorResponse
-	(*ListVendorsResponse)(nil),            // 22: vendor.v1.ListVendorsResponse
-	(*GenerateVendorCodeResponse)(nil),     // 23: vendor.v1.GenerateVendorCodeResponse
-	(*VendorAccountResponse)(nil),          // 24: vendor.v1.VendorAccountResponse
-	(*GetVendorAccountsResponse)(nil),      // 25: vendor.v1.GetVendorAccountsResponse
-	(*BankingDetailsResponse)(nil),         // 26: vendor.v1.BankingDetailsResponse
-	(*GetVendorAccountRequest)(nil),        // 27: vendor.v1.GetVendorAccountRequest
-	(*SetPrimaryAccountRequest)(nil),       // 28: vendor.v1.SetPrimaryAccountRequest
-	(*GetProjectsDropdownRequest)(nil),     // 29: vendor.v1.GetProjectsDropdownRequest
-	(*ProjectDropdownItem)(nil),            // 30: vendor.v1.ProjectDropdownItem
-	(*GetProjectsDropdownResponse)(nil),    // 31: vendor.v1.GetProjectsDropdownResponse
-	(*timestamppb.Timestamp)(nil),          // 32: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),                  // 33: google.protobuf.Empty
+	(*PaginationMetadata)(nil),             // 12: vendor.v1.PaginationMetadata
+	(*GenerateVendorCodeRequest)(nil),      // 13: vendor.v1.GenerateVendorCodeRequest
+	(*UpdateVendorCodeRequest)(nil),        // 14: vendor.v1.UpdateVendorCodeRequest
+	(*RegenerateVendorCodeRequest)(nil),    // 15: vendor.v1.RegenerateVendorCodeRequest
+	(*CreateVendorAccountRequest)(nil),     // 16: vendor.v1.CreateVendorAccountRequest
+	(*GetVendorAccountsRequest)(nil),       // 17: vendor.v1.GetVendorAccountsRequest
+	(*GetVendorBankingDetailsRequest)(nil), // 18: vendor.v1.GetVendorBankingDetailsRequest
+	(*UpdateVendorAccountRequest)(nil),     // 19: vendor.v1.UpdateVendorAccountRequest
+	(*DeleteVendorAccountRequest)(nil),     // 20: vendor.v1.DeleteVendorAccountRequest
+	(*ToggleAccountStatusRequest)(nil),     // 21: vendor.v1.ToggleAccountStatusRequest
+	(*VendorResponse)(nil),                 // 22: vendor.v1.VendorResponse
+	(*ListVendorsResponse)(nil),            // 23: vendor.v1.ListVendorsResponse
+	(*GenerateVendorCodeResponse)(nil),     // 24: vendor.v1.GenerateVendorCodeResponse
+	(*VendorAccountResponse)(nil),          // 25: vendor.v1.VendorAccountResponse
+	(*GetVendorAccountsResponse)(nil),      // 26: vendor.v1.GetVendorAccountsResponse
+	(*BankingDetailsResponse)(nil),         // 27: vendor.v1.BankingDetailsResponse
+	(*GetVendorAccountRequest)(nil),        // 28: vendor.v1.GetVendorAccountRequest
+	(*SetPrimaryAccountRequest)(nil),       // 29: vendor.v1.SetPrimaryAccountRequest
+	(*GetProjectsDropdownRequest)(nil),     // 30: vendor.v1.GetProjectsDropdownRequest
+	(*ProjectDropdownItem)(nil),            // 31: vendor.v1.ProjectDropdownItem
+	(*GetProjectsDropdownResponse)(nil),    // 32: vendor.v1.GetProjectsDropdownResponse
+	(*UploadVendorSignatureRequest)(nil),   // 33: vendor.v1.UploadVendorSignatureRequest
+	(*UploadVendorSignatureResponse)(nil),  // 34: vendor.v1.UploadVendorSignatureResponse
+	(*timestamppb.Timestamp)(nil),          // 35: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),                  // 36: google.protobuf.Empty
 }
 var file_api_proto_vendor_proto_depIdxs = []int32{
-	32, // 0: vendor.v1.Vendor.msme_start_date:type_name -> google.protobuf.Timestamp
-	32, // 1: vendor.v1.Vendor.msme_end_date:type_name -> google.protobuf.Timestamp
-	32, // 2: vendor.v1.Vendor.created_at:type_name -> google.protobuf.Timestamp
-	32, // 3: vendor.v1.Vendor.updated_at:type_name -> google.protobuf.Timestamp
-	32, // 4: vendor.v1.VendorAccount.created_at:type_name -> google.protobuf.Timestamp
-	32, // 5: vendor.v1.VendorAccount.updated_at:type_name -> google.protobuf.Timestamp
+	35, // 0: vendor.v1.Vendor.msme_start_date:type_name -> google.protobuf.Timestamp
+	35, // 1: vendor.v1.Vendor.msme_end_date:type_name -> google.protobuf.Timestamp
+	35, // 2: vendor.v1.Vendor.created_at:type_name -> google.protobuf.Timestamp
+	35, // 3: vendor.v1.Vendor.updated_at:type_name -> google.protobuf.Timestamp
+	35, // 4: vendor.v1.VendorAccount.created_at:type_name -> google.protobuf.Timestamp
+	35, // 5: vendor.v1.VendorAccount.updated_at:type_name -> google.protobuf.Timestamp
 	3,  // 6: vendor.v1.VendorResponse.vendor:type_name -> vendor.v1.Vendor
 	3,  // 7: vendor.v1.ListVendorsResponse.vendors:type_name -> vendor.v1.Vendor
-	4,  // 8: vendor.v1.VendorAccountResponse.account:type_name -> vendor.v1.VendorAccount
-	4,  // 9: vendor.v1.GetVendorAccountsResponse.accounts:type_name -> vendor.v1.VendorAccount
-	5,  // 10: vendor.v1.BankingDetailsResponse.banking_details:type_name -> vendor.v1.BankingDetails
-	30, // 11: vendor.v1.GetProjectsDropdownResponse.projects:type_name -> vendor.v1.ProjectDropdownItem
-	6,  // 12: vendor.v1.VendorService.CreateVendor:input_type -> vendor.v1.CreateVendorRequest
-	7,  // 13: vendor.v1.VendorService.GetVendor:input_type -> vendor.v1.GetVendorRequest
-	8,  // 14: vendor.v1.VendorService.GetVendorByCode:input_type -> vendor.v1.GetVendorByCodeRequest
-	9,  // 15: vendor.v1.VendorService.UpdateVendor:input_type -> vendor.v1.UpdateVendorRequest
-	10, // 16: vendor.v1.VendorService.DeleteVendor:input_type -> vendor.v1.DeleteVendorRequest
-	11, // 17: vendor.v1.VendorService.ListVendors:input_type -> vendor.v1.ListVendorsRequest
-	12, // 18: vendor.v1.VendorService.GenerateVendorCode:input_type -> vendor.v1.GenerateVendorCodeRequest
-	13, // 19: vendor.v1.VendorService.UpdateVendorCode:input_type -> vendor.v1.UpdateVendorCodeRequest
-	14, // 20: vendor.v1.VendorService.RegenerateVendorCode:input_type -> vendor.v1.RegenerateVendorCodeRequest
-	15, // 21: vendor.v1.VendorService.CreateVendorAccount:input_type -> vendor.v1.CreateVendorAccountRequest
-	16, // 22: vendor.v1.VendorService.GetVendorAccounts:input_type -> vendor.v1.GetVendorAccountsRequest
-	17, // 23: vendor.v1.VendorService.GetVendorBankingDetails:input_type -> vendor.v1.GetVendorBankingDetailsRequest
-	18, // 24: vendor.v1.VendorService.UpdateVendorAccount:input_type -> vendor.v1.UpdateVendorAccountRequest
-	19, // 25: vendor.v1.VendorService.DeleteVendorAccount:input_type -> vendor.v1.DeleteVendorAccountRequest
-	20, // 26: vendor.v1.VendorService.ToggleAccountStatus:input_type -> vendor.v1.ToggleAccountStatusRequest
-	29, // 27: vendor.v1.VendorService.GetProjectsDropdown:input_type -> vendor.v1.GetProjectsDropdownRequest
-	21, // 28: vendor.v1.VendorService.CreateVendor:output_type -> vendor.v1.VendorResponse
-	21, // 29: vendor.v1.VendorService.GetVendor:output_type -> vendor.v1.VendorResponse
-	21, // 30: vendor.v1.VendorService.GetVendorByCode:output_type -> vendor.v1.VendorResponse
-	21, // 31: vendor.v1.VendorService.UpdateVendor:output_type -> vendor.v1.VendorResponse
-	33, // 32: vendor.v1.VendorService.DeleteVendor:output_type -> google.protobuf.Empty
-	22, // 33: vendor.v1.VendorService.ListVendors:output_type -> vendor.v1.ListVendorsResponse
-	23, // 34: vendor.v1.VendorService.GenerateVendorCode:output_type -> vendor.v1.GenerateVendorCodeResponse
-	21, // 35: vendor.v1.VendorService.UpdateVendorCode:output_type -> vendor.v1.VendorResponse
-	21, // 36: vendor.v1.VendorService.RegenerateVendorCode:output_type -> vendor.v1.VendorResponse
-	24, // 37: vendor.v1.VendorService.CreateVendorAccount:output_type -> vendor.v1.VendorAccountResponse
-	25, // 38: vendor.v1.VendorService.GetVendorAccounts:output_type -> vendor.v1.GetVendorAccountsResponse
-	26, // 39: vendor.v1.VendorService.GetVendorBankingDetails:output_type -> vendor.v1.BankingDetailsResponse
-	24, // 40: vendor.v1.VendorService.UpdateVendorAccount:output_type -> vendor.v1.VendorAccountResponse
-	33, // 41: vendor.v1.VendorService.DeleteVendorAccount:output_type -> google.protobuf.Empty
-	24, // 42: vendor.v1.VendorService.ToggleAccountStatus:output_type -> vendor.v1.VendorAccountResponse
-	31, // 43: vendor.v1.VendorService.GetProjectsDropdown:output_type -> vendor.v1.GetProjectsDropdownResponse
-	28, // [28:44] is the sub-list for method output_type
-	12, // [12:28] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	12, // 8: vendor.v1.ListVendorsResponse.pagination:type_name -> vendor.v1.PaginationMetadata
+	4,  // 9: vendor.v1.VendorAccountResponse.account:type_name -> vendor.v1.VendorAccount
+	4,  // 10: vendor.v1.GetVendorAccountsResponse.accounts:type_name -> vendor.v1.VendorAccount
+	5,  // 11: vendor.v1.BankingDetailsResponse.banking_details:type_name -> vendor.v1.BankingDetails
+	31, // 12: vendor.v1.GetProjectsDropdownResponse.projects:type_name -> vendor.v1.ProjectDropdownItem
+	35, // 13: vendor.v1.UploadVendorSignatureResponse.uploaded_at:type_name -> google.protobuf.Timestamp
+	6,  // 14: vendor.v1.VendorService.CreateVendor:input_type -> vendor.v1.CreateVendorRequest
+	7,  // 15: vendor.v1.VendorService.GetVendor:input_type -> vendor.v1.GetVendorRequest
+	8,  // 16: vendor.v1.VendorService.GetVendorByCode:input_type -> vendor.v1.GetVendorByCodeRequest
+	9,  // 17: vendor.v1.VendorService.UpdateVendor:input_type -> vendor.v1.UpdateVendorRequest
+	10, // 18: vendor.v1.VendorService.DeleteVendor:input_type -> vendor.v1.DeleteVendorRequest
+	11, // 19: vendor.v1.VendorService.ListVendors:input_type -> vendor.v1.ListVendorsRequest
+	13, // 20: vendor.v1.VendorService.GenerateVendorCode:input_type -> vendor.v1.GenerateVendorCodeRequest
+	14, // 21: vendor.v1.VendorService.UpdateVendorCode:input_type -> vendor.v1.UpdateVendorCodeRequest
+	15, // 22: vendor.v1.VendorService.RegenerateVendorCode:input_type -> vendor.v1.RegenerateVendorCodeRequest
+	16, // 23: vendor.v1.VendorService.CreateVendorAccount:input_type -> vendor.v1.CreateVendorAccountRequest
+	17, // 24: vendor.v1.VendorService.GetVendorAccounts:input_type -> vendor.v1.GetVendorAccountsRequest
+	18, // 25: vendor.v1.VendorService.GetVendorBankingDetails:input_type -> vendor.v1.GetVendorBankingDetailsRequest
+	19, // 26: vendor.v1.VendorService.UpdateVendorAccount:input_type -> vendor.v1.UpdateVendorAccountRequest
+	20, // 27: vendor.v1.VendorService.DeleteVendorAccount:input_type -> vendor.v1.DeleteVendorAccountRequest
+	21, // 28: vendor.v1.VendorService.ToggleAccountStatus:input_type -> vendor.v1.ToggleAccountStatusRequest
+	30, // 29: vendor.v1.VendorService.GetProjectsDropdown:input_type -> vendor.v1.GetProjectsDropdownRequest
+	33, // 30: vendor.v1.VendorService.UploadVendorSignature:input_type -> vendor.v1.UploadVendorSignatureRequest
+	22, // 31: vendor.v1.VendorService.CreateVendor:output_type -> vendor.v1.VendorResponse
+	22, // 32: vendor.v1.VendorService.GetVendor:output_type -> vendor.v1.VendorResponse
+	22, // 33: vendor.v1.VendorService.GetVendorByCode:output_type -> vendor.v1.VendorResponse
+	22, // 34: vendor.v1.VendorService.UpdateVendor:output_type -> vendor.v1.VendorResponse
+	36, // 35: vendor.v1.VendorService.DeleteVendor:output_type -> google.protobuf.Empty
+	23, // 36: vendor.v1.VendorService.ListVendors:output_type -> vendor.v1.ListVendorsResponse
+	24, // 37: vendor.v1.VendorService.GenerateVendorCode:output_type -> vendor.v1.GenerateVendorCodeResponse
+	22, // 38: vendor.v1.VendorService.UpdateVendorCode:output_type -> vendor.v1.VendorResponse
+	22, // 39: vendor.v1.VendorService.RegenerateVendorCode:output_type -> vendor.v1.VendorResponse
+	25, // 40: vendor.v1.VendorService.CreateVendorAccount:output_type -> vendor.v1.VendorAccountResponse
+	26, // 41: vendor.v1.VendorService.GetVendorAccounts:output_type -> vendor.v1.GetVendorAccountsResponse
+	27, // 42: vendor.v1.VendorService.GetVendorBankingDetails:output_type -> vendor.v1.BankingDetailsResponse
+	25, // 43: vendor.v1.VendorService.UpdateVendorAccount:output_type -> vendor.v1.VendorAccountResponse
+	36, // 44: vendor.v1.VendorService.DeleteVendorAccount:output_type -> google.protobuf.Empty
+	25, // 45: vendor.v1.VendorService.ToggleAccountStatus:output_type -> vendor.v1.VendorAccountResponse
+	32, // 46: vendor.v1.VendorService.GetProjectsDropdown:output_type -> vendor.v1.GetProjectsDropdownResponse
+	34, // 47: vendor.v1.VendorService.UploadVendorSignature:output_type -> vendor.v1.UploadVendorSignatureResponse
+	31, // [31:48] is the sub-list for method output_type
+	14, // [14:31] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_api_proto_vendor_proto_init() }
@@ -3571,17 +3775,17 @@ func file_api_proto_vendor_proto_init() {
 	file_api_proto_vendor_proto_msgTypes[3].OneofWrappers = []any{}
 	file_api_proto_vendor_proto_msgTypes[6].OneofWrappers = []any{}
 	file_api_proto_vendor_proto_msgTypes[8].OneofWrappers = []any{}
-	file_api_proto_vendor_proto_msgTypes[12].OneofWrappers = []any{}
-	file_api_proto_vendor_proto_msgTypes[14].OneofWrappers = []any{}
+	file_api_proto_vendor_proto_msgTypes[13].OneofWrappers = []any{}
 	file_api_proto_vendor_proto_msgTypes[15].OneofWrappers = []any{}
-	file_api_proto_vendor_proto_msgTypes[24].OneofWrappers = []any{}
+	file_api_proto_vendor_proto_msgTypes[16].OneofWrappers = []any{}
+	file_api_proto_vendor_proto_msgTypes[25].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_vendor_proto_rawDesc), len(file_api_proto_vendor_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   29,
+			NumMessages:   32,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

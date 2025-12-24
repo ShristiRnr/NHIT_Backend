@@ -3,13 +3,16 @@ package grpc
 import (
 	"context"
 	"fmt"
+	"bytes"
 
 	"strings"
+	"time"
 
 	vendorpb "github.com/ShristiRnr/NHIT_Backend/api/pb/vendorpb"
 	projectpb "github.com/ShristiRnr/NHIT_Backend/api/pb/projectpb"
 	"github.com/ShristiRnr/NHIT_Backend/services/vendor-service/internal/core/domain"
 	"github.com/ShristiRnr/NHIT_Backend/services/vendor-service/internal/core/ports"
+	"github.com/ShristiRnr/NHIT_Backend/services/vendor-service/internal/storage"
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -24,12 +27,14 @@ import (
 type VendorGRPCHandler struct {
 	vendorpb.UnimplementedVendorServiceServer
 	vendorService ports.VendorService
+	minioClient   *storage.MinIOClient
 }
 
 // NewVendorGRPCHandler creates a new gRPC handler
-func NewVendorGRPCHandler(vendorService ports.VendorService) vendorpb.VendorServiceServer {
+func NewVendorGRPCHandler(vendorService ports.VendorService, minioClient *storage.MinIOClient) vendorpb.VendorServiceServer {
 	return &VendorGRPCHandler{
 		vendorService: vendorService,
+		minioClient:   minioClient,
 	}
 }
 
@@ -81,9 +86,6 @@ func (h *VendorGRPCHandler) CreateVendor(ctx context.Context, req *vendorpb.Crea
 		GSTIN:                  req.Gstin,
 		PAN:                    req.Pan,
 		PIN:                    req.Pin,
-		CountryID:              req.CountryId,
-		StateID:                req.StateId,
-		CityID:                 req.CityId,
 		CountryName:            req.CountryName,
 		StateName:              req.StateName,
 		CityName:               req.CityName,
@@ -110,7 +112,19 @@ func (h *VendorGRPCHandler) CreateVendor(ctx context.Context, req *vendorpb.Crea
 		AccountNumber:          req.AccountNumber,
 		NameOfBank:             req.NameOfBank,
 		IFSCCode:               req.IfscCode,
-		IFSCCodeID:             req.IfscCodeId,
+		Address:                req.Address,
+	}
+
+	// Parse MSME dates if provided
+	if req.MsmeStartDate != nil && *req.MsmeStartDate != "" {
+		if t, err := time.Parse("2006-01-02", *req.MsmeStartDate); err == nil {
+			params.MSMEStartDate = &t
+		}
+	}
+	if req.MsmeEndDate != nil && *req.MsmeEndDate != "" {
+		if t, err := time.Parse("2006-01-02", *req.MsmeEndDate); err == nil {
+			params.MSMEEndDate = &t
+		}
 	}
 
 	vendor, err := h.vendorService.CreateVendor(ctx, params)
@@ -152,6 +166,15 @@ func (h *VendorGRPCHandler) ListVendors(ctx context.Context, req *vendorpb.ListV
 	if limit <= 0 {
 		limit = 10
 	}
+	offset := int(req.Offset)
+
+    // Handle Page/PageSize if provided
+    if req.Page > 0 {
+        if req.PageSize > 0 {
+            limit = int(req.PageSize)
+        }
+        offset = int((req.Page - 1) * int32(limit))
+    }
 
 	filters := ports.VendorListFilters{
 		IsActive: req.IsActive,
@@ -159,7 +182,7 @@ func (h *VendorGRPCHandler) ListVendors(ctx context.Context, req *vendorpb.ListV
 		Project:  req.Project,
 		Search:   req.Search,
 		Limit:    limit,
-		Offset:   int(req.Offset),
+		Offset:   offset,
 	}
 
 	// Filter by Organization ID (if present in JWT) and Org has projects
@@ -213,9 +236,27 @@ func (h *VendorGRPCHandler) ListVendors(ctx context.Context, req *vendorpb.ListV
 		protoVendors[i] = toProtoVendor(v)
 	}
 
+	// Calculate pagination if page/pageSize are used
+	page := req.Page
+	if page < 1 {
+		page = 1
+	}
+	pageSize := int32(limit) // limit was derived from req.Limit or defaulted
+	if req.PageSize > 0 {
+		pageSize = req.PageSize
+	}
+
+	totalPages := (total + int64(pageSize) - 1) / int64(pageSize)
+
 	return &vendorpb.ListVendorsResponse{
 		Vendors:    protoVendors,
 		TotalCount: total,
+		Pagination: &vendorpb.PaginationMetadata{
+			CurrentPage: page,
+			PageSize:    pageSize,
+			TotalItems:  total,
+			TotalPages:  int32(totalPages),
+		},
 	}, nil
 }
 
@@ -409,6 +450,28 @@ func (h *VendorGRPCHandler) UpdateVendor(ctx context.Context, req *vendorpb.Upda
 		ProjectID:              req.Project,
 		AccountName:            req.AccountName,
 		RemarksAddress:         req.RemarksAddress,
+		Address:                req.Address,
+		PIN:                    req.Pin,
+		ActivityType:           req.ActivityType,
+		VendorNickName:         req.VendorNickName,
+		CountryName:            req.CountryName,
+		StateName:              req.StateName,
+		CityName:               req.CityName,
+		FromAccountType:        req.FromAccountType,
+		ShortName:              req.ShortName,
+		Parent:                 req.Parent,
+	}
+
+	// Parse MSME dates if provided
+	if req.MsmeStartDate != nil && *req.MsmeStartDate != "" {
+		if t, err := time.Parse("2006-01-02", *req.MsmeStartDate); err == nil {
+			params.MSMEStartDate = &t
+		}
+	}
+	if req.MsmeEndDate != nil && *req.MsmeEndDate != "" {
+		if t, err := time.Parse("2006-01-02", *req.MsmeEndDate); err == nil {
+			params.MSMEEndDate = &t
+		}
 	}
 
 	// Handle MSME Classification
@@ -725,9 +788,78 @@ func (h *VendorGRPCHandler) ToggleAccountStatus(ctx context.Context, req *vendor
 	}, nil
 }
 
+// UploadVendorSignature uploads a vendor signature
+func (h *VendorGRPCHandler) UploadVendorSignature(ctx context.Context, req *vendorpb.UploadVendorSignatureRequest) (*vendorpb.UploadVendorSignatureResponse, error) {
+	// Extract tenant_id from JWT
+	var tenantID string
+	md, ok := metadata.FromIncomingContext(ctx)
+	if ok {
+		if tenantIDs := md.Get("tenant_id"); len(tenantIDs) > 0 {
+			tenantID = tenantIDs[0]
+		}
+	}
+	
+	if tenantID == "" {
+		return nil, status.Error(codes.Unauthenticated, "tenant_id not found in JWT")
+	}
+	
+	tenantUUID, err := uuid.Parse(tenantID)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid tenant_id")
+	}
+
+	if req.VendorId == "" {
+		return nil, status.Error(codes.InvalidArgument, "vendor_id is required")
+	}
+	vendorUUID, err := uuid.Parse(req.VendorId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid vendor_id")
+	}
+
+	if len(req.FileContent) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "file_content is required")
+	}
+
+	// Upload to MinIO
+	// Generate a unique filename: signature_<vendor_id>_<timestamp>.png
+	// We assume input is image data. For strictness we could detect MIME type.
+	// For now, defaulting to .png or similar, or just generic.
+	filename := fmt.Sprintf("signature_%s_%d.png", req.VendorId, time.Now().Unix())
+	fileSize := int64(len(req.FileContent))
+	fileReader := bytes.NewReader(req.FileContent)
+
+	// Use MinIO client to upload
+	signatureURL, err := h.minioClient.UploadSignature(ctx, req.VendorId, filename, fileReader, fileSize)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to upload signature: %v", err)
+	}
+
+	// Update vendor record with new signature URL
+	params := domain.UpdateVendorParams{
+		SignatureURL: &signatureURL,
+	}
+
+	_, err = h.vendorService.UpdateVendor(ctx, tenantUUID, vendorUUID, params)
+	if err != nil {
+		// Try to cleanup uploaded file if DB update fails? For now just log and return error.
+		return nil, status.Errorf(codes.Internal, "failed to update vendor signature url: %v", err)
+	}
+
+	return &vendorpb.UploadVendorSignatureResponse{
+		Success:      true,
+		Message:      "Signature uploaded successfully",
+		VendorId:     req.VendorId,
+		SignatureUrl: signatureURL,
+		FileName:     filename,
+		MimeType:     "image/png", // Assuming PNG for now
+		FileSize:     fileSize,
+		UploadedAt:   timestamppb.Now(),
+	}, nil
+}
+
 // Helper functions
 func toProtoVendor(v *domain.Vendor) *vendorpb.Vendor {
-	vendor := &vendorpb.Vendor{
+	protoVendor := &vendorpb.Vendor{
 		Id:                    v.ID.String(),
 		TenantId:              v.TenantID.String(),
 		VendorCode:            v.VendorCode,
@@ -742,9 +874,6 @@ func toProtoVendor(v *domain.Vendor) *vendorpb.Vendor {
 		Gstin:                 v.GSTIN,
 		Pan:                   v.PAN,
 		Pin:                   v.PIN,
-		CountryId:             v.CountryID,
-		StateId:               v.StateID,
-		CityId:                v.CityID,
 		CountryName:           v.CountryName,
 		StateName:             v.StateName,
 		CityName:              v.CityName,
@@ -765,16 +894,26 @@ func toProtoVendor(v *domain.Vendor) *vendorpb.Vendor {
 		Parent:                v.Parent,
 		FilePaths:             v.FilePaths,
 		CodeAutoGenerated:     v.CodeAutoGenerated,
+		IsActive:              v.Status == "ACTIVE",
 		CreatedBy:             v.CreatedBy.String(),
 		CreatedAt:             timestamppb.New(v.CreatedAt),
 		UpdatedAt:             timestamppb.New(v.UpdatedAt),
 		AccountNumber:         v.AccountNumber,
 		NameOfBank:            v.NameOfBank,
 		IfscCode:              v.IFSCCode,
-		IfscCodeId:            v.IFSCCodeID,
+		Address:               v.Address,
+		SignatureUrl:          v.SignatureURL,
+	}
+
+	// Map MSME dates
+	if v.MSMEStartDate != nil {
+		protoVendor.MsmeStartDate = timestamppb.New(*v.MSMEStartDate)
+	}
+	if v.MSMEEndDate != nil {
+		protoVendor.MsmeEndDate = timestamppb.New(*v.MSMEEndDate)
 	}
 	
-	return vendor
+	return protoVendor
 }
 
 func convertAccountType(at string) string {

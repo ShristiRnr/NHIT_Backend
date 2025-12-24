@@ -11,15 +11,17 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// AuthInterceptor validates JWT tokens
+// AuthInterceptor validates JWT tokens and enforces RBAC
 type AuthInterceptor struct {
 	authService   ports.AuthService
 	publicMethods map[string]bool
+	permissionMap map[string][]string
 }
 
 // NewAuthInterceptor creates a new auth interceptor
 func NewAuthInterceptor(authService ports.AuthService) *AuthInterceptor {
 	// Methods that don't require authentication
+	// We will load these from config in main, but keeping default here as fallback or initialization
 	publicMethods := map[string]bool{
 		"/AuthService/RegisterUser":           true,
 		"/AuthService/Login":                  true,
@@ -32,7 +34,18 @@ func NewAuthInterceptor(authService ports.AuthService) *AuthInterceptor {
 	return &AuthInterceptor{
 		authService:   authService,
 		publicMethods: publicMethods,
+		permissionMap: make(map[string][]string),
 	}
+}
+
+// RegisterPermissions registers required permissions for a method
+func (interceptor *AuthInterceptor) RegisterPermissions(method string, permissions []string) {
+	interceptor.permissionMap[method] = permissions
+}
+
+// RegisterPublicMethod registers a method that doesn't require authentication
+func (interceptor *AuthInterceptor) RegisterPublicMethod(method string) {
+	interceptor.publicMethods[method] = true
 }
 
 // Unary returns a server interceptor function to authenticate and authorize unary RPC
@@ -75,6 +88,43 @@ func (interceptor *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
 		ctx = context.WithValue(ctx, "user_id", validation.UserID.String())
 		ctx = context.WithValue(ctx, "email", validation.Email)
 		ctx = context.WithValue(ctx, "tenant_id", validation.TenantID.String())
+		ctx = context.WithValue(ctx, "roles", validation.Roles)
+		ctx = context.WithValue(ctx, "permissions", validation.Permissions)
+
+		// Check RBAC permissions
+		if !interceptor.publicMethods[info.FullMethod] {
+			requiredPerms, hasEntry := interceptor.permissionMap[info.FullMethod]
+			if hasEntry && len(requiredPerms) > 0 {
+				// Check if user has any of the required permissions
+				hasPermission := false
+				
+				// Bypass for SUPER_ADMIN
+				for _, role := range validation.Roles {
+					if role == "SUPER_ADMIN" {
+						hasPermission = true
+						break
+					}
+				}
+
+				if !hasPermission {
+					userPermsMap := make(map[string]bool)
+					for _, p := range validation.Permissions {
+						userPermsMap[p] = true
+					}
+
+					for _, required := range requiredPerms {
+						if userPermsMap[required] {
+							hasPermission = true
+							break
+						}
+					}
+				}
+
+				if !hasPermission {
+					return nil, status.Errorf(codes.PermissionDenied, "insufficient permissions")
+				}
+			}
+		}
 
 		return handler(ctx, req)
 	}

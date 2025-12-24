@@ -25,14 +25,14 @@ message RegisterUserRequest {
   string name = 2;
   string email = 3;
   string password = 4;
-  repeated UserRole roles = 5;
+  repeated string roles = 5;
 }
 
 message RegisterUserResponse {
   string user_id = 1;
   string name = 2;
   string email = 3;
-  repeated UserRole roles = 4;
+  repeated string roles = 4;
   repeated string permissions = 5;
 }
 
@@ -106,7 +106,7 @@ message UserLoginResponse {
   string user_id = 3;
   string email = 4;
   string name = 5;
-  repeated UserRole roles = 6;
+  repeated string roles = 6;
   repeated string permissions = 7;
   string last_login_at = 8;
   string last_login_ip = 9;

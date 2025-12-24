@@ -17,7 +17,9 @@ import (
 	httpHandler "github.com/ShristiRnr/NHIT_Backend/services/user-service/internal/adapters/http"
 	"github.com/ShristiRnr/NHIT_Backend/services/user-service/internal/adapters/repository"
 	sqlc "github.com/ShristiRnr/NHIT_Backend/services/user-service/internal/adapters/repository/sqlc/generated"
+	"github.com/ShristiRnr/NHIT_Backend/services/user-service/internal/config"
 	"github.com/ShristiRnr/NHIT_Backend/services/user-service/internal/core/services"
+	"github.com/ShristiRnr/NHIT_Backend/services/user-service/internal/storage"
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
@@ -73,7 +75,7 @@ func main() {
 	queries := sqlc.New(pool)
 
 	// Initialize repositories
-	userRepo := repository.NewUserRepository(queries)
+	userRepo := repository.NewUserRepository(queries, pool)
 	tenantRepo := repository.NewTenantRepository(queries)
 	userRoleRepo := repository.NewUserRoleRepository(queries)
 	roleRepo := repository.NewRoleRepository(queries)
@@ -119,21 +121,48 @@ func main() {
 	}
 	defer desigConn.Close()
 	log.Printf("✅ Connected to Designation Service at %s", designationServiceURL)
+	
+	// Initialize MinIO client for signatures
+	minioEndpoint := os.Getenv("MINIO_ENDPOINT")
+	if minioEndpoint == "" {
+		minioEndpoint = "localhost:9000"
+	}
+	minioAccessKey := os.Getenv("MINIO_ACCESS_KEY")
+	if minioAccessKey == "" {
+		minioAccessKey = "minioadmin"
+	}
+	minioSecretKey := os.Getenv("MINIO_SECRET_KEY")
+	if minioSecretKey == "" {
+		minioSecretKey = "minioadmin"
+	}
+	minioBucket := os.Getenv("MINIO_BUCKET")
+	if minioBucket == "" {
+		minioBucket = "signatures"
+	}
+	useSSL := os.Getenv("MINIO_USE_SSL") == "true"
+	
+	minioClient, err := storage.NewMinIOClient(minioEndpoint, minioAccessKey, minioSecretKey, minioBucket, useSSL)
+	if err != nil {
+		log.Printf("⚠️ Failed to initialize MinIO client: %v (Signatures won't be available)", err)
+		// We don't fatal here to allow service to run without MinIO if needed
+	}
 
 	// Initialize handlers (pass DB pool so handler can query user_organizations/organizations)
-	userGrpcHandler := grpcHandler.NewUserHandler(userService, pool, authClient, deptConn, desigConn)
+	userGrpcHandler := grpcHandler.NewUserHandler(userService, pool, authClient, deptConn, desigConn, minioClient)
 	tenantHttpHandler := httpHandler.NewTenantHTTPHandler(userService)
 
 	// Initialize RBAC interceptor for gRPC
 	rbacInterceptor := middleware.NewRBACInterceptor(authClient)
 	
-	// Register public methods (methods that don't require authentication)
-	// These are needed for auth-service to fetch user data during login
-	rbacInterceptor.RegisterPublicMethod("/UserManagement/ListUserOrganizations")
-	rbacInterceptor.RegisterPublicMethod("/UserManagement/ListRolesOfUser")
-	rbacInterceptor.RegisterPublicMethod("/UserManagement/CreateUserLoginHistory")
-	rbacInterceptor.RegisterPublicMethod("/UserManagement/CreateActivityLog")
-	rbacInterceptor.RegisterPublicMethod("/UserManagement/CreateTenant")
+	// Register public methods
+	for _, method := range config.GetPublicMethods() {
+		rbacInterceptor.RegisterPublicMethod(method)
+	}
+
+	// Register permissions
+	for method, perms := range config.GetPermissionMap() {
+		rbacInterceptor.RegisterPermissions(method, perms)
+	}
 	
 	// Start gRPC server in goroutine
 	go func() {

@@ -49,17 +49,27 @@ func (r *roleRepository) GetByID(ctx context.Context, roleID uuid.UUID) (*domain
 	return toDomainRole(dbRole), nil
 }
 
-func (r *roleRepository) ListByTenant(ctx context.Context, tenantID uuid.UUID) ([]*domain.Role, error) {
-	dbRoles, err := r.queries.ListRolesByTenant(ctx, tenantID)
+func (r *roleRepository) ListByTenant(ctx context.Context, tenantID uuid.UUID, limit, offset int32) ([]*domain.Role, int64, error) {
+	params := sqlc.ListRolesByTenantParams{
+		TenantID: tenantID,
+		Limit:    limit,
+		Offset:   offset,
+	}
+	dbRoles, err := r.queries.ListRolesByTenant(ctx, params)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
+	}
+
+	total, err := r.queries.CountRolesByTenant(ctx, tenantID)
+	if err != nil {
+		return nil, 0, err
 	}
 
 	roles := make([]*domain.Role, len(dbRoles))
 	for i, dbRole := range dbRoles {
 		roles[i] = toDomainRole(dbRole)
 	}
-	return roles, nil
+	return roles, total, nil
 }
 
 func (r *roleRepository) ListByTenantAndOrg(ctx context.Context, tenantID uuid.UUID, orgID *uuid.UUID) ([]*domain.Role, error) {
@@ -85,7 +95,7 @@ func (r *roleRepository) ListByTenantAndOrg(ctx context.Context, tenantID uuid.U
 	return roles, nil
 }
 
-func (r *roleRepository) ListByTenantAndOrgIncludingSystem(ctx context.Context, tenantID uuid.UUID, orgID *uuid.UUID) ([]*domain.Role, error) {
+func (r *roleRepository) ListByTenantAndOrgIncludingSystem(ctx context.Context, tenantID uuid.UUID, orgID *uuid.UUID, limit, offset int32) ([]*domain.Role, int64, error) {
 	parentOrgID := uuid.NullUUID{}
 	if orgID != nil {
 		parentOrgID = uuid.NullUUID{UUID: *orgID, Valid: true}
@@ -94,18 +104,29 @@ func (r *roleRepository) ListByTenantAndOrgIncludingSystem(ctx context.Context, 
 	params := sqlc.ListRolesByOrganizationIncludingSystemParams{
 		TenantID:    tenantID,
 		ParentOrgID: parentOrgID,
+		Limit:       limit,
+		Offset:      offset,
 	}
 
 	dbRoles, err := r.queries.ListRolesByOrganizationIncludingSystem(ctx, params)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
+	}
+
+	countParams := sqlc.CountRolesByOrganizationIncludingSystemParams{
+		TenantID:    tenantID,
+		ParentOrgID: parentOrgID,
+	}
+	total, err := r.queries.CountRolesByOrganizationIncludingSystem(ctx, countParams)
+	if err != nil {
+		return nil, 0, err
 	}
 
 	roles := make([]*domain.Role, len(dbRoles))
 	for i, dbRole := range dbRoles {
 		roles[i] = toDomainRole(dbRole)
 	}
-	return roles, nil
+	return roles, total, nil
 }
 
 func (r *roleRepository) Update(ctx context.Context, role *domain.Role) (*domain.Role, error) {

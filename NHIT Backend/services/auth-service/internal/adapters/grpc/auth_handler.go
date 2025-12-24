@@ -26,18 +26,6 @@ func NewAuthHandler(authService ports.AuthService, orgClient ports.OrganizationS
 	}
 }
 
-func toProtoRoles(roleNames []string) []authpb.UserRole {
-	protoRoles := make([]authpb.UserRole, len(roleNames))
-	for i, name := range roleNames {
-		switch name {
-		case "SUPER_ADMIN":
-			protoRoles[i] = authpb.UserRole_SUPER_ADMIN
-		default:
-			protoRoles[i] = authpb.UserRole_USER_ROLE_UNSPECIFIED
-		}
-	}
-	return protoRoles
-}
 
 // RegisterUser registers a new user
 func (h *AuthHandler) RegisterUser(ctx context.Context, req *authpb.RegisterUserRequest) (*authpb.RegisterUserResponse, error) {
@@ -46,26 +34,17 @@ func (h *AuthHandler) RegisterUser(ctx context.Context, req *authpb.RegisterUser
 		return nil, status.Errorf(codes.InvalidArgument, "invalid tenant_id: %v", err)
 	}
 
-	// Convert roles from proto enum to strings
-	roles := make([]string, len(req.Roles))
-	for i, role := range req.Roles {
-		roles[i] = role.String()
-	}
-
 	var orgID *uuid.UUID // No organization provided in this request path yet
-	response, err := h.authService.Register(ctx, tenantID, orgID, req.Name, req.Email, req.Password, roles)
+	response, err := h.authService.Register(ctx, tenantID, orgID, req.Name, req.Email, req.Password, req.Roles)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to register user: %v", err)
 	}
-
-	// Convert roles back to proto enum
-	protoRoles := toProtoRoles(response.Roles)
 
 	return &authpb.RegisterUserResponse{
 		UserId:      response.UserID.String(),
 		Name:        response.Name,
 		Email:       response.Email,
-		Roles:       protoRoles,
+		Roles:       response.Roles,
 		Permissions: response.Permissions,
 	}, nil
 }
@@ -119,9 +98,6 @@ func (h *AuthHandler) Login(ctx context.Context, req *authpb.UserLoginRequest) (
 			return nil, status.Errorf(codes.Unauthenticated, "login failed: %v", err)
 		}
 
-		// Convert roles to proto enum
-		protoRoles := toProtoRoles(response.Roles)
-
 		orgIDStr := ""
 		if response.OrgID != nil {
 			orgIDStr = response.OrgID.String()
@@ -133,7 +109,7 @@ func (h *AuthHandler) Login(ctx context.Context, req *authpb.UserLoginRequest) (
 			UserId:           response.UserID.String(),
 			Email:            response.Email,
 			Name:             response.Name,
-			Roles:            protoRoles,
+			Roles:            response.Roles,
 			Permissions:      response.Permissions,
 			LastLoginAt:      response.LastLoginAt.Format("2006-01-02T15:04:05Z"),
 			LastLoginIp:      response.LastLoginIP,
@@ -164,9 +140,6 @@ func (h *AuthHandler) Login(ctx context.Context, req *authpb.UserLoginRequest) (
 		return nil, status.Errorf(codes.Unauthenticated, "login failed: %v", err)
 	}
 
-	// Convert roles to proto enum
-	protoRoles := toProtoRoles(response.Roles)
-
 	orgIDStr := ""
 	if response.OrgID != nil {
 		orgIDStr = response.OrgID.String()
@@ -178,7 +151,7 @@ func (h *AuthHandler) Login(ctx context.Context, req *authpb.UserLoginRequest) (
 		UserId:           response.UserID.String(),
 		Email:            response.Email,
 		Name:             response.Name,
-		Roles:            protoRoles,
+		Roles:            response.Roles,
 		Permissions:      response.Permissions,
 		LastLoginAt:      response.LastLoginAt.Format("2006-01-02T15:04:05Z"),
 		LastLoginIp:      response.LastLoginIP,
@@ -208,12 +181,6 @@ func (h *AuthHandler) GlobalLogin(ctx context.Context, req *authpb.GlobalLoginRe
 		return nil, status.Errorf(codes.Unauthenticated, "login failed: %v", err)
 	}
 
-	// Convert roles to proto enum
-	protoRoles := make([]authpb.UserRole, len(response.Roles))
-	for i := range response.Roles {
-		protoRoles[i] = authpb.UserRole_USER_ROLE_UNSPECIFIED
-	}
-
 	orgIDStr := ""
 	if response.OrgID != nil {
 		orgIDStr = response.OrgID.String()
@@ -225,7 +192,7 @@ func (h *AuthHandler) GlobalLogin(ctx context.Context, req *authpb.GlobalLoginRe
 		UserId:           response.UserID.String(),
 		Email:            response.Email,
 		Name:             response.Name,
-		Roles:            protoRoles,
+		Roles:            response.Roles,
 		Permissions:      response.Permissions,
 		LastLoginAt:      response.LastLoginAt.Format("2006-01-02T15:04:05Z"),
 		LastLoginIp:      response.LastLoginIP,
@@ -319,24 +286,78 @@ func (h *AuthHandler) ValidateToken(ctx context.Context, req *authpb.ValidateTok
 	return resp, nil
 }
 
-// InitiateSSO initiates SSO login (placeholder)
+// InitiateSSO initiates SSO login
 func (h *AuthHandler) InitiateSSO(ctx context.Context, req *authpb.InitiateSSORequest) (*authpb.InitiateSSOResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "SSO not implemented yet")
+	if req.Provider == authpb.SSOProvider_SSO_PROVIDER_UNSPECIFIED {
+		return nil, status.Error(codes.InvalidArgument, "provider is required")
+	}
+
+	providerStr := req.Provider.String() // Converts enum to string (e.g., "GOOGLE", "MICROSOFT")
+	redirectURL, err := h.authService.InitiateSSO(ctx, providerStr)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to initiate SSO: %v", err)
+	}
+
+	return &authpb.InitiateSSOResponse{
+		AuthUrl: redirectURL,
+	}, nil
 }
 
-// CompleteSSO completes SSO login (placeholder)
+// CompleteSSO completes SSO login
 func (h *AuthHandler) CompleteSSO(ctx context.Context, req *authpb.CompleteSSORequest) (*authpb.UserLoginResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "SSO not implemented yet")
+	if req.Provider == authpb.SSOProvider_SSO_PROVIDER_UNSPECIFIED {
+		return nil, status.Error(codes.InvalidArgument, "provider is required")
+	}
+	if req.Code == "" {
+		return nil, status.Error(codes.InvalidArgument, "auth code is required")
+	}
+
+	providerStr := req.Provider.String()
+	response, err := h.authService.CompleteSSO(ctx, providerStr, req.Code)
+	if err != nil {
+		return nil, status.Errorf(codes.Unauthenticated, "SSO login failed: %v", err)
+	}
+
+	orgIDStr := ""
+	if response.OrgID != nil {
+		orgIDStr = response.OrgID.String()
+	}
+
+	return &authpb.UserLoginResponse{
+		Token:            response.Token,
+		RefreshToken:     response.RefreshToken,
+		UserId:           response.UserID.String(),
+		Email:            response.Email,
+		Name:             response.Name,
+		Roles:            response.Roles,
+		Permissions:      response.Permissions,
+		LastLoginAt:      response.LastLoginAt.Format("2006-01-02T15:04:05Z"),
+		LastLoginIp:      response.LastLoginIP,
+		TenantId:         response.TenantID.String(),
+		OrgId:            orgIDStr,
+		TokenExpiresAt:   response.TokenExpiresAt,
+		RefreshExpiresAt: response.RefreshExpiresAt,
+		// SessionID removal: The proto definition for UserLoginResponse does NOT have a SessionID field.
+		// If needed, we should update the proto. For now, we omit it to fit the spec.
+	}, nil
 }
 
 // InitiateSSOLogout initiates SSO logout (placeholder)
 func (h *AuthHandler) InitiateSSOLogout(ctx context.Context, req *authpb.InitiateSSOLogoutRequest) (*authpb.InitiateSSOLogoutResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "SSO logout not implemented yet")
+	// For now, simpler logout is sufficient as we just kill the local session.
+	// True SLO (Single Logout) where we also log them out of Google/Microsoft is complex and often annoying for users.
+	// We'll just return success link to homepage or login page.
+	
+	// Note: We use the client-side redirect URL if possible, or default to root
+	
+	return &authpb.InitiateSSOLogoutResponse{
+		LogoutUrl: "/", // Client side should handle redirect
+	}, nil
 }
 
 // CompleteSSOLogout completes SSO logout (placeholder)
 func (h *AuthHandler) CompleteSSOLogout(ctx context.Context, req *authpb.CompleteSSOLogoutRequest) (*authpb.UserLogoutResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "SSO logout not implemented yet")
+	return &authpb.UserLogoutResponse{Success: true}, nil
 }
 
 // SendVerificationEmail sends verification email
@@ -441,9 +462,6 @@ func (h *AuthHandler) SwitchOrganization(ctx context.Context, req *authpb.Switch
 		return nil, status.Errorf(codes.Internal, "failed to switch organization: %v", err)
 	}
 
-	// Convert roles to proto enum
-	protoRoles := toProtoRoles(response.Roles)
-
 	orgIDStr := ""
 	if response.OrgID != nil {
 		orgIDStr = response.OrgID.String()
@@ -455,7 +473,7 @@ func (h *AuthHandler) SwitchOrganization(ctx context.Context, req *authpb.Switch
 		UserId:           response.UserID.String(),
 		Email:            response.Email,
 		Name:             response.Name,
-		Roles:            protoRoles,
+		Roles:            response.Roles,
 		Permissions:      response.Permissions,
 		LastLoginAt:      response.LastLoginAt.Format("2006-01-02T15:04:05Z"),
 		LastLoginIp:      response.LastLoginIP,

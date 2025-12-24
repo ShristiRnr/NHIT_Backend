@@ -31,17 +31,10 @@ ON CONFLICT (name) DO NOTHING;
 -- ================================================
 
 -- Insert test designations with hierarchy
-INSERT INTO designations (id, name, description, slug, is_active, parent_id, level, user_count) VALUES
-    ('750e8400-e29b-41d4-a716-446655440001', 'Chief Executive Officer', 'CEO - Top executive position', 'ceo', true, NULL, 0, 0),
-    ('750e8400-e29b-41d4-a716-446655440002', 'Chief Technology Officer', 'CTO - Technology leadership', 'cto', true, '750e8400-e29b-41d4-a716-446655440001', 1, 0),
-    ('750e8400-e29b-41d4-a716-446655440003', 'Engineering Manager', 'Manager for engineering teams', 'engineering-manager', true, '750e8400-e29b-41d4-a716-446655440002', 2, 0),
-    ('750e8400-e29b-41d4-a716-446655440004', 'Senior Software Engineer', 'Senior level software engineer', 'senior-software-engineer', true, '750e8400-e29b-41d4-a716-446655440003', 3, 0),
-    ('750e8400-e29b-41d4-a716-446655440005', 'Software Engineer', 'Mid-level software engineer', 'software-engineer', true, '750e8400-e29b-41d4-a716-446655440003', 3, 0),
-    ('750e8400-e29b-41d4-a716-446655440006', 'Junior Software Engineer', 'Entry level software engineer', 'junior-software-engineer', true, '750e8400-e29b-41d4-a716-446655440003', 3, 0),
-    ('750e8400-e29b-41d4-a716-446655440007', 'HR Manager', 'Human Resources Manager', 'hr-manager', true, '750e8400-e29b-41d4-a716-446655440001', 1, 0),
-    ('750e8400-e29b-41d4-a716-446655440008', 'Finance Manager', 'Finance and Accounting Manager', 'finance-manager', true, '750e8400-e29b-41d4-a716-446655440001', 1, 0),
-    ('750e8400-e29b-41d4-a716-446655440009', 'Marketing Manager', 'Marketing and Business Development Manager', 'marketing-manager', true, '750e8400-e29b-41d4-a716-446655440001', 1, 0),
-    ('750e8400-e29b-41d4-a716-446655440010', 'Operations Manager', 'Business Operations Manager', 'operations-manager', true, '750e8400-e29b-41d4-a716-446655440001', 1, 0)
+INSERT INTO designations (id, name, description) VALUES
+    ('750e8400-e29b-41d4-a716-446655440001', 'Chief Executive Officer', 'CEO - Top executive position'),
+    ('750e8400-e29b-41d4-a716-446655440002', 'Chief Technology Officer', 'CTO - Technology leadership'),
+    ('750e8400-e29b-41d4-a716-446655440003', 'Engineering Manager', 'Manager for engineering teams')
 ON CONFLICT (slug) DO NOTHING;
 
 -- ================================================
@@ -85,11 +78,11 @@ ON CONFLICT (user_id, org_id) DO NOTHING;
 -- ================================================
 
 -- Insert test projects
-INSERT INTO projects (id, tenant_id, name, description, status, start_date, end_date, created_by) VALUES
-    ('950e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440000', 'NHIT Backend API', 'Microservices backend for NHIT platform', 'active', '2024-01-01', '2024-12-31', '850e8400-e29b-41d4-a716-446655440001'),
-    ('950e8400-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440000', 'NHIT Frontend Portal', 'React-based frontend application', 'active', '2024-02-01', '2024-11-30', '850e8400-e29b-41d4-a716-446655440002'),
-    ('950e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440000', 'Mobile Application', 'Cross-platform mobile app development', 'planning', '2024-06-01', '2025-03-31', '850e8400-e29b-41d4-a716-446655440003'),
-    ('950e8400-e29b-41d4-a716-446655440004', '550e8400-e29b-41d4-a716-446655440000', 'Data Analytics Platform', 'Business intelligence and analytics', 'active', '2024-03-01', '2024-10-31', '850e8400-e29b-41d4-a716-446655440004')
+INSERT INTO projects (id, tenant_id, name, org_id, created_by, created_at, updated_at) VALUES
+    ('950e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440000', 'NHIT Backend API', 'mohit', NOW(), NOW()),
+    ('950e8400-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440000', 'NHIT Frontend Portal', 'aman', NOW(), NOW()),
+    ('950e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440000', 'Mobile Application', 'om', NOW(), NOW()),
+    ('950e8400-e29b-41d4-a716-446655440004', '550e8400-e29b-41d4-a716-446655440000', 'Data Analytics Platform', 'shristi', NOW(), NOW())
 ON CONFLICT (id) DO NOTHING;
 
 -- ================================================

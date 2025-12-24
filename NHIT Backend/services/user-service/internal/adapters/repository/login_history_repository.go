@@ -43,8 +43,14 @@ func (r *loginHistoryRepository) Create(ctx context.Context, history *domain.Use
 	}, nil
 }
 
-// ListByUser lists login history for a specific user
-func (r *loginHistoryRepository) ListByUser(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]*domain.UserLoginHistory, error) {
+// ListByUser lists login history for a specific user with total count
+func (r *loginHistoryRepository) ListByUser(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]*domain.UserLoginHistory, int64, error) {
+	// Get total count
+	total, err := r.queries.CountUserLoginHistories(ctx, uuid.NullUUID{UUID: userID, Valid: true})
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to count login histories: %w", err)
+	}
+
 	params := sqlc.ListUserLoginHistoriesParams{
 		UserID: uuid.NullUUID{UUID: userID, Valid: true},
 		Limit:  limit,
@@ -53,7 +59,7 @@ func (r *loginHistoryRepository) ListByUser(ctx context.Context, userID uuid.UUI
 
 	histories, err := r.queries.ListUserLoginHistories(ctx, params)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list login histories: %w", err)
+		return nil, 0, fmt.Errorf("failed to list login histories: %w", err)
 	}
 
 	result := make([]*domain.UserLoginHistory, len(histories))
@@ -67,5 +73,5 @@ func (r *loginHistoryRepository) ListByUser(ctx context.Context, userID uuid.UUI
 		}
 	}
 
-	return result, nil
+	return result, total, nil
 }

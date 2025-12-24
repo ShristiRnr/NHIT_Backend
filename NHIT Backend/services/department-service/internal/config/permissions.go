@@ -4,11 +4,11 @@ package config
 func GetPermissionMap() map[string][]string {
 	return map[string][]string{
 		// Department CRUD operations
-		"/department.v1.DepartmentService/CreateDepartment": {"create-department"},
-		"/department.v1.DepartmentService/GetDepartment":    {"view-departments"},
-		"/department.v1.DepartmentService/ListDepartments":  {"view-departments"},
-		"/department.v1.DepartmentService/UpdateDepartment": {"edit-department"},
-		"/department.v1.DepartmentService/DeleteDepartment": {"delete-department"},
+		"/departments.DepartmentService/CreateDepartment": {"create-department"},
+		"/departments.DepartmentService/GetDepartment":    {"view-department"},
+		"/departments.DepartmentService/ListDepartments":  {"view-department"},
+		"/departments.DepartmentService/UpdateDepartment": {"edit-department"},
+		"/departments.DepartmentService/DeleteDepartment": {"delete-department"},
 	}
 }
 

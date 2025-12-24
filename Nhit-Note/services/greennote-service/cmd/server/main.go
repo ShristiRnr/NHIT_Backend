@@ -17,6 +17,7 @@ import (
 	"time"
 
 	greennotepb "nhit-note/api/pb/greennotepb"
+	approvalpb "nhit-note/api/pb/approvalpb"
 	eventsadapter "nhit-note/services/greennote-service/internal/adapters/events"
 	grpcadapter "nhit-note/services/greennote-service/internal/adapters/grpcadapter"
 	memoryrepo "nhit-note/services/greennote-service/internal/adapters/repository/memory"
@@ -24,13 +25,17 @@ import (
 	storageadapter "nhit-note/services/greennote-service/internal/adapters/storage"
 	"nhit-note/services/greennote-service/internal/core/ports"
 	"nhit-note/services/greennote-service/internal/core/services"
-	"nhit-note/services/greennote-service/internal/middleware"
 
 	departmentpb "github.com/ShristiRnr/NHIT_Backend/api/pb/departmentpb"
 	projectpb "github.com/ShristiRnr/NHIT_Backend/api/pb/projectpb"
 	vendorpb "github.com/ShristiRnr/NHIT_Backend/api/pb/vendorpb"
+	authpb "github.com/ShristiRnr/NHIT_Backend/api/pb/authpb"
+
+	sharedmiddleware "github.com/ShristiRnr/NHIT_Backend/pkg/middleware"
+	"nhit-note/services/greennote-service/internal/config"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -52,6 +57,7 @@ type Config struct {
 
 	DatabaseURL         string
 	AuthServiceEndpoint string
+	ApprovalServiceEndpoint string
 }
 
 func loadConfigFromEnv() Config {
@@ -65,6 +71,7 @@ func loadConfigFromEnv() Config {
 		MinIOBucket:         getenvWithDefault("MINIO_BUCKET", "greennote-docs"),
 		DatabaseURL:         strings.TrimSpace(getenvWithDefault("GREENNOTE_DATABASE_URL", "postgres://postgres:shristi@localhost:5433/nhit_db?sslmode=disable")),
 		AuthServiceEndpoint: getenvWithDefault("AUTH_SERVICE_ENDPOINT", "localhost:50052"),
+		ApprovalServiceEndpoint: getenvWithDefault("APPROVAL_SERVICE_ENDPOINT", "localhost:50060"),
 	}
 
 	if brokers := strings.TrimSpace(os.Getenv("KAFKA_BROKERS")); brokers != "" {
@@ -89,7 +96,16 @@ func getenvWithDefault(key, def string) string {
 }
 
 func main() {
+	// Load .env file (try shared first, then local override)
+	_ = godotenv.Load("../.env")
+	_ = godotenv.Load(".env")
+	log.Println("Loaded environment variables (if present)")
+
 	cfg := loadConfigFromEnv()
+	log.Printf("CONFIG: ApprovalEndpoint=%s", cfg.ApprovalServiceEndpoint)
+	log.Printf("CONFIG: AuthEndpoint=%s", cfg.AuthServiceEndpoint)
+	log.Printf("CONFIG: DB=%s", cfg.DatabaseURL)
+	log.Printf("CONFIG: KafkaBrokers=%v (len=%d)", cfg.KafkaBrokers, len(cfg.KafkaBrokers))
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -108,7 +124,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("failed to open Postgres connection: %v", err)
 		}
-		// ✅ Improved connection pooling configuration
+		// Improved connection pooling configuration
 		db.SetMaxIdleConns(2)           // Increased from 5
 		db.SetMaxOpenConns(5)           // Increased from 20
 		db.SetConnMaxLifetime(time.Hour)
@@ -119,7 +135,7 @@ func main() {
 		}
 
 		repo = sqlcrepo.NewPostgresGreenNoteRepository(db, docStorage)
-		log.Println("✅ using Postgres/sqlc GreenNote repository (Manual Pool: Max=30, Min=10)")
+		log.Println("using Postgres/sqlc GreenNote repository (Manual Pool: Max=30, Min=10)")
 	} else {
 		repo = memoryrepo.NewInMemoryGreenNoteRepository(docStorage)
 		log.Println("using in-memory GreenNote repository")
@@ -152,8 +168,17 @@ func main() {
 	defer deptConn.Close()
 	deptClient := departmentpb.NewDepartmentServiceClient(deptConn)
 
+	// Connect to Approval Service
+	log.Printf("🔌 connecting to Approval Service at: %s", cfg.ApprovalServiceEndpoint)
+	approvalConn, err := grpc.Dial(cfg.ApprovalServiceEndpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("failed to connect to approval service: %v", err)
+	}
+	defer approvalConn.Close()
+	approvalClient := approvalpb.NewApprovalServiceClient(approvalConn)
+
 	// Core application service.
-	appService := services.NewGreenNoteService(repo, events, projectClient, vendorClient, deptClient)
+	appService := services.NewGreenNoteService(repo, events, projectClient, vendorClient, deptClient, approvalClient)
 
 	// gRPC service adapter.
 	grpcSvc := grpcadapter.NewGreenNoteGRPCServer(appService)
@@ -164,6 +189,19 @@ func main() {
 	go func() {
 		grpcErrCh <- runGRPCServer(ctx, cfg, grpcSvc)
 	}()
+
+	// Start Kafka Consumer for Approval Events
+	// Ideally, use a separate topic for approval events if different from 'approved' topic?
+	// The user request said: "listening to the approval_events topic".
+	// We didn't add that to config, let's use a hardcoded default or env var if needed.
+	// For now, I'll assume a default "approval_events".
+	approvalTopic := getenvWithDefault("KAFKA_TOPIC_APPROVAL_EVENTS", "approval_events")
+	consumer := eventsadapter.NewKafkaConsumer(cfg.KafkaBrokers, approvalTopic, "greennote-service-approval-group", repo, events)
+	if consumer != nil {
+		go consumer.Start(ctx)
+	} else {
+		log.Println("Kafka Consumer not started (missing brokers or topic)")
+	}
 
 	go func() {
 		httpErrCh <- runHTTPGatewayServer(ctx, cfg, grpcSvc, docStorage)
@@ -202,9 +240,26 @@ func runGRPCServer(ctx context.Context, cfg Config, svc greennotepb.GreenNoteSer
 		return err
 	}
 
+	// Connect to Auth Service for RBAC
+	authConn, err := grpc.Dial(cfg.AuthServiceEndpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("failed to connect to auth service: %v", err)
+	}
+	defer authConn.Close()
+	authClient := authpb.NewAuthServiceClient(authConn)
+
+	// Initialize Shared RBAC Interceptor
+	// Note: We use the shared middleware package from NHIT Backend
+	rbacInterceptor := sharedmiddleware.NewRBACInterceptor(authClient)
+
+	// Register Permissions
+	for method, perms := range config.GetPermissionMap() {
+		rbacInterceptor.RegisterPermissions(method, perms)
+	}
+
 	// Register Auth Interceptor
 	server := grpc.NewServer(
-		grpc.UnaryInterceptor(middleware.UnaryAuthInterceptor),
+		grpc.UnaryInterceptor(rbacInterceptor.UnaryServerInterceptor()),
 	)
 	greennotepb.RegisterGreenNoteServiceServer(server, svc)
 

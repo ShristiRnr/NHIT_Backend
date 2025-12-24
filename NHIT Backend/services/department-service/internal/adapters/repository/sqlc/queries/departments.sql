@@ -25,7 +25,8 @@ ORDER BY created_at DESC
 LIMIT $2 OFFSET $3;
 
 -- name: CountDepartments :one
-SELECT COUNT(*) FROM departments;
+SELECT COUNT(*) FROM departments
+WHERE ($1::uuid IS NULL OR org_id = $1);
 
 -- name: DepartmentExists :one
 SELECT EXISTS(SELECT 1 FROM departments WHERE name = $1) AS exists;

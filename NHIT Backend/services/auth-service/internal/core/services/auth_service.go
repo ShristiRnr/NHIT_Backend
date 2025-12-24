@@ -8,6 +8,7 @@ import (
 	"time"
 
 	userpb "github.com/ShristiRnr/NHIT_Backend/api/pb/userpb"
+	"github.com/ShristiRnr/NHIT_Backend/services/auth-service/internal/config"
 	"github.com/ShristiRnr/NHIT_Backend/services/auth-service/internal/core/domain"
 	"github.com/ShristiRnr/NHIT_Backend/services/auth-service/internal/core/ports"
 	"github.com/ShristiRnr/NHIT_Backend/services/auth-service/internal/utils"
@@ -28,6 +29,7 @@ type authService struct {
 	notificationClient    ports.NotificationClient
 	userServiceClient     userpb.UserManagementClient     // gRPC client for User Service
 	orgClient             ports.OrganizationServiceClient // gRPC client for Organization Service
+	ssoConfig             *config.SSOConfig
 }
 
 // NewAuthService creates a new auth service
@@ -43,6 +45,7 @@ func NewAuthService(
 	notificationClient ports.NotificationClient,
 	userServiceClient userpb.UserManagementClient,
 	orgClient ports.OrganizationServiceClient,
+	ssoConfig *config.SSOConfig,
 ) ports.AuthService {
 	return &authService{
 		userRepo:              userRepo,
@@ -56,6 +59,7 @@ func NewAuthService(
 		notificationClient:    notificationClient,
 		userServiceClient:     userServiceClient,
 		orgClient:             orgClient,
+		ssoConfig:             ssoConfig,
 	}
 }
 
@@ -183,12 +187,19 @@ func (s *authService) LoginGlobal(ctx context.Context, email, password string, o
 	// Get user by email globally (across all tenants)
 	user, err := s.userRepo.GetByEmailGlobal(ctx, email)
 	if err != nil {
+		fmt.Printf("❌ LoginGlobal: User not found for email %s: %v\n", email, err)
 		return nil, fmt.Errorf("invalid email or password")
 	}
 
 	// Verify password
 	if err := utils.VerifyPassword(user.Password, password); err != nil {
+		fmt.Printf("❌ LoginGlobal: Password mismatch for user %s: %v\n", email, err)
 		return nil, fmt.Errorf("invalid email or password")
+	}
+
+	// Check if user is active
+	if !user.IsActive {
+		return nil, fmt.Errorf("user account is deactivated")
 	}
 
 	// Check if email is verified unless user is super admin
@@ -370,6 +381,11 @@ func (s *authService) Login(ctx context.Context, email, password string, tenantI
 	// Verify password
 	if err := utils.VerifyPassword(user.Password, password); err != nil {
 		return nil, fmt.Errorf("invalid email or password")
+	}
+
+	// Check if user is active
+	if !user.IsActive {
+		return nil, fmt.Errorf("user account is deactivated")
 	}
 
 	// Check if email is verified unless user is super admin
@@ -906,11 +922,27 @@ func (s *authService) ResetPasswordByToken(ctx context.Context, token, newPasswo
 		return fmt.Errorf("failed to hash password: %w", err)
 	}
 
-	// Update password
+	// Fetch user details to get email for cross-table sync
+	user, err := s.userRepo.GetByID(ctx, resetRecord.UserID)
+	if err != nil {
+		return fmt.Errorf("failed to fetch user for sync: %w", err)
+	}
+
+	// Update password in users table
 	if err := s.userRepo.UpdatePassword(ctx, resetRecord.UserID, hashedPassword); err != nil {
 		return fmt.Errorf("failed to update password: %w", err)
 	}
 
+	// TRIGGER SYNC: Update password in tenants and organizations tables if email matches
+	log.Printf("Syncing password for %s across platforms (token-based)...", user.Email)
+	
+	if err := s.userRepo.UpdateTenantPassword(ctx, user.Email, hashedPassword); err != nil {
+		log.Printf("⚠️  Failed to sync tenant password for %s: %v", user.Email, err)
+	}
+
+	if err := s.userRepo.UpdateOrganizationSuperAdminPassword(ctx, user.Email, hashedPassword); err != nil {
+		log.Printf("⚠️  Failed to sync organization super admin password for %s: %v", user.Email, err)
+	}
 	// Delete reset token
 	if err := s.passwordResetRepo.Delete(ctx, tokenUUID); err != nil {
 		fmt.Printf("⚠️  Failed to delete reset token: %v\n", err)
@@ -1084,3 +1116,171 @@ func (s *authService) SwitchOrganization(ctx context.Context, userID uuid.UUID, 
 		LastLoginIP:      "", // Will be set by middleware
 	}, nil
 }
+
+// InitiateSSO initiates the SSO flow by returning the provider's auth URL
+func (s *authService) InitiateSSO(ctx context.Context, provider string) (string, error) {
+	var ssoProvider SSOProvider
+	state := uuid.New().String() // Simple state generation, should optionally be stored/validated
+
+	switch strings.ToLower(provider) {
+	case "google":
+		ssoProvider = NewGoogleProvider(s.ssoConfig)
+	case "microsoft", "azure":
+		ssoProvider = NewMicrosoftProvider(s.ssoConfig)
+	default:
+		return "", fmt.Errorf("unsupported provider: %s", provider)
+	}
+
+	return ssoProvider.GetAuthURL(state), nil
+}
+
+// CompleteSSO handles the callback from the SSO provider
+func (s *authService) CompleteSSO(ctx context.Context, provider, code string) (*domain.LoginResponse, error) {
+	var ssoProvider SSOProvider
+
+	switch strings.ToLower(provider) {
+	case "google":
+		ssoProvider = NewGoogleProvider(s.ssoConfig)
+	case "microsoft", "azure":
+		ssoProvider = NewMicrosoftProvider(s.ssoConfig)
+	default:
+		return nil, fmt.Errorf("unsupported provider: %s", provider)
+	}
+
+	// 1. Exchange code for token
+	token, err := ssoProvider.Exchange(ctx, code)
+	if err != nil {
+		return nil, fmt.Errorf("failed to exchange code: %w", err)
+	}
+
+	// 2. Get User Info
+	userInfo, err := ssoProvider.GetUserInfo(ctx, token)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user info: %w", err)
+	}
+
+	log.Printf("✅ SSO Success [%s]: %s (%s)", provider, userInfo.Name, userInfo.Email)
+
+	// 3. Login or Register
+	// Logic: Try to login if user exists. If not, fail (or auto-register if enabled).
+	// For production strictness, we search Globally.
+	
+	// We use LoginGlobal logic here but bypass password check
+	// Check if user exists by email globally
+	user, err := s.userRepo.GetByEmailGlobal(ctx, userInfo.Email)
+	if err != nil {
+		// User not found
+		// For now, we return error. To enable auto-registration, we would call CreateUser here.
+		return nil, fmt.Errorf("user with email %s not found in the system. Please register first", userInfo.Email)
+	}
+
+	// User found - Proceed to Login
+	
+	// Ensure email is verified (implicitly yes since it came from SSO, but let's be safe)
+	if user.EmailVerifiedAt == nil {
+		// Auto-verify email since identity provider verified it
+		if err := s.userRepo.VerifyEmail(ctx, user.UserID); err != nil {
+			log.Printf("Failed to auto-verify email for SSO user: %v", err)
+		}
+	}
+
+	// Update last login
+	if err := s.userRepo.UpdateLastLogin(ctx, user.UserID, "", ""); err != nil {
+		log.Printf("Failed to update last login: %v", err)
+	}
+
+	// Auto-detect organization logic (copied from LoginGlobal)
+	var orgID *uuid.UUID
+	orgsResp, err := s.userServiceClient.ListUserOrganizations(ctx, &userpb.ListUserOrganizationsRequest{
+		UserId: user.UserID.String(),
+	})
+	if err == nil && len(orgsResp.Organizations) > 0 {
+		var selected *userpb.UserOrganizationInfo
+		for _, o := range orgsResp.Organizations {
+			if o.IsCurrentContext {
+				selected = o
+				break
+			}
+		}
+		if selected == nil {
+			selected = orgsResp.Organizations[0]
+		}
+		if selected.OrgId != "" {
+			if parsedOrgID, err := uuid.Parse(selected.OrgId); err == nil {
+				orgID = &parsedOrgID
+			}
+		}
+	}
+
+	if orgID == nil {
+		return nil, fmt.Errorf("no organization found for this user")
+	}
+
+	orgIDStr := orgID.String()
+
+	// Generate Tokens
+	rolesResp, err := s.userServiceClient.ListRolesOfUser(ctx, &userpb.GetUserRequest{UserId: user.UserID.String()})
+	var roleNames []string
+	var permissions []string
+	if err == nil {
+		permSet := make(map[string]struct{})
+		for _, r := range rolesResp.Roles {
+			if r.Name != "" { roleNames = append(roleNames, r.Name) }
+			for _, p := range r.Permissions { permSet[p] = struct{}{} }
+		}
+		for p := range permSet { permissions = append(permissions, p) }
+	}
+
+	accessToken, accessExpiresAt, err := s.jwtManager.GenerateAccessToken(
+		user.UserID.String(), user.Email, user.Name, user.TenantID.String(), orgIDStr, roleNames, permissions,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate access token: %w", err)
+	}
+
+	refreshToken, refreshExpiresAt, err := s.jwtManager.GenerateRefreshToken(user.UserID.String(), user.TenantID.String())
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate refresh token: %w", err)
+	}
+
+	// Store refresh token
+	if err := s.refreshTokenRepo.Create(ctx, &domain.RefreshToken{
+		Token:     refreshToken,
+		UserID:    user.UserID,
+		ExpiresAt: time.Unix(refreshExpiresAt, 0),
+		CreatedAt: time.Now(),
+	}); err != nil {
+		return nil, fmt.Errorf("failed to store refresh token: %w", err)
+	}
+
+	// Create session
+	session := &domain.Session{
+		SessionID:    uuid.New(),
+		UserID:       user.UserID,
+		SessionToken: accessToken,
+		CreatedAt:    time.Now(),
+		ExpiresAt:    time.Unix(accessExpiresAt, 0),
+	}
+	createdSession, err := s.sessionRepo.Create(ctx, session)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create session: %w", err)
+	}
+
+	return &domain.LoginResponse{
+		Token:            accessToken,
+		RefreshToken:     refreshToken,
+		UserID:           user.UserID,
+		Email:            user.Email,
+		Name:             user.Name,
+		Roles:            roleNames,
+		Permissions:      permissions,
+		LastLoginAt:      time.Now(),
+		LastLoginIP:      "",
+		TenantID:         user.TenantID,
+		OrgID:            orgID,
+		TokenExpiresAt:   accessExpiresAt,
+		RefreshExpiresAt: refreshExpiresAt,
+		SessionID:        createdSession.SessionID,
+	}, nil
+}
+

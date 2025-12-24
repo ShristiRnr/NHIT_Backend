@@ -93,19 +93,28 @@ func (r *projectRepository) GetByID(ctx context.Context, projectID uuid.UUID) (*
 	return project, nil
 }
 
-// ListByOrganization lists all projects for an organization
-func (r *projectRepository) ListByOrganization(ctx context.Context, orgID uuid.UUID) ([]*domain.Project, error) {
+// ListByOrganization lists all projects for an organization with pagination
+func (r *projectRepository) ListByOrganization(ctx context.Context, orgID uuid.UUID, limit, offset int) ([]*domain.Project, int, error) {
+	// Get total count first
+	var totalCount int
+	countQuery := `SELECT COUNT(*) FROM projects WHERE org_id = $1`
+	err := r.db.QueryRow(ctx, countQuery, orgID.String()).Scan(&totalCount)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get project count: %w", err)
+	}
+
 	query := `
 		SELECT id, tenant_id, org_id, project_name, created_by,
 			created_at, updated_at
 		FROM projects
 		WHERE org_id = $1
 		ORDER BY created_at DESC
+		LIMIT $2 OFFSET $3
 	`
 	
-	rows, err := r.db.Query(ctx, query, orgID)
+	rows, err := r.db.Query(ctx, query, orgID.String(), limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list projects: %w", err)
+		return nil, 0, fmt.Errorf("failed to list projects: %w", err)
 	}
 	defer rows.Close()
 	
@@ -116,14 +125,14 @@ func (r *projectRepository) ListByOrganization(ctx context.Context, orgID uuid.U
 			&p.ProjectID, &p.TenantID, &p.OrgID, &p.ProjectName, &p.CreatedBy, &p.CreatedAt, &p.UpdatedAt,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("failed to scan project: %w", err)
+			return nil, 0, fmt.Errorf("failed to scan project: %w", err)
 		}
 		projects = append(projects, p)
 	}
 	
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows error: %w", err)
+		return nil, 0, fmt.Errorf("rows error: %w", err)
 	}
 	
-	return projects, nil
+	return projects, totalCount, nil
 }

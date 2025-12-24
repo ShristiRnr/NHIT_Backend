@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v6.32.0
-// source: designation.proto
+// source: api/proto/designation.proto
 
 package designationpb
 
@@ -277,5 +277,5 @@ var DesignationService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "designation.proto",
+	Metadata: "api/proto/designation.proto",
 }

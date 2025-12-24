@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net"
+	"os"
 
 	authpb "github.com/ShristiRnr/NHIT_Backend/api/pb/authpb"
 	organizationpb "github.com/ShristiRnr/NHIT_Backend/api/pb/organizationpb"
@@ -13,6 +14,7 @@ import (
 	orgConfig "github.com/ShristiRnr/NHIT_Backend/services/organization-service/internal/config"
 	"github.com/ShristiRnr/NHIT_Backend/services/shared/config"
 	"github.com/ShristiRnr/NHIT_Backend/services/shared/database"
+	"github.com/ShristiRnr/NHIT_Backend/services/organization-service/internal/storage"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
@@ -57,8 +59,32 @@ func main() {
 	}
 	defer kafkaPublisher.Close()
 
-	// Initialize gRPC handlers (Adapters Layer) and pass DB pool, auth client, and kafka publisher
-	orgHandler := grpcHandler.NewOrganizationHandler(orgRepo, conn, authClient, kafkaPublisher)
+	// Initialize MinIO client for logos
+	minioEndpoint := os.Getenv("MINIO_ENDPOINT")
+	if minioEndpoint == "" {
+		minioEndpoint = "localhost:9000"
+	}
+	minioAccessKey := os.Getenv("MINIO_ACCESS_KEY")
+	if minioAccessKey == "" {
+		minioAccessKey = "minioadmin"
+	}
+	minioSecretKey := os.Getenv("MINIO_SECRET_KEY")
+	if minioSecretKey == "" {
+		minioSecretKey = "minioadmin"
+	}
+	minioBucket := os.Getenv("MINIO_BUCKET_LOGOS")
+	if minioBucket == "" {
+		minioBucket = "logos"
+	}
+	useSSL := os.Getenv("MINIO_USE_SSL") == "true"
+
+	minioClient, err := storage.NewMinIOClient(minioEndpoint, minioAccessKey, minioSecretKey, minioBucket, useSSL)
+	if err != nil {
+		log.Printf("⚠️ Failed to initialize MinIO client for organizations: %v", err)
+	}
+
+	// Initialize gRPC handlers (Adapters Layer) and pass DB pool, auth client, kafka publisher and minio client
+	orgHandler := grpcHandler.NewOrganizationHandler(orgRepo, conn, authClient, kafkaPublisher, minioClient)
 	log.Println("✅ gRPC handlers initialized")
 
 	// Initialize RBAC interceptor

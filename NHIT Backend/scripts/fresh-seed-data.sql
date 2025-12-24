@@ -19,14 +19,14 @@ VALUES
     ('550e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440001', true, NOW(), NOW());
 
 -- Insert sample department
-INSERT INTO departments (dept_id, tenant_id, org_id, department_name, description, created_by, created_at, updated_at)
+INSERT INTO departments (dept_id, org_id, department_name,  description, created_at, updated_at)
 VALUES 
-    ('550e8400-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440000', '550e8400-e29b-41d4-a716-446655440001', 'Information Technology', 'IT Department', '550e8400-e29b-41d4-a716-446655440001', NOW(), NOW());
+    ('550e8400-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440000', 'Information Technology', 'IT Department', NOW(), NOW());
 
 -- Insert sample designation
-INSERT INTO designations (designation_id, tenant_id, dept_id, designation_name, description, created_by, created_at, updated_at)
+INSERT INTO designations (designation_id, org_id, designation_name, description, created_at, updated_at)
 VALUES 
-    ('550e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440000', '550e8400-e29b-41d4-a716-446655440002', 'Software Developer', 'Full Stack Developer', '550e8400-e29b-41d4-a716-446655440001', NOW(), NOW());
+    ('550e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440000', 'Software Developer', 'Full Stack Developer', NOW(), NOW());
 
 COMMIT;
 

@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.10
 // 	protoc        v6.32.0
-// source: designation.proto
+// source: api/proto/designation.proto
 
 package designationpb
 
@@ -37,7 +37,7 @@ type Designation struct {
 
 func (x *Designation) Reset() {
 	*x = Designation{}
-	mi := &file_designation_proto_msgTypes[0]
+	mi := &file_api_proto_designation_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -49,7 +49,7 @@ func (x *Designation) String() string {
 func (*Designation) ProtoMessage() {}
 
 func (x *Designation) ProtoReflect() protoreflect.Message {
-	mi := &file_designation_proto_msgTypes[0]
+	mi := &file_api_proto_designation_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -62,7 +62,7 @@ func (x *Designation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Designation.ProtoReflect.Descriptor instead.
 func (*Designation) Descriptor() ([]byte, []int) {
-	return file_designation_proto_rawDescGZIP(), []int{0}
+	return file_api_proto_designation_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Designation) GetId() string {
@@ -111,7 +111,7 @@ type CreateDesignationRequest struct {
 
 func (x *CreateDesignationRequest) Reset() {
 	*x = CreateDesignationRequest{}
-	mi := &file_designation_proto_msgTypes[1]
+	mi := &file_api_proto_designation_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -123,7 +123,7 @@ func (x *CreateDesignationRequest) String() string {
 func (*CreateDesignationRequest) ProtoMessage() {}
 
 func (x *CreateDesignationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_designation_proto_msgTypes[1]
+	mi := &file_api_proto_designation_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -136,7 +136,7 @@ func (x *CreateDesignationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateDesignationRequest.ProtoReflect.Descriptor instead.
 func (*CreateDesignationRequest) Descriptor() ([]byte, []int) {
-	return file_designation_proto_rawDescGZIP(), []int{1}
+	return file_api_proto_designation_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *CreateDesignationRequest) GetName() string {
@@ -163,7 +163,7 @@ type DesignationResponse struct {
 
 func (x *DesignationResponse) Reset() {
 	*x = DesignationResponse{}
-	mi := &file_designation_proto_msgTypes[2]
+	mi := &file_api_proto_designation_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -175,7 +175,7 @@ func (x *DesignationResponse) String() string {
 func (*DesignationResponse) ProtoMessage() {}
 
 func (x *DesignationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_designation_proto_msgTypes[2]
+	mi := &file_api_proto_designation_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -188,7 +188,7 @@ func (x *DesignationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DesignationResponse.ProtoReflect.Descriptor instead.
 func (*DesignationResponse) Descriptor() ([]byte, []int) {
-	return file_designation_proto_rawDescGZIP(), []int{2}
+	return file_api_proto_designation_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *DesignationResponse) GetDesignation() *Designation {
@@ -215,7 +215,7 @@ type GetDesignationRequest struct {
 
 func (x *GetDesignationRequest) Reset() {
 	*x = GetDesignationRequest{}
-	mi := &file_designation_proto_msgTypes[3]
+	mi := &file_api_proto_designation_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -227,7 +227,7 @@ func (x *GetDesignationRequest) String() string {
 func (*GetDesignationRequest) ProtoMessage() {}
 
 func (x *GetDesignationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_designation_proto_msgTypes[3]
+	mi := &file_api_proto_designation_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -240,7 +240,7 @@ func (x *GetDesignationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDesignationRequest.ProtoReflect.Descriptor instead.
 func (*GetDesignationRequest) Descriptor() ([]byte, []int) {
-	return file_designation_proto_rawDescGZIP(), []int{3}
+	return file_api_proto_designation_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *GetDesignationRequest) GetId() string {
@@ -262,7 +262,7 @@ type UpdateDesignationRequest struct {
 
 func (x *UpdateDesignationRequest) Reset() {
 	*x = UpdateDesignationRequest{}
-	mi := &file_designation_proto_msgTypes[4]
+	mi := &file_api_proto_designation_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -274,7 +274,7 @@ func (x *UpdateDesignationRequest) String() string {
 func (*UpdateDesignationRequest) ProtoMessage() {}
 
 func (x *UpdateDesignationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_designation_proto_msgTypes[4]
+	mi := &file_api_proto_designation_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -287,7 +287,7 @@ func (x *UpdateDesignationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateDesignationRequest.ProtoReflect.Descriptor instead.
 func (*UpdateDesignationRequest) Descriptor() ([]byte, []int) {
-	return file_designation_proto_rawDescGZIP(), []int{4}
+	return file_api_proto_designation_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *UpdateDesignationRequest) GetId() string {
@@ -324,7 +324,7 @@ type PaginationMetadata struct {
 
 func (x *PaginationMetadata) Reset() {
 	*x = PaginationMetadata{}
-	mi := &file_designation_proto_msgTypes[5]
+	mi := &file_api_proto_designation_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -336,7 +336,7 @@ func (x *PaginationMetadata) String() string {
 func (*PaginationMetadata) ProtoMessage() {}
 
 func (x *PaginationMetadata) ProtoReflect() protoreflect.Message {
-	mi := &file_designation_proto_msgTypes[5]
+	mi := &file_api_proto_designation_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -349,7 +349,7 @@ func (x *PaginationMetadata) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PaginationMetadata.ProtoReflect.Descriptor instead.
 func (*PaginationMetadata) Descriptor() ([]byte, []int) {
-	return file_designation_proto_rawDescGZIP(), []int{5}
+	return file_api_proto_designation_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *PaginationMetadata) GetCurrentPage() int32 {
@@ -390,7 +390,7 @@ type DeleteDesignationRequest struct {
 
 func (x *DeleteDesignationRequest) Reset() {
 	*x = DeleteDesignationRequest{}
-	mi := &file_designation_proto_msgTypes[6]
+	mi := &file_api_proto_designation_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -402,7 +402,7 @@ func (x *DeleteDesignationRequest) String() string {
 func (*DeleteDesignationRequest) ProtoMessage() {}
 
 func (x *DeleteDesignationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_designation_proto_msgTypes[6]
+	mi := &file_api_proto_designation_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -415,7 +415,7 @@ func (x *DeleteDesignationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteDesignationRequest.ProtoReflect.Descriptor instead.
 func (*DeleteDesignationRequest) Descriptor() ([]byte, []int) {
-	return file_designation_proto_rawDescGZIP(), []int{6}
+	return file_api_proto_designation_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *DeleteDesignationRequest) GetId() string {
@@ -435,7 +435,7 @@ type DeleteDesignationResponse struct {
 
 func (x *DeleteDesignationResponse) Reset() {
 	*x = DeleteDesignationResponse{}
-	mi := &file_designation_proto_msgTypes[7]
+	mi := &file_api_proto_designation_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -447,7 +447,7 @@ func (x *DeleteDesignationResponse) String() string {
 func (*DeleteDesignationResponse) ProtoMessage() {}
 
 func (x *DeleteDesignationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_designation_proto_msgTypes[7]
+	mi := &file_api_proto_designation_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -460,7 +460,7 @@ func (x *DeleteDesignationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteDesignationResponse.ProtoReflect.Descriptor instead.
 func (*DeleteDesignationResponse) Descriptor() ([]byte, []int) {
-	return file_designation_proto_rawDescGZIP(), []int{7}
+	return file_api_proto_designation_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *DeleteDesignationResponse) GetSuccess() bool {
@@ -488,7 +488,7 @@ type ListDesignationsRequest struct {
 
 func (x *ListDesignationsRequest) Reset() {
 	*x = ListDesignationsRequest{}
-	mi := &file_designation_proto_msgTypes[8]
+	mi := &file_api_proto_designation_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -500,7 +500,7 @@ func (x *ListDesignationsRequest) String() string {
 func (*ListDesignationsRequest) ProtoMessage() {}
 
 func (x *ListDesignationsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_designation_proto_msgTypes[8]
+	mi := &file_api_proto_designation_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -513,7 +513,7 @@ func (x *ListDesignationsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDesignationsRequest.ProtoReflect.Descriptor instead.
 func (*ListDesignationsRequest) Descriptor() ([]byte, []int) {
-	return file_designation_proto_rawDescGZIP(), []int{8}
+	return file_api_proto_designation_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ListDesignationsRequest) GetPage() int32 {
@@ -540,7 +540,7 @@ type ListDesignationsResponse struct {
 
 func (x *ListDesignationsResponse) Reset() {
 	*x = ListDesignationsResponse{}
-	mi := &file_designation_proto_msgTypes[9]
+	mi := &file_api_proto_designation_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -552,7 +552,7 @@ func (x *ListDesignationsResponse) String() string {
 func (*ListDesignationsResponse) ProtoMessage() {}
 
 func (x *ListDesignationsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_designation_proto_msgTypes[9]
+	mi := &file_api_proto_designation_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -565,7 +565,7 @@ func (x *ListDesignationsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDesignationsResponse.ProtoReflect.Descriptor instead.
 func (*ListDesignationsResponse) Descriptor() ([]byte, []int) {
-	return file_designation_proto_rawDescGZIP(), []int{9}
+	return file_api_proto_designation_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ListDesignationsResponse) GetDesignations() []*Designation {
@@ -582,11 +582,11 @@ func (x *ListDesignationsResponse) GetPagination() *PaginationMetadata {
 	return nil
 }
 
-var File_designation_proto protoreflect.FileDescriptor
+var File_api_proto_designation_proto protoreflect.FileDescriptor
 
-const file_designation_proto_rawDesc = "" +
+const file_api_proto_designation_proto_rawDesc = "" +
 	"\n" +
-	"\x11designation.proto\x12\fdesignations\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/api/annotations.proto\"\xc9\x01\n" +
+	"\x1bapi/proto/designation.proto\x12\fdesignations\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/api/annotations.proto\"\xc9\x01\n" +
 	"\vDesignation\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
@@ -635,19 +635,19 @@ const file_designation_proto_rawDesc = "" +
 	"\x10ListDesignations\x12%.designations.ListDesignationsRequest\x1a&.designations.ListDesignationsResponse\"\x1c\x82\xd3\xe4\x93\x02\x16\x12\x14/api/v1/designationsBGZEgithub.com/ShristiRnr/NHIT_Backend/api/pb/designationpb;designationpbb\x06proto3"
 
 var (
-	file_designation_proto_rawDescOnce sync.Once
-	file_designation_proto_rawDescData []byte
+	file_api_proto_designation_proto_rawDescOnce sync.Once
+	file_api_proto_designation_proto_rawDescData []byte
 )
 
-func file_designation_proto_rawDescGZIP() []byte {
-	file_designation_proto_rawDescOnce.Do(func() {
-		file_designation_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_designation_proto_rawDesc), len(file_designation_proto_rawDesc)))
+func file_api_proto_designation_proto_rawDescGZIP() []byte {
+	file_api_proto_designation_proto_rawDescOnce.Do(func() {
+		file_api_proto_designation_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_api_proto_designation_proto_rawDesc), len(file_api_proto_designation_proto_rawDesc)))
 	})
-	return file_designation_proto_rawDescData
+	return file_api_proto_designation_proto_rawDescData
 }
 
-var file_designation_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
-var file_designation_proto_goTypes = []any{
+var file_api_proto_designation_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_api_proto_designation_proto_goTypes = []any{
 	(*Designation)(nil),               // 0: designations.Designation
 	(*CreateDesignationRequest)(nil),  // 1: designations.CreateDesignationRequest
 	(*DesignationResponse)(nil),       // 2: designations.DesignationResponse
@@ -660,7 +660,7 @@ var file_designation_proto_goTypes = []any{
 	(*ListDesignationsResponse)(nil),  // 9: designations.ListDesignationsResponse
 	(*timestamppb.Timestamp)(nil),     // 10: google.protobuf.Timestamp
 }
-var file_designation_proto_depIdxs = []int32{
+var file_api_proto_designation_proto_depIdxs = []int32{
 	10, // 0: designations.Designation.created_at:type_name -> google.protobuf.Timestamp
 	10, // 1: designations.Designation.updated_at:type_name -> google.protobuf.Timestamp
 	0,  // 2: designations.DesignationResponse.designation:type_name -> designations.Designation
@@ -683,26 +683,26 @@ var file_designation_proto_depIdxs = []int32{
 	0,  // [0:5] is the sub-list for field type_name
 }
 
-func init() { file_designation_proto_init() }
-func file_designation_proto_init() {
-	if File_designation_proto != nil {
+func init() { file_api_proto_designation_proto_init() }
+func file_api_proto_designation_proto_init() {
+	if File_api_proto_designation_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_designation_proto_rawDesc), len(file_designation_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_designation_proto_rawDesc), len(file_api_proto_designation_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_designation_proto_goTypes,
-		DependencyIndexes: file_designation_proto_depIdxs,
-		MessageInfos:      file_designation_proto_msgTypes,
+		GoTypes:           file_api_proto_designation_proto_goTypes,
+		DependencyIndexes: file_api_proto_designation_proto_depIdxs,
+		MessageInfos:      file_api_proto_designation_proto_msgTypes,
 	}.Build()
-	File_designation_proto = out.File
-	file_designation_proto_goTypes = nil
-	file_designation_proto_depIdxs = nil
+	File_api_proto_designation_proto = out.File
+	file_api_proto_designation_proto_goTypes = nil
+	file_api_proto_designation_proto_depIdxs = nil
 }

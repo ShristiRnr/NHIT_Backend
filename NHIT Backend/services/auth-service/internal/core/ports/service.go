@@ -18,6 +18,10 @@ type AuthService interface {
 	ValidateToken(ctx context.Context, token string) (*domain.TokenValidation, error)
 	SwitchOrganization(ctx context.Context, userID uuid.UUID, newOrgID uuid.UUID, tenantID uuid.UUID) (*domain.LoginResponse, error)
 
+	// SSO
+	InitiateSSO(ctx context.Context, provider string) (string, error)
+	CompleteSSO(ctx context.Context, provider, code string) (*domain.LoginResponse, error)
+
 	// Email Verification
 	SendVerificationEmail(ctx context.Context, userID uuid.UUID) error
 	VerifyEmail(ctx context.Context, userID uuid.UUID, token string) error
@@ -28,7 +32,9 @@ type AuthService interface {
 
 	// Password Reset - OTP based
 	ForgotPasswordWithOTP(ctx context.Context, email string, tenantID uuid.UUID) error
+	ForgotPasswordWithOTPByEmail(ctx context.Context, email string) error  // Fetches tenant_id from email
 	VerifyOTPAndResetPassword(ctx context.Context, email, otp, newPassword string, tenantID uuid.UUID) error
+	VerifyOTPAndResetPasswordByEmail(ctx context.Context, email, otp, newPassword string) error // Fetches tenant_id from email
 
 	// Session Management
 	InvalidateAllSessions(ctx context.Context, userID uuid.UUID) error

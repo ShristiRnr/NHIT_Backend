@@ -58,6 +58,8 @@ type UserRepository interface {
 	UpdateLastLogout(ctx context.Context, userID uuid.UUID) error
 	VerifyEmail(ctx context.Context, userID uuid.UUID) error
 	Delete(ctx context.Context, userID uuid.UUID) error
+	UpdateTenantPassword(ctx context.Context, email string, hashedPassword string) error
+	UpdateOrganizationSuperAdminPassword(ctx context.Context, email string, hashedPassword string) error
 }
 
 // UserData represents user data needed for authentication
@@ -68,6 +70,7 @@ type UserData struct {
 	Name            string
 	Password        string
 	EmailVerifiedAt *time.Time
+	IsActive        bool
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 }

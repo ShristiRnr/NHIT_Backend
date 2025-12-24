@@ -174,9 +174,18 @@ func (h *DepartmentHandler) ListDepartments(ctx context.Context, req *department
 		protoDepts[i] = domainToProto(dept)
 	}
 
+	// Calculate total pages
+	totalPages := (total + int32(pageSize) - 1) / int32(pageSize)
+
 	return &departmentpb.ListDepartmentsResponse{
 		Departments: protoDepts,
 		TotalCount:  total,
+		Pagination: &departmentpb.PaginationMetadata{
+			CurrentPage: int32(page),
+			PageSize:    int32(pageSize),
+			TotalItems:  total,
+			TotalPages:  totalPages,
+		},
 	}, nil
 }
 

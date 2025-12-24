@@ -137,6 +137,14 @@ service VendorService {
       get: "/api/v1/vendors/dropdowns/projects"
     };
   }
+
+  // Upload Vendor Signature
+  rpc UploadVendorSignature(UploadVendorSignatureRequest) returns (UploadVendorSignatureResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/vendors/{vendor_id}/signature"
+      body: "*"
+    };
+  }
 }
 
 // Messages
@@ -155,9 +163,6 @@ message Vendor {
   optional string gstin = 12;
   string pan = 13;
   optional string pin = 14;
-  optional string country_id = 15;
-  optional string state_id = 16;
-  optional string city_id = 17;
   optional string country_name = 18;
   optional string state_name = 19;
   optional string city_name = 20;
@@ -190,7 +195,8 @@ message Vendor {
   optional string account_number = 45;
   optional string name_of_bank = 46;
   optional string ifsc_code = 47;
-  optional string ifsc_code_id = 48;
+  optional string address = 48;
+  optional string signature_url = 49;
 }
 
 message VendorAccount {
@@ -236,9 +242,6 @@ message CreateVendorRequest {
   optional string gstin = 10;
   string pan = 11;
   optional string pin = 12;
-  optional string country_id = 13 [json_name = "country_id"];
-  optional string state_id = 14 [json_name = "state_id"];
-  optional string city_id = 15 [json_name = "city_id"];
   optional string country_name = 16 [json_name = "country_name"];
   optional string state_name = 17 [json_name = "state_name"];
   optional string city_name = 18 [json_name = "city_name"];
@@ -263,11 +266,10 @@ message CreateVendorRequest {
   repeated string file_paths = 37 [json_name = "file_paths"];
   string created_by = 38 [json_name = "created_by"];
   
-  // Banking details (for creating primary account)
   optional string account_number = 39 [json_name = "account_number"];
   optional string name_of_bank = 40 [json_name = "name_of_bank"];
   optional string ifsc_code = 41 [json_name = "ifsc_code"];
-  optional string ifsc_code_id = 42 [json_name = "ifsc_code_id"];
+  optional string address = 42 [json_name = "address"];
 }
 
 message GetVendorRequest {
@@ -286,7 +288,7 @@ message UpdateVendorRequest {
   optional string vendor_name = 3;
   optional string vendor_email = 4;
   optional string vendor_mobile = 5;
-  optional string vendor_type = 6;
+  optional string account_type = 6;
   optional string vendor_nick_name = 7;
   optional string activity_type = 8;
   optional string email = 9;
@@ -294,32 +296,30 @@ message UpdateVendorRequest {
   optional string gstin = 11;
   optional string pan = 12;
   optional string pin = 13;
-  optional string country_id = 14;
-  optional string state_id = 15;
-  optional string city_id = 16;
-  optional string country_name = 17;
-  optional string state_name = 18;
-  optional string city_name = 19;
-  optional string msme_classification = 20;
-  optional string msme = 21;
-  optional string msme_registration_number = 22;
-  optional string msme_start_date = 23;
-  optional string msme_end_date = 24;
-  optional string material_nature = 25;
-  optional string gst_defaulted = 26;
-  optional string section_206ab_verified = 27;
-  optional string beneficiary_name = 28;
-  optional string remarks_address = 29;
-  optional string common_bank_details = 30;
-  optional string income_tax_type = 31;
-  optional string project = 32;
-  optional string status = 33;
-  optional string from_account_type = 34;
-  optional string account_name = 35;
-  optional string short_name = 36;
-  optional string parent = 37;
-  repeated string file_paths = 38;
-  optional bool is_active = 39;
+  optional string country_name = 14;
+  optional string state_name = 15;
+  optional string city_name = 16;
+  optional string msme_classification = 17;
+  optional string msme = 18;
+  optional string msme_registration_number = 19;
+  optional string msme_start_date = 20;
+  optional string msme_end_date = 21;
+  optional string material_nature = 22;
+  optional string gst_defaulted = 23;
+  optional string section_206ab_verified = 24;
+  optional string beneficiary_name = 25;
+  optional string remarks_address = 26;
+  optional string common_bank_details = 27;
+  optional string income_tax_type = 28;
+  optional string project = 29;
+  optional string status = 30;
+  optional string from_account_type = 31;
+  optional string account_name = 32;
+  optional string short_name = 33;
+  optional string parent = 34;
+  repeated string file_paths = 35;
+  optional bool is_active = 36;
+  optional string address = 37;
   string updated_by = 40;
 }
 
@@ -338,6 +338,15 @@ message ListVendorsRequest {
   int32 offset = 7;
   optional string sort_by = 8;
   optional string sort_order = 9;
+  int32 page = 10;
+  int32 page_size = 11;
+}
+
+message PaginationMetadata {
+  int32 current_page = 1;
+  int32 page_size = 2;
+  int64 total_items = 3;
+  int32 total_pages = 4;
 }
 
 message GenerateVendorCodeRequest {
@@ -410,6 +419,7 @@ message VendorResponse {
 message ListVendorsResponse {
   repeated Vendor vendors = 1;
   int64 total_count = 2;
+  PaginationMetadata pagination = 3;
 }
 
 message GenerateVendorCodeResponse {
@@ -450,4 +460,23 @@ message ProjectDropdownItem {
 
 message GetProjectsDropdownResponse {
   repeated ProjectDropdownItem projects = 1;
+}
+
+// ====================
+// Vendor Signature Upload Messages
+// ====================
+message UploadVendorSignatureRequest {
+  string vendor_id = 1;
+  bytes file_content = 2;
+}
+
+message UploadVendorSignatureResponse {
+  bool success = 1;
+  string message = 2;
+  string vendor_id = 3;
+  string signature_url = 4;
+  string file_name = 5;
+  string mime_type = 6;
+  int64 file_size = 7;
+  google.protobuf.Timestamp uploaded_at = 8;
 }

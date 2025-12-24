@@ -54,10 +54,10 @@ func (s *designationService) DeleteDesignation(ctx context.Context, id uuid.UUID
 	return s.repo.Delete(ctx, id)
 }
 
-func (s *designationService) ListDesignations(ctx context.Context, orgID *uuid.UUID,page, pageSize int32) ([]*domain.Designation, error) {
-    list, err := s.repo.List(ctx, orgID,page, pageSize)
-    if err != nil {
-        return nil, err
-    }
-    return list, nil
+func (s *designationService) ListDesignations(ctx context.Context, orgID *uuid.UUID, page, pageSize int32) ([]*domain.Designation, int64, error) {
+	list, total, err := s.repo.List(ctx, orgID, page, pageSize)
+	if err != nil {
+		return nil, 0, err
+	}
+	return list, total, nil
 }

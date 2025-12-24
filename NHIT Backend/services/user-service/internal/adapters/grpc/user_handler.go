@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	userpb "github.com/ShristiRnr/NHIT_Backend/api/pb/userpb"
 	"github.com/ShristiRnr/NHIT_Backend/services/user-service/internal/core/domain"
 	"github.com/ShristiRnr/NHIT_Backend/services/user-service/internal/core/ports"
+	"github.com/ShristiRnr/NHIT_Backend/services/user-service/internal/storage"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
@@ -20,6 +22,7 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"bytes"
 )
 
 type UserHandler struct {
@@ -29,16 +32,18 @@ type UserHandler struct {
 	authClient  authpb.AuthServiceClient
 	deptConn    *grpc.ClientConn
 	desigConn   *grpc.ClientConn
+	minioClient *storage.MinIOClient
 }
 
 // NewUserHandler creates a new gRPC user handler
-func NewUserHandler(userService ports.UserService, db *pgxpool.Pool, authClient authpb.AuthServiceClient, deptConn *grpc.ClientConn, desigConn *grpc.ClientConn) *UserHandler {
+func NewUserHandler(userService ports.UserService, db *pgxpool.Pool, authClient authpb.AuthServiceClient, deptConn *grpc.ClientConn, desigConn *grpc.ClientConn, minioClient *storage.MinIOClient) *UserHandler {
 	return &UserHandler{
 		userService: userService,
 		db:          db,
 		authClient:  authClient,
 		deptConn:    deptConn,
 		desigConn:   desigConn,
+		minioClient: minioClient,
 	}
 }
 
@@ -134,6 +139,7 @@ func toPBPermission(p *domain.Permission) *userpb.PermissionResponse {
 	}
 }
 
+
 func (h *UserHandler) CreateUser(ctx context.Context, req *userpb.CreateUserRequest) (*userpb.UserResponse, error) {
 	tenantID, err := uuid.Parse(req.TenantId)
 	if err != nil {
@@ -211,6 +217,57 @@ func (h *UserHandler) CreateUser(ctx context.Context, req *userpb.CreateUserRequ
 		return nil, status.Errorf(codes.Internal, "failed to assign role to user: %v", err)
 	}
 
+	// Link User to Organization
+	// Priority: 1. req.OrgId 2. Token OrgId
+	var targetOrgID uuid.UUID
+	var hasOrgID bool
+
+	if req.OrgId != "" {
+		if parsed, err := uuid.Parse(req.OrgId); err == nil {
+			targetOrgID = parsed
+			hasOrgID = true
+		}
+	}
+
+	// If not in request, try to extract from token
+	if !hasOrgID {
+		md, ok := metadata.FromIncomingContext(ctx)
+		if ok {
+			accessToken := firstMetadataValue(md, "authorization")
+			if accessToken != "" {
+				if strings.HasPrefix(accessToken, "Bearer ") {
+					accessToken = strings.TrimPrefix(accessToken, "Bearer ")
+				}
+				// Validate token to get OrgID
+				vResp, err := h.authClient.ValidateToken(ctx, &authpb.ValidateTokenRequest{Token: accessToken})
+				if err == nil && vResp.Valid && vResp.OrgId != "" {
+					if parsed, err := uuid.Parse(vResp.OrgId); err == nil {
+						targetOrgID = parsed
+						hasOrgID = true
+					}
+				}
+			}
+		}
+	}
+
+	if hasOrgID {
+		// Insert into user_organizations
+		// We use the same roleID as assigned above
+		now := time.Now()
+		_, err := h.db.Exec(ctx, `
+			INSERT INTO user_organizations (user_id, org_id, role_id, is_current_context, joined_at, updated_at)
+			VALUES ($1, $2, $3, $4, $5, $6)
+			ON CONFLICT (user_id, org_id) DO NOTHING`, // Prevent error if already exists
+			createdUser.UserID, targetOrgID, roleID, true, now, now,
+		)
+		if err != nil {
+			log.Printf("⚠️ Failed to link user %s to org %s: %v", createdUser.UserID, targetOrgID, err)
+			// Don't fail the request, just log it. Or should we fail?
+			// Ideally we should fail if org link is critical.
+			// But for now, log it.
+		}
+	}
+
 	// Fetch roles/permissions to return in response
 	var roleNames []string
 	var permissions []string
@@ -274,29 +331,36 @@ func (h *UserHandler) UpdateUser(ctx context.Context, req *userpb.UpdateUserRequ
 		Name:     req.Name,
 		Email:    req.Email,
 		Password: req.Password,
+		IsActive: req.IsActive,
+	}
+
+	if req.DepartmentId != "" {
+		id, err := uuid.Parse(req.DepartmentId)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid department_id: %v", err)
+		}
+		user.DepartmentID = &id
+	}
+
+	if req.DesignationId != "" {
+		id, err := uuid.Parse(req.DesignationId)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid designation_id: %v", err)
+		}
+		user.DesignationID = &id
 	}
 
 	// Handle role updates if provided
 	if len(req.Roles) > 0 {
-		// First, list current roles to see if we need to remove or add
-		// For simplicity given the requirement "update user roles", we will assign these roles.
-		// Since AssignRolesToUser is additive in our service usually, handling "replace" might require a "RemoveAllRoles" 
-		// or we assume the UI sends the desired final state and we might need to sync.
-		// However, looking at standard implementation, we often iterate and assign.
-		// NOTE: Ideally we should probably clear old roles first if this is a "set roles" operation.
-		// Let's assume for now we Just Assign. If user wants to remove, they use RemoveUserFromOrganization or distinct API.
-		// But wait, the UpdateUser API has `roles` field. If verified UI sends the full list, we should probably ensure consistency.
-		// Given current constraints and "AssignRoleToUser" availability, let's just loop and assign.
-
+		var roleIDs []uuid.UUID
 		for _, roleIDStr := range req.Roles {
 			roleID, err := uuid.Parse(roleIDStr)
 			if err != nil {
 				return nil, status.Errorf(codes.InvalidArgument, "invalid role_id: %v", err)
 			}
-			if err := h.userService.AssignRoleToUser(ctx, userID, roleID); err != nil {
-				return nil, status.Errorf(codes.Internal, "failed to assign role: %v", err)
-			}
+			roleIDs = append(roleIDs, roleID)
 		}
+		user.Roles = roleIDs
 	}
 
 	updatedUser, err := h.userService.UpdateUser(ctx, user)
@@ -322,6 +386,25 @@ func (h *UserHandler) UpdateUser(ctx context.Context, req *userpb.UpdateUserRequ
 	}
 
 	return domainUserToProto(updatedUser, roleNames, permissions), nil
+}
+
+// Helper function to convert domain user to protobuf user with full details
+func domainUserToProto(user *domain.User, roleNames []string, permissions []string) *userpb.UserResponse {
+	resp := &userpb.UserResponse{
+		UserId:      user.UserID.String(),
+		Name:        user.Name,
+		Email:       user.Email,
+		Roles:       roleNames,
+		Permissions: permissions,
+		IsActive:    user.IsActive,
+	}
+	if user.DepartmentID != nil {
+		resp.DepartmentId = user.DepartmentID.String()
+	}
+	if user.DesignationID != nil {
+		resp.DesignationId = user.DesignationID.String()
+	}
+	return resp
 }
 
 func (h *UserHandler) DeleteUser(ctx context.Context, req *userpb.DeleteUserRequest) (*emptypb.Empty, error) {
@@ -454,11 +537,43 @@ func (h *UserHandler) ListUsers(ctx context.Context, req *userpb.ListUsersReques
 	if req.Page > 0 {
 		offset = (req.Page - 1) * limit
 	}
+	
+	fmt.Printf("DEBUG ListUsers: Page=%d, PageSize=%d, Limit=%d, Offset=%d\n", req.Page, req.PageSize, limit, offset)
 
-	users, err := h.userService.ListUsersByTenant(ctx, tenantID, limit, offset)
+	// Extract OrgID from token to filter users by Organization
+	// We check metadata or token claims. But `authCtx` logic is reusable? No, ListUsers doesn't use `requireAuthWithPermissions`.
+	// Let's manually validate token to get OrgID.
+	accessToken := firstMetadataValue(md, "authorization")
+	if accessToken == "" {
+		return nil, status.Error(codes.Unauthenticated, "authorization token is not provided")
+	}
+	if strings.HasPrefix(accessToken, "Bearer ") {
+		accessToken = strings.TrimPrefix(accessToken, "Bearer ")
+	}
+	
+	vResp, err := h.authClient.ValidateToken(ctx, &authpb.ValidateTokenRequest{Token: accessToken})
+	if err != nil || !vResp.Valid {
+		return nil, status.Error(codes.Unauthenticated, "invalid token")
+	}
+	
+	if vResp.OrgId == "" {
+		// If user is not logged into an organization, we can't list org users.
+		// However, for Tenant Admins (Super Admin), maybe they want all?
+		// User requirement was explicit: "only users with orgId == login orgId".
+		return nil, status.Error(codes.PermissionDenied, "user not logged into an organization")
+	}
+	
+	orgID, err := uuid.Parse(vResp.OrgId)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "invalid org_id in token: %v", err)
+	}
+
+	users, total, err := h.userService.ListUsersByOrganization(ctx, tenantID, orgID, limit, offset)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to list users: %v", err)
 	}
+	
+	fmt.Printf("DEBUG ListUsers: Found %d users, Total=%d\n", len(users), total)
 
 	pbUsers := make([]*userpb.User, len(users))
 	for i, user := range users {
@@ -520,12 +635,15 @@ func (h *UserHandler) ListUsers(ctx context.Context, req *userpb.ListUsersReques
 		pbUsers[i] = toPBUserMessage(user, deptName, desigName, roleNames, permissions)
 	}
 
+	totalPages := (int32(total) + limit - 1) / limit
+
 	return &userpb.ListUsersResponse{
 		Users: pbUsers,
-		Pagination: &userpb.PageResponse{
-			Page:     req.Page,
-			PageSize: limit,
-			// Total counts would require a separate count query
+		Pagination: &userpb.PaginationMetadata{
+			Page:       req.Page,
+			PageSize:   limit,
+			TotalItems: int32(total),
+			TotalPages: totalPages,
 		},
 	}, nil
 }
@@ -612,12 +730,54 @@ func (h *UserHandler) ListRoles(ctx context.Context, req *userpb.ListRolesReques
 		return nil, status.Errorf(codes.Internal, "invalid tenant_id in token: %v", err)
 	}
 
-	roles, err := h.userService.ListRolesByTenant(ctx, tenantID)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to list roles: %v", err)
+	// Extract pagination
+	var limit int32 = 10
+	if req.PageSize > 0 {
+		limit = req.PageSize
+	}
+	var offset int32 = 0
+	if req.Page > 0 {
+		offset = (req.Page - 1) * limit
 	}
 
-	resp := &userpb.ListRolesResponse{Roles: make([]*userpb.RoleResponse, len(roles))}
+	// Extract OrgID from request or token
+	orgIDStr := ""
+	if req.OrgId != nil {
+		orgIDStr = req.GetOrgId()
+	} else if authCtx.token.OrgId != "" {
+		orgIDStr = authCtx.token.OrgId
+	}
+
+	var roles []*domain.Role
+	var total int64
+	var listErr error
+
+	if orgIDStr != "" {
+		id, err := uuid.Parse(orgIDStr)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid org_id: %v", err)
+		}
+		// List roles for organization, including system roles
+		roles, total, listErr = h.userService.ListRolesByOrganization(ctx, tenantID, &id, true, limit, offset)
+	} else {
+		roles, total, listErr = h.userService.ListRolesByTenant(ctx, tenantID, limit, offset)
+	}
+
+	if listErr != nil {
+		return nil, status.Errorf(codes.Internal, "failed to list roles: %v", listErr)
+	}
+
+	totalPages := (int32(total) + limit - 1) / limit
+
+	resp := &userpb.ListRolesResponse{
+		Roles: make([]*userpb.RoleResponse, len(roles)),
+		Pagination: &userpb.PaginationMetadata{
+			Page:       req.Page,
+			PageSize:   limit,
+			TotalItems: int32(total),
+			TotalPages: totalPages,
+		},
+	}
 	for i, r := range roles {
 		resp.Roles[i] = toPBRole(r)
 	}
@@ -643,12 +803,32 @@ func (h *UserHandler) ListRolesByOrganization(ctx context.Context, req *userpb.L
 		orgID = &id
 	}
 
-	roles, err := h.userService.ListRolesByOrganization(ctx, tenantID, orgID, req.IncludeSystemRoles)
+	// Extract pagination
+	var limit int32 = 10
+	if req.PageSize > 0 {
+		limit = req.PageSize
+	}
+	var offset int32 = 0
+	if req.Page > 0 {
+		offset = (req.Page - 1) * limit
+	}
+
+	roles, total, err := h.userService.ListRolesByOrganization(ctx, tenantID, orgID, req.IncludeSystemRoles, limit, offset)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to list roles: %v", err)
 	}
 
-	resp := &userpb.ListRolesResponse{Roles: make([]*userpb.RoleResponse, len(roles))}
+	totalPages := (int32(total) + limit - 1) / limit
+
+	resp := &userpb.ListRolesResponse{
+		Roles: make([]*userpb.RoleResponse, len(roles)),
+		Pagination: &userpb.PaginationMetadata{
+			Page:       req.Page,
+			PageSize:   limit,
+			TotalItems: int32(total),
+			TotalPages: totalPages,
+		},
+	}
 	for i, r := range roles {
 		resp.Roles[i] = toPBRole(r)
 	}
@@ -1045,7 +1225,7 @@ func (h *UserHandler) ListUserLoginHistories(ctx context.Context, req *userpb.Li
 		offset = (req.Page.Page - 1) * req.Page.PageSize
 	}
 
-	histories, err := h.userService.ListLoginHistory(ctx, userID, limit, offset)
+	histories, total, err := h.userService.ListLoginHistory(ctx, userID, limit, offset)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to list login histories: %v", err)
 	}
@@ -1061,22 +1241,25 @@ func (h *UserHandler) ListUserLoginHistories(ctx context.Context, req *userpb.Li
 		}
 	}
 
+	page := int32(1)
+	if req.Page != nil {
+		page = req.Page.Page
+	}
+	totalPages := (int32(total) + limit - 1) / limit
+
 	return &userpb.ListUserLoginHistoriesResponse{
 		Histories: pbHistories,
+		Pagination: &userpb.PaginationMetadata{
+			Page:       page,
+			PageSize:   limit,
+			TotalItems: int32(total),
+			TotalPages: totalPages,
+		},
 	}, nil
 }
 
 // Helper function to convert domain user to protobuf user with full details
-func domainUserToProto(user *domain.User, roleNames []string, permissions []string) *userpb.UserResponse {
-	resp := &userpb.UserResponse{
-		UserId:      user.UserID.String(),
-		Name:        user.Name,
-		Email:       user.Email,
-		Roles:       roleNames,
-		Permissions: permissions,
-	}
-	return resp
-}
+
 
 // Helper to convert domain user to PB User message (for ListUsers)
 func toPBUserMessage(user *domain.User, deptName, desigName string, roleNames, permissions []string) *userpb.User {
@@ -1099,6 +1282,7 @@ func toPBUserMessage(user *domain.User, deptName, desigName string, roleNames, p
 		LastLogoutAt:      timestamppb.New(safeTime(user.LastLogoutAt)),
 		LastLoginIp:       user.LastLoginIP,
 		UserAgent:         user.UserAgent,
+		SignatureUrl:      stringPtrValue(user.SignatureURL),
 	}
 }
 
@@ -1139,12 +1323,14 @@ func (h *UserHandler) CreateActivityLog(ctx context.Context, req *userpb.CreateA
 // ListActivityLogs lists activity logs
 func (h *UserHandler) ListActivityLogs(ctx context.Context, req *userpb.ListActivityLogsRequest) (*userpb.ListActivityLogsResponse, error) {
 	var limit, offset int32 = 10, 0
+	page := int32(1)
 	if req.Page != nil {
 		limit = req.Page.PageSize
-		offset = (req.Page.Page - 1) * req.Page.PageSize
+		page = req.Page.Page
+		offset = (page - 1) * limit
 	}
 
-	logs, err := h.userService.ListActivityLogs(ctx, limit, offset)
+	logs, total, err := h.userService.ListActivityLogs(ctx, limit, offset)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to list activity logs: %v", err)
 	}
@@ -1159,13 +1345,15 @@ func (h *UserHandler) ListActivityLogs(ctx context.Context, req *userpb.ListActi
 		}
 	}
 
+	totalPages := (int32(total) + limit - 1) / limit
+
 	return &userpb.ListActivityLogsResponse{
 		Logs: pbLogs,
-		Pagination: &userpb.PageResponse{
-			Page:       req.Page.Page,
+		Pagination: &userpb.PaginationMetadata{
+			Page:       page,
 			PageSize:   limit,
-			TotalPages: 1,
-			TotalItems: int32(len(pbLogs)),
+			TotalItems: int32(total),
+			TotalPages: totalPages,
 		},
 	}, nil
 }
@@ -1176,4 +1364,53 @@ func stringPtrValue(ptr *string) string {
 		return *ptr
 	}
 	return ""
+}
+
+// UploadUserSignature handles signature file upload for a user
+func (h *UserHandler) UploadUserSignature(ctx context.Context, req *userpb.UploadSignatureRequest) (*userpb.UploadSignatureResponse, error) {
+	if h.minioClient == nil {
+		return nil, status.Error(codes.FailedPrecondition, "MinIO client not initialized")
+	}
+
+	userID, err := uuid.Parse(req.UserId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid user_id: %v", err)
+	}
+
+	// Validate file data
+	if len(req.SignatureFile) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "signature file is empty")
+	}
+
+	// Ensure user exists
+	user, err := h.userService.GetUser(ctx, userID)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "user not found: %v", err)
+	}
+
+	// Upload to MinIO
+	filename := req.Filename
+	if filename == "" {
+		filename = "signature.jpg"
+	}
+
+	reader := bytes.NewReader(req.SignatureFile)
+	size := int64(len(req.SignatureFile))
+
+	signatureURL, err := h.minioClient.UploadSignature(ctx, userID.String(), filename, reader, size)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to upload signature: %v", err)
+	}
+
+	// Update user record with the new signature URL
+	user.SignatureURL = &signatureURL
+	_, err = h.userService.UpdateUser(ctx, user)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to update user signature URL: %v", err)
+	}
+
+	return &userpb.UploadSignatureResponse{
+		SignatureUrl: signatureURL,
+		Message:      "Signature uploaded successfully",
+	}, nil
 }

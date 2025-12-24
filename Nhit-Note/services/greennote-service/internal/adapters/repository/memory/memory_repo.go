@@ -34,7 +34,7 @@ func NewInMemoryGreenNoteRepository(_ ports.DocumentStorage) ports.GreenNoteRepo
 	}
 }
 
-func (r *Repository) List(ctx context.Context, req *greennotepb.ListGreenNotesRequest) (*greennotepb.ListGreenNotesResponse, error) {
+func (r *Repository) List(ctx context.Context, req *greennotepb.ListGreenNotesRequest, orgID, tenantID string) (*greennotepb.ListGreenNotesResponse, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	_ = ctx
@@ -46,8 +46,13 @@ func (r *Repository) List(ctx context.Context, req *greennotepb.ListGreenNotesRe
 
 	var entries []entry
 	for id, rec := range r.notes {
-		if req.GetStatus() != "" && rec.payload.GetStatus() != req.GetStatus() {
-			continue
+		// Use DetailedStatus for string-based filtering if it contains the status value,
+		// otherwise GetStatus() is an enum.
+		// For simplicity in memory repo, we check both.
+		if !req.GetIncludeAll() {
+			if rec.payload.GetStatus() != req.GetStatus() {
+				continue
+			}
 		}
 		entries = append(entries, entry{id: id, rec: rec})
 	}
@@ -93,24 +98,24 @@ func (r *Repository) List(ctx context.Context, req *greennotepb.ListGreenNotesRe
 	}, nil
 }
 
-func (r *Repository) Get(ctx context.Context, id string) (*greennotepb.GreenNotePayload, error) {
+func (r *Repository) Get(ctx context.Context, id string) (*greennotepb.GreenNotePayload, string, string, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	_ = ctx
 
 	rec, ok := r.notes[id]
 	if !ok || rec.payload == nil {
-		return nil, ports.ErrNotFound
+		return nil, "", "", ports.ErrNotFound
 	}
 
 	cloned := proto.Clone(rec.payload)
 	if cloned == nil {
-		return nil, ports.ErrNotFound
+		return nil, "", "", ports.ErrNotFound
 	}
-	return cloned.(*greennotepb.GreenNotePayload), nil
+	return cloned.(*greennotepb.GreenNotePayload), "", "", nil
 }
 
-func (r *Repository) Create(ctx context.Context, payload *greennotepb.GreenNotePayload) (string, error) {
+func (r *Repository) Create(ctx context.Context, payload *greennotepb.GreenNotePayload, orgID, tenantID string) (string, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	_ = ctx
@@ -132,7 +137,7 @@ func (r *Repository) Create(ctx context.Context, payload *greennotepb.GreenNoteP
 	return id, nil
 }
 
-func (r *Repository) Update(ctx context.Context, id string, payload *greennotepb.GreenNotePayload) error {
+func (r *Repository) Update(ctx context.Context, id string, payload *greennotepb.GreenNotePayload, orgID, tenantID string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	_ = ctx
@@ -151,7 +156,7 @@ func (r *Repository) Update(ctx context.Context, id string, payload *greennotepb
 	return nil
 }
 
-func (r *Repository) Cancel(ctx context.Context, id string, reason string) error {
+func (r *Repository) Cancel(ctx context.Context, id string, reason string, orgID, tenantID string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	_ = ctx
@@ -162,7 +167,8 @@ func (r *Repository) Cancel(ctx context.Context, id string, reason string) error
 		return ports.ErrNotFound
 	}
 
-	rec.payload.Status = "cancelled"
+	rec.payload.Status = greennotepb.Status_STATUS_CANCELLED
+	rec.payload.DetailedStatus = "cancelled"
 	rec.updatedAt = time.Now().UTC()
 	return nil
 }

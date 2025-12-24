@@ -12,6 +12,54 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countRolesByOrganizationIncludingSystem = `-- name: CountRolesByOrganizationIncludingSystem :one
+SELECT COUNT(*) FROM roles
+WHERE tenant_id = $1
+  AND (parent_org_id = $2 OR (is_system_role = TRUE AND parent_org_id IS NULL))
+`
+
+type CountRolesByOrganizationIncludingSystemParams struct {
+	TenantID    uuid.UUID     `db:"tenant_id" json:"tenant_id"`
+	ParentOrgID uuid.NullUUID `db:"parent_org_id" json:"parent_org_id"`
+}
+
+func (q *Queries) CountRolesByOrganizationIncludingSystem(ctx context.Context, arg CountRolesByOrganizationIncludingSystemParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countRolesByOrganizationIncludingSystem, arg.TenantID, arg.ParentOrgID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countRolesByTenant = `-- name: CountRolesByTenant :one
+SELECT COUNT(*) FROM roles
+WHERE tenant_id = $1
+`
+
+func (q *Queries) CountRolesByTenant(ctx context.Context, tenantID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countRolesByTenant, tenantID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countRolesByTenantAndOrg = `-- name: CountRolesByTenantAndOrg :one
+SELECT COUNT(*) FROM roles
+WHERE tenant_id = $1
+  AND parent_org_id = $2
+`
+
+type CountRolesByTenantAndOrgParams struct {
+	TenantID    uuid.UUID     `db:"tenant_id" json:"tenant_id"`
+	ParentOrgID uuid.NullUUID `db:"parent_org_id" json:"parent_org_id"`
+}
+
+func (q *Queries) CountRolesByTenantAndOrg(ctx context.Context, arg CountRolesByTenantAndOrgParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countRolesByTenantAndOrg, arg.TenantID, arg.ParentOrgID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createRole = `-- name: CreateRole :one
 INSERT INTO roles (tenant_id, parent_org_id, name, description, permissions, is_system_role, created_by)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -129,15 +177,23 @@ SELECT role_id, tenant_id, parent_org_id, name, description, permissions, is_sys
 WHERE tenant_id = $1
   AND (parent_org_id = $2 OR (is_system_role = TRUE AND parent_org_id IS NULL))
 ORDER BY created_at DESC
+LIMIT $3 OFFSET $4
 `
 
 type ListRolesByOrganizationIncludingSystemParams struct {
 	TenantID    uuid.UUID     `db:"tenant_id" json:"tenant_id"`
 	ParentOrgID uuid.NullUUID `db:"parent_org_id" json:"parent_org_id"`
+	Limit       int32         `db:"limit" json:"limit"`
+	Offset      int32         `db:"offset" json:"offset"`
 }
 
 func (q *Queries) ListRolesByOrganizationIncludingSystem(ctx context.Context, arg ListRolesByOrganizationIncludingSystemParams) ([]*Role, error) {
-	rows, err := q.db.Query(ctx, listRolesByOrganizationIncludingSystem, arg.TenantID, arg.ParentOrgID)
+	rows, err := q.db.Query(ctx, listRolesByOrganizationIncludingSystem,
+		arg.TenantID,
+		arg.ParentOrgID,
+		arg.Limit,
+		arg.Offset,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -171,10 +227,17 @@ const listRolesByTenant = `-- name: ListRolesByTenant :many
 SELECT role_id, tenant_id, parent_org_id, name, description, permissions, is_system_role, created_by, created_at, updated_at FROM roles
 WHERE tenant_id = $1
 ORDER BY created_at DESC
+LIMIT $2 OFFSET $3
 `
 
-func (q *Queries) ListRolesByTenant(ctx context.Context, tenantID uuid.UUID) ([]*Role, error) {
-	rows, err := q.db.Query(ctx, listRolesByTenant, tenantID)
+type ListRolesByTenantParams struct {
+	TenantID uuid.UUID `db:"tenant_id" json:"tenant_id"`
+	Limit    int32     `db:"limit" json:"limit"`
+	Offset   int32     `db:"offset" json:"offset"`
+}
+
+func (q *Queries) ListRolesByTenant(ctx context.Context, arg ListRolesByTenantParams) ([]*Role, error) {
+	rows, err := q.db.Query(ctx, listRolesByTenant, arg.TenantID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -209,15 +272,23 @@ SELECT role_id, tenant_id, parent_org_id, name, description, permissions, is_sys
 WHERE tenant_id = $1
   AND parent_org_id = $2
 ORDER BY created_at DESC
+LIMIT $3 OFFSET $4
 `
 
 type ListRolesByTenantAndOrgParams struct {
 	TenantID    uuid.UUID     `db:"tenant_id" json:"tenant_id"`
 	ParentOrgID uuid.NullUUID `db:"parent_org_id" json:"parent_org_id"`
+	Limit       int32         `db:"limit" json:"limit"`
+	Offset      int32         `db:"offset" json:"offset"`
 }
 
 func (q *Queries) ListRolesByTenantAndOrg(ctx context.Context, arg ListRolesByTenantAndOrgParams) ([]*Role, error) {
-	rows, err := q.db.Query(ctx, listRolesByTenantAndOrg, arg.TenantID, arg.ParentOrgID)
+	rows, err := q.db.Query(ctx, listRolesByTenantAndOrg,
+		arg.TenantID,
+		arg.ParentOrgID,
+		arg.Limit,
+		arg.Offset,
+	)
 	if err != nil {
 		return nil, err
 	}

@@ -10,19 +10,36 @@ WHERE role_id = $1;
 -- name: ListRolesByTenant :many
 SELECT * FROM roles
 WHERE tenant_id = $1
-ORDER BY created_at DESC;
+ORDER BY created_at DESC
+LIMIT $2 OFFSET $3;
+
+-- name: CountRolesByTenant :one
+SELECT COUNT(*) FROM roles
+WHERE tenant_id = $1;
 
 -- name: ListRolesByTenantAndOrg :many
 SELECT * FROM roles
 WHERE tenant_id = $1
   AND parent_org_id = $2
-ORDER BY created_at DESC;
+ORDER BY created_at DESC
+LIMIT $3 OFFSET $4;
+
+-- name: CountRolesByTenantAndOrg :one
+SELECT COUNT(*) FROM roles
+WHERE tenant_id = $1
+  AND parent_org_id = $2;
 
 -- name: ListRolesByOrganizationIncludingSystem :many
 SELECT * FROM roles
 WHERE tenant_id = $1
   AND (parent_org_id = $2 OR (is_system_role = TRUE AND parent_org_id IS NULL))
-ORDER BY created_at DESC;
+ORDER BY created_at DESC
+LIMIT $3 OFFSET $4;
+
+-- name: CountRolesByOrganizationIncludingSystem :one
+SELECT COUNT(*) FROM roles
+WHERE tenant_id = $1
+  AND (parent_org_id = $2 OR (is_system_role = TRUE AND parent_org_id IS NULL));
 
 -- name: UpdateRole :one
 UPDATE roles

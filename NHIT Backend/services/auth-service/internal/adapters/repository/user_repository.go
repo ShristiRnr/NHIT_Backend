@@ -24,7 +24,7 @@ func NewUserRepository(db *pgxpool.Pool) ports.UserRepository {
 
 func (r *userRepository) GetByEmail(ctx context.Context, tenantID uuid.UUID, email string) (*ports.UserData, error) {
 	query := `
-		SELECT user_id, tenant_id, email, name, password, email_verified_at
+		SELECT user_id, tenant_id, email, name, password, email_verified_at, is_active
 		FROM users
 		WHERE tenant_id = $1 AND email = $2
 	`
@@ -37,6 +37,7 @@ func (r *userRepository) GetByEmail(ctx context.Context, tenantID uuid.UUID, ema
 		&user.Name,
 		&user.Password,
 		&user.EmailVerifiedAt,
+		&user.IsActive,
 	)
 
 	if err == pgx.ErrNoRows {
@@ -54,7 +55,7 @@ func (r *userRepository) Create(ctx context.Context, user *ports.UserData) (*por
 	query := `
 		INSERT INTO users (user_id, tenant_id, email, name, password, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
-		RETURNING user_id, tenant_id, email, name, password, email_verified_at, created_at, updated_at
+		RETURNING user_id, tenant_id, email, name, password, email_verified_at, is_active, created_at, updated_at
 	`
 
 	now := time.Now()
@@ -75,6 +76,7 @@ func (r *userRepository) Create(ctx context.Context, user *ports.UserData) (*por
 		&createdUser.Name,
 		&createdUser.Password,
 		&createdUser.EmailVerifiedAt,
+		&createdUser.IsActive,
 		&createdUser.CreatedAt,
 		&createdUser.UpdatedAt,
 	)
@@ -89,7 +91,7 @@ func (r *userRepository) Create(ctx context.Context, user *ports.UserData) (*por
 // GetByEmailGlobal gets user by email across all tenants - for tenant-agnostic login
 func (r *userRepository) GetByEmailGlobal(ctx context.Context, email string) (*ports.UserData, error) {
 	query := `
-		SELECT user_id, tenant_id, email, name, password, email_verified_at
+		SELECT user_id, tenant_id, email, name, password, email_verified_at, is_active
 		FROM users
 		WHERE email = $1
 		LIMIT 1
@@ -103,6 +105,7 @@ func (r *userRepository) GetByEmailGlobal(ctx context.Context, email string) (*p
 		&user.Name,
 		&user.Password,
 		&user.EmailVerifiedAt,
+		&user.IsActive,
 	)
 
 	if err == pgx.ErrNoRows {
@@ -206,7 +209,7 @@ func (r *userRepository) Delete(ctx context.Context, userID uuid.UUID) error {
 
 func (r *userRepository) GetByID(ctx context.Context, userID uuid.UUID) (*ports.UserData, error) {
 	query := `
-		SELECT user_id, tenant_id, email, name, password, email_verified_at
+		SELECT user_id, tenant_id, email, name, password, email_verified_at, is_active
 		FROM users
 		WHERE user_id = $1
 	`
@@ -219,6 +222,7 @@ func (r *userRepository) GetByID(ctx context.Context, userID uuid.UUID) (*ports.
 		&user.Name,
 		&user.Password,
 		&user.EmailVerifiedAt,
+		&user.IsActive,
 	)
 
 	if err == pgx.ErrNoRows {
@@ -229,4 +233,34 @@ func (r *userRepository) GetByID(ctx context.Context, userID uuid.UUID) (*ports.
 	}
 
 	return user, nil
+}
+
+func (r *userRepository) UpdateTenantPassword(ctx context.Context, email string, hashedPassword string) error {
+	query := `
+		UPDATE tenants
+		SET password = $1, updated_at = $2
+		WHERE email = $3
+	`
+
+	_, err := r.db.Exec(ctx, query, hashedPassword, time.Now(), email)
+	if err != nil {
+		return fmt.Errorf("failed to update tenant password: %w", err)
+	}
+
+	return nil
+}
+
+func (r *userRepository) UpdateOrganizationSuperAdminPassword(ctx context.Context, email string, hashedPassword string) error {
+	query := `
+		UPDATE organizations
+		SET super_admin_password = $1, updated_at = $2
+		WHERE super_admin_email = $3
+	`
+
+	_, err := r.db.Exec(ctx, query, hashedPassword, time.Now(), email)
+	if err != nil {
+		return fmt.Errorf("failed to update organization super admin password: %w", err)
+	}
+
+	return nil
 }

@@ -17,6 +17,16 @@ ALTER TABLE vendors
 ALTER TABLE vendors 
   ADD COLUMN msme_classification_new msme_classification_enum;
 
+ALTER TABLE vendors
+  ADD COLUMN IF NOT EXISTS address TEXT,
+  ADD COLUMN IF NOT EXISTS signature_url TEXT;
+
+ALTER TABLE vendors
+  DROP COLUMN IF EXISTS country_id,
+  DROP COLUMN IF EXISTS state_id,
+  DROP COLUMN IF EXISTS city_id,
+  DROP COLUMN IF EXISTS ifsc_code_id;
+
 -- Migrate data from old columns to new columns
 UPDATE vendors 
 SET account_type_new = CASE 

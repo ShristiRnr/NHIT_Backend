@@ -1,6 +1,6 @@
 syntax = "proto3";
 package greennote;
-option go_package = "api/pb;greennote";
+option go_package = "github.com/ShristiRnr/Nhit-Note/api/pb/greennotepb;greennotepb";
 
 import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
@@ -67,6 +67,14 @@ service GreenNoteService {
       get: "/api/v1/organization/departments"
     };
   }
+
+  // Upload GreenNote Documents
+  rpc UploadGreenNoteDocuments (UploadGreenNoteDocumentsRequest) returns (UploadGreenNoteDocumentsResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/green-notes/{note_id}/documents"
+      body: "*"
+    };
+  }
 }
 
 // =======================
@@ -91,9 +99,10 @@ message CancelGreenNoteRequest {
 }
 
 message ListGreenNotesRequest {
-  string status = 1; // approved, pending, reject, draft
+  Status status = 1; 
   int32 page = 2;
   int32 per_page = 3;
+  bool include_all = 4;
 }
 
 // =======================
@@ -105,7 +114,7 @@ message GreenNoteListItem {
   string vendor_name = 3;
   double amount = 4;        // total_amount
   string date = 5;          // formatted created_at
-  string status = 6;        // P, A, R, D
+  Status status = 6;        // P, A, R, D
 }
 
 // =======================
@@ -144,7 +153,7 @@ message GreenNotePayload {
   bool enable_multiple_invoices = 25;
   repeated InvoiceInput invoices = 26;
 
-  string status = 27;
+  Status status = 27;
 
   // Basic information
   ApprovalFor approval_for = 28;
@@ -191,6 +200,7 @@ message GreenNotePayload {
   google.protobuf.Timestamp updated_at = 52;
   repeated SupportingDocumentUpload new_documents = 53;    
   repeated SupportingDocument existing_documents = 54;
+  string detailed_status = 55;
 }
 
 message InvoiceInput {
@@ -230,6 +240,7 @@ enum Status {
   STATUS_PENDING = 1;
   STATUS_REJECTED = 2;
   STATUS_DRAFT = 3;
+  STATUS_CANCELLED = 4;
 }
 
 enum YesNo {
@@ -342,9 +353,34 @@ message GreenNoteDetailResponse {
   GreenNotePayload data = 3;
 }
 
+message PaginationMetadata {
+  int32 current_page = 1;
+  int32 page_size = 2;
+  int64 total_items = 3;
+  int32 total_pages = 4;
+}
+
 message ListGreenNotesResponse {
   repeated GreenNoteListItem notes = 1;
   int32 page = 2;
   int32 per_page = 3;
   int64 total = 4;
+  PaginationMetadata pagination = 5;
+}
+
+// ====================
+// Document Upload Messages
+// ====================
+message UploadGreenNoteDocumentsRequest {
+  string note_id = 1;
+  repeated SupportingDocumentUpload documents = 2;
+}
+
+message UploadGreenNoteDocumentsResponse {
+  bool success = 1;
+  string message = 2;
+  string green_note_id = 3;
+  repeated SupportingDocument uploaded_documents = 4;
+  int32 total_uploaded = 5;
+  int64 total_size = 6;
 }

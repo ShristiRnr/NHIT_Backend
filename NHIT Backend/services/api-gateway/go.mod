@@ -3,7 +3,7 @@ module github.com/ShristiRnr/NHIT_Backend/services/api-gateway
 go 1.24.2
 
 require (
-	github.com/ShristiRnr/NHIT_Backend/api/pb/authpb v0.0.0-00010101000000-000000000000
+	github.com/ShristiRnr/NHIT_Backend/api/pb/authpb v0.0.0
 	github.com/ShristiRnr/NHIT_Backend/api/pb/departmentpb v0.0.0
 	github.com/ShristiRnr/NHIT_Backend/api/pb/designationpb v0.0.0
 	github.com/ShristiRnr/NHIT_Backend/api/pb/organizationpb v0.0.0

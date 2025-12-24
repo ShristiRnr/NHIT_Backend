@@ -158,7 +158,8 @@ CREATE TABLE IF NOT EXISTS departments (
     name VARCHAR(255) NOT NULL UNIQUE,
     description TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    org_id UUID NOT NULL
 );
 
 -- ================================================
@@ -170,13 +171,9 @@ CREATE TABLE IF NOT EXISTS designations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(250) NOT NULL,
     description VARCHAR(500) NOT NULL,
-    slug VARCHAR(100) NOT NULL UNIQUE,
-    is_active BOOLEAN DEFAULT true,
-    parent_id UUID REFERENCES designations(id) ON DELETE SET NULL,
-    level INT DEFAULT 0,
-    user_count INT DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    org_id UUID NOT NULL
 );
 
 -- ================================================
@@ -194,14 +191,9 @@ CREATE TABLE IF NOT EXISTS vendors (
     vendor_type VARCHAR(50),
     vendor_nick_name VARCHAR(255),
     activity_type VARCHAR(255),
-    email VARCHAR(255),
-    mobile VARCHAR(20),
     gstin VARCHAR(50),
     pan VARCHAR(20) NOT NULL,
     pin VARCHAR(20),
-    country_id VARCHAR(50),
-    state_id VARCHAR(50),
-    city_id VARCHAR(50),
     country_name VARCHAR(255),
     state_name VARCHAR(255),
     city_name VARCHAR(255),
@@ -234,7 +226,6 @@ CREATE TABLE IF NOT EXISTS vendors (
     account_number VARCHAR(50),
     name_of_bank VARCHAR(255),
     ifsc_code VARCHAR(20),
-    ifsc_code_id VARCHAR(50),
     
     -- Constraints
     CONSTRAINT vendors_tenant_vendor_code_unique UNIQUE (tenant_id, vendor_code),
@@ -274,12 +265,9 @@ CREATE TABLE IF NOT EXISTS vendor_accounts (
 CREATE TABLE IF NOT EXISTS projects (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    status VARCHAR(50) DEFAULT 'active',
-    start_date DATE,
-    end_date DATE,
-    created_by UUID NOT NULL,
+    org_id UUID NOT NULL,
+    project_name VARCHAR(255) NOT NULL,
+    created_by TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -332,12 +320,8 @@ CREATE INDEX IF NOT EXISTS idx_departments_name ON departments(name);
 CREATE INDEX IF NOT EXISTS idx_departments_created_at ON departments(created_at DESC);
 
 -- Designation indexes
-CREATE UNIQUE INDEX IF NOT EXISTS idx_designations_name_lower ON designations (LOWER(name));
 CREATE INDEX IF NOT EXISTS idx_designations_name ON designations(name);
-CREATE INDEX IF NOT EXISTS idx_designations_slug ON designations(slug);
-CREATE INDEX IF NOT EXISTS idx_designations_parent_id ON designations(parent_id);
-CREATE INDEX IF NOT EXISTS idx_designations_is_active ON designations(is_active);
-CREATE INDEX IF NOT EXISTS idx_designations_level ON designations(level);
+CREATE INDEX IF NOT EXISTS idx_designations_created_at ON designations(created_at DESC);
 
 -- Vendor indexes
 CREATE INDEX IF NOT EXISTS idx_vendors_tenant_id ON vendors(tenant_id);
@@ -356,7 +340,6 @@ CREATE INDEX IF NOT EXISTS idx_vendor_accounts_created_at ON vendor_accounts(cre
 
 -- Project indexes
 CREATE INDEX IF NOT EXISTS idx_projects_tenant_id ON projects(tenant_id);
-CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
 CREATE INDEX IF NOT EXISTS idx_projects_created_by ON projects(created_by);
 CREATE INDEX IF NOT EXISTS idx_projects_created_at ON projects(created_at DESC);
 

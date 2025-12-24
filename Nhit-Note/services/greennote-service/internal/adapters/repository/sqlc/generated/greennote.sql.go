@@ -169,18 +169,18 @@ type CreateGreenNoteParams struct {
 	Gst                               sql.NullString
 	TotalAmount                       sql.NullString
 	EnableMultipleInvoices            bool
-	Status                            NullStatusEnum
-	ApprovalFor                       NullApprovalFor
+	Status                            sql.NullString
+	ApprovalFor                       sql.NullString
 	DepartmentName                    sql.NullString
 	WorkOrderNo                       sql.NullString
 	PoNumber                          sql.NullString
 	WorkOrderDate                     sql.NullString
-	ExpenseCategoryType               NullExpenseCategoryType
+	ExpenseCategoryType               sql.NullString
 	MsmeClassification                sql.NullString
 	ActivityType                      sql.NullString
 	BriefOfGoodsServices              sql.NullString
 	DelayedDamages                    sql.NullString
-	NatureOfExpenses                  NullNatureOfExpenses
+	NatureOfExpenses                  sql.NullString
 	ContractPeriodCompleted           NullYesNoEnum
 	BudgetExpenditure                 sql.NullString
 	ActualExpenditure                 sql.NullString
@@ -494,7 +494,7 @@ type ListGreenNotesRow struct {
 	VendorName  sql.NullString
 	Amount      sql.NullString
 	Date        string
-	Status      NullStatusEnum
+	Status      sql.NullString
 }
 
 func (q *Queries) ListGreenNotes(ctx context.Context, arg ListGreenNotesParams) ([]ListGreenNotesRow, error) {
@@ -684,18 +684,18 @@ type UpdateGreenNoteParams struct {
 	Gst                               sql.NullString
 	TotalAmount                       sql.NullString
 	EnableMultipleInvoices            bool
-	Status                            NullStatusEnum
-	ApprovalFor                       NullApprovalFor
+	Status                            sql.NullString
+	ApprovalFor                       sql.NullString
 	DepartmentName                    sql.NullString
 	WorkOrderNo                       sql.NullString
 	PoNumber                          sql.NullString
 	WorkOrderDate                     sql.NullString
-	ExpenseCategoryType               NullExpenseCategoryType
+	ExpenseCategoryType               sql.NullString
 	MsmeClassification                sql.NullString
 	ActivityType                      sql.NullString
 	BriefOfGoodsServices              sql.NullString
 	DelayedDamages                    sql.NullString
-	NatureOfExpenses                  NullNatureOfExpenses
+	NatureOfExpenses                  sql.NullString
 	ContractPeriodCompleted           NullYesNoEnum
 	BudgetExpenditure                 sql.NullString
 	ActualExpenditure                 sql.NullString
