@@ -93,7 +93,11 @@ d:\Nhit\
 │   │   ├── api-gateway/        # The HTTP Server that routes traffic
 │   │   ├── auth-service/       # Login & Security logic
 │   │   ├── user-service/       # User profiles & Role management
-│   │   ├── ...                 # (Org, Dept, Designation, Project, Vendor)
+│   │   ├── designation-service/   
+|   |   |-- department-service/
+|   |   |-- organization-service/
+|   |   |-- project-service/
+|   |   |-- vendor-service/
 │   ├── pkg/                    # Shared code used by all services (Database connections, Middleware)
 │   ├── api/                    # Protobuf files (.proto) defining the data contracts
 │   └── docker-compose.yml      # Config to run the whole stack locally
