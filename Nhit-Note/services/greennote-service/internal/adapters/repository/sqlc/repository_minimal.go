@@ -49,7 +49,7 @@ func (r *Repository) List(ctx context.Context, req *greennotepb.ListGreenNotesRe
 
 	var total int64
 	fmt.Println("\n========== ListGreenNotes DEBUG START ==========")
-	fmt.Printf("🔍 Request Parameters:\n")
+	fmt.Printf("Request Parameters:\n")
 	fmt.Printf("  - Page: %d\n", page)
 	fmt.Printf("  - PerPage: %d\n", perPage)
 	fmt.Printf("  - Offset: %d\n", offset)
@@ -61,23 +61,23 @@ func (r *Repository) List(ctx context.Context, req *greennotepb.ListGreenNotesRe
 	
 	// Filter by org_id if provided. We assume multi-tenancy is required.
 	countQuery := `SELECT COUNT(*) FROM green_notes WHERE org_id = $1`
-	fmt.Printf("\n🔍 COUNT Query (Status Filter Removed):\n")
+	fmt.Printf("\n COUNT Query (Status Filter Removed):\n")
 	fmt.Printf("  SQL: %s\n", countQuery)
 	fmt.Printf("  Params: [$1='%s']\n", orgID)
 	if err := r.db.QueryRowContext(ctx, countQuery, orgID).Scan(&total); err != nil {
-		fmt.Printf("❌ COUNT Query Error: %v\n", err)
+		fmt.Printf("COUNT Query Error: %v\n", err)
 		return nil, err
 	}
-	fmt.Printf("✅ COUNT Query Result: %d total records\n", total)
+	fmt.Printf("COUNT Query Result: %d total records\n", total)
 
 	query := `
 		SELECT id, project_name, supplier_name, total_amount, created_at, status
 		FROM green_notes
 		WHERE org_id = $1
-		ORDER BY id DESC
+		ORDER BY created_at DESC
 		LIMIT $2 OFFSET $3
 	`
-	fmt.Printf("\n🔍 SELECT Query (Status Filter Removed):\n")
+	fmt.Printf("\n SELECT Query (Status Filter Removed):\n")
 	fmt.Printf("  SQL: %s\n", query)
 	fmt.Printf("  Params: [$1='%s', $2=%d, $3=%d]\n", orgID, perPage, offset)
 	rows, err := r.db.QueryContext(ctx, query, orgID, perPage, offset)
@@ -110,10 +110,10 @@ func (r *Repository) List(ctx context.Context, req *greennotepb.ListGreenNotesRe
 		items = append(items, item)
 	}
 	if err := rows.Err(); err != nil {
-		fmt.Printf("❌ Rows Error: %v\n", err)
+		fmt.Printf(" Rows Error: %v\n", err)
 		return nil, err
 	}
-	fmt.Printf("\n✅ SELECT Query Result: Retrieved %d items\n", len(items))
+	fmt.Printf("\n SELECT Query Result: Retrieved %d items\n", len(items))
 	for i, item := range items {
 		fmt.Printf("  [%d] ID=%s, Project=%s, Vendor=%s, Amount=%.2f, Status=%s\n", 
 			i+1, item.Id, item.ProjectName, item.VendorName, item.Amount, item.Status)
@@ -164,7 +164,13 @@ func (r *Repository) Get(ctx context.Context, id string) (*greennotepb.GreenNote
 		return nil, "", "", err
 	}
 
-	invoices, _ := r.q.ListInvoicesByGreenNote(ctx, id)
+	// Use generated method for invoices
+	invoicesRows, err := r.q.ListInvoicesByGreenNote(ctx, id)
+	if err != nil {
+		fmt.Printf(" Failed to list invoices for hydration: %v\n", err)
+	}
+	fmt.Printf(" DEBUG HYDRATION: Retrieved %d total invoice records for GN-%s\n", len(invoicesRows), id)
+
 	docs, _ := r.q.ListSupportingDocuments(ctx, id)
 
 	p := &greennotepb.GreenNotePayload{
@@ -254,18 +260,35 @@ func (r *Repository) Get(ctx context.Context, id string) (*greennotepb.GreenNote
 		}
 	}
 
-	for _, in := range invoices {
-		p.Invoices = append(p.Invoices, &greennotepb.InvoiceInput{
+	for _, in := range invoicesRows {
+		inv := &greennotepb.InvoiceInput{
 			InvoiceNumber: in.InvoiceNumber,
 			InvoiceDate:   in.InvoiceDate.String,
 			TaxableValue:  parseDecimal(in.TaxableValue),
 			Gst:           parseDecimal(in.Gst),
 			OtherCharges:  parseDecimal(in.OtherCharges),
 			InvoiceValue:  parseDecimal(in.InvoiceValue),
-		})
+		}
+		isPrimary := in.IsPrimary.Valid && in.IsPrimary.Bool
+		fmt.Printf(" DEBUG HYDRATION: Invoice %s, RawIsPrimary(Valid=%v, Bool=%v) -> Evaluated=%v\n", in.InvoiceNumber, in.IsPrimary.Valid, in.IsPrimary.Bool, isPrimary)
+		if isPrimary {
+			if p.Invoice != nil {
+				fmt.Printf("DEBUG HYDRATION: Overwriting existing primary invoice %s with %s\n", p.Invoice.InvoiceNumber, in.InvoiceNumber)
+			}
+			p.Invoice = inv
+		} else {
+			p.Invoices = append(p.Invoices, inv)
+		}
 	}
-	if len(p.Invoices) > 0 {
+	
+	if p.Invoice == nil && len(p.Invoices) > 0 {
+		fmt.Printf("DEBUG HYDRATION: No primary invoice flagged for GN-%s. Promoting first invoice (%s) to primary.\n", id, p.Invoices[0].InvoiceNumber)
 		p.Invoice = p.Invoices[0]
+		p.Invoices = p.Invoices[1:]
+	}
+	
+	if p.Invoice == nil {
+		fmt.Printf(" DEBUG HYDRATION: Still no invoice data found for GN-%s after processing %d records\n", id, len(invoicesRows))
 	}
 
 	for _, d := range docs {
@@ -293,12 +316,23 @@ func (r *Repository) Create(ctx context.Context, payload *greennotepb.GreenNoteP
 	if err != nil {
 		return "", err
 	}
+	qtx := r.q.WithTx(tx)
 	// Using manual SQL for Create.
 
-	invBase, invGst, invOther, invTotal := sumInvoiceInputs(payload.GetInvoices())
-	if invBase == 0 && invGst == 0 && invOther == 0 && invTotal == 0 && payload.GetInvoice() != nil {
+	var invBase, invGst, invOther, invTotal float64
+	if payload.GetEnableMultipleInvoices() {
+		// Combo Mode: Sum both primary and multiple list
+		b1, g1, o1, t1 := sumInvoiceInputs([]*greennotepb.InvoiceInput{payload.GetInvoice()})
+		b2, g2, o2, t2 := sumInvoiceInputs(payload.GetInvoices())
+		invBase, invGst, invOther, invTotal = b1+b2, g1+g2, o1+o2, t1+t2
+	} else if payload.GetInvoice() != nil {
+		// Single Mode: Use primary invoice only
 		invBase, invGst, invOther, invTotal = sumInvoiceInputs([]*greennotepb.InvoiceInput{payload.GetInvoice()})
+	} else {
+		// Multi-list only mode (if any)
+		invBase, invGst, invOther, invTotal = sumInvoiceInputs(payload.GetInvoices())
 	}
+
 	if invBase == 0 {
 		invBase = payload.GetBaseValue()
 	}
@@ -369,26 +403,64 @@ func (r *Repository) Create(ctx context.Context, payload *greennotepb.GreenNoteP
 		return "", err
 	}
 
-	allInvoices := payload.GetInvoices()
-	if len(allInvoices) == 0 && payload.GetInvoice() != nil {
-		allInvoices = []*greennotepb.InvoiceInput{payload.GetInvoice()}
+	// Handle Combo Payload: Insert Primary Invoice and Multiple Invoices
+	// 1. Primary Invoice
+	primaryNumber := ""
+	if inv := payload.GetInvoice(); inv != nil {
+		primaryNumber = strings.TrimSpace(inv.GetInvoiceNumber())
+		fmt.Printf("PERSISTENCE: Inserting primary invoice %s for GN-%s\n", primaryNumber, returnedID)
+		_, err := qtx.InsertInvoice(ctx, sqlcgen.InsertInvoiceParams{
+			ID:            uuid.NewString(),
+			GreenNoteID:   returnedID,
+			InvoiceNumber: primaryNumber,
+			InvoiceDate:   toNullString(inv.GetInvoiceDate()),
+			TaxableValue:  formatDecimal(inv.GetTaxableValue()),
+			Gst:           formatDecimal(inv.GetGst()),
+			OtherCharges:  formatDecimal(inv.GetOtherCharges()),
+			InvoiceValue:  formatDecimal(inv.GetInvoiceValue()),
+			OrgID:         toUUID(orgID),
+			TenantID:      toUUID(tenantID),
+			IsPrimary:     sql.NullBool{Valid: true, Bool: true},
+		})
+		fmt.Printf("PERSISTENCE: Saved primary invoice %s with IsPrimary=true\n", primaryNumber)
+		if err != nil {
+			_ = tx.Rollback()
+			return "", err
+		}
 	}
-	for _, in := range allInvoices {
+
+	// 2. Multiple Invoices (with de-duplication)
+	insertedNumbers := make(map[string]bool)
+	if primaryNumber != "" {
+		insertedNumbers[primaryNumber] = true
+	}
+
+	for _, in := range payload.GetInvoices() {
 		if in == nil {
 			continue
 		}
-		insertInvoiceQuery := `
-			INSERT INTO green_note_invoices (
-				id, green_note_id, invoice_number, invoice_date, 
-				taxable_value, gst, other_charges, invoice_value, org_id, tenant_id
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-		`
-		_, err := tx.ExecContext(ctx, insertInvoiceQuery,
-			uuid.NewString(), returnedID, in.GetInvoiceNumber(), toNullString(in.GetInvoiceDate()),
-			formatDecimal(in.GetTaxableValue()), formatDecimal(in.GetGst()),
-			formatDecimal(in.GetOtherCharges()), formatDecimal(in.GetInvoiceValue()),
-			orgID, tenantID,
-		)
+		invNum := strings.TrimSpace(in.GetInvoiceNumber())
+		if active := insertedNumbers[invNum]; active {
+			fmt.Printf("PERSISTENCE: Skipping duplicate invoice %s for GN-%s\n", invNum, returnedID)
+			continue
+		}
+		insertedNumbers[invNum] = true
+
+		fmt.Printf("PERSISTENCE: Inserting multiple invoice %s for GN-%s\n", invNum, returnedID)
+		_, err := qtx.InsertInvoice(ctx, sqlcgen.InsertInvoiceParams{
+			ID:            uuid.NewString(),
+			GreenNoteID:   returnedID,
+			InvoiceNumber: invNum,
+			InvoiceDate:   toNullString(in.GetInvoiceDate()),
+			TaxableValue:  formatDecimal(in.GetTaxableValue()),
+			Gst:           formatDecimal(in.GetGst()),
+			OtherCharges:  formatDecimal(in.GetOtherCharges()),
+			InvoiceValue:  formatDecimal(in.GetInvoiceValue()),
+			OrgID:         toUUID(orgID),
+			TenantID:      toUUID(tenantID),
+			IsPrimary:     sql.NullBool{Valid: true, Bool: false},
+		})
+		fmt.Printf("PERSISTENCE: Saved multiple invoice %s with IsPrimary=false\n", invNum)
 		if err != nil {
 			_ = tx.Rollback()
 			return "", err
@@ -421,10 +493,20 @@ func (r *Repository) Update(ctx context.Context, id string, payload *greennotepb
 	}
 	qtx := r.q.WithTx(tx)
 
-	invBase, invGst, invOther, invTotal := sumInvoiceInputs(payload.GetInvoices())
-	if invBase == 0 && invGst == 0 && invOther == 0 && invTotal == 0 && payload.GetInvoice() != nil {
+	var invBase, invGst, invOther, invTotal float64
+	if payload.GetEnableMultipleInvoices() {
+		// Combo Mode: Sum both primary and multiple list
+		b1, g1, o1, t1 := sumInvoiceInputs([]*greennotepb.InvoiceInput{payload.GetInvoice()})
+		b2, g2, o2, t2 := sumInvoiceInputs(payload.GetInvoices())
+		invBase, invGst, invOther, invTotal = b1+b2, g1+g2, o1+o2, t1+t2
+	} else if payload.GetInvoice() != nil {
+		// Single Mode: Use primary invoice only
 		invBase, invGst, invOther, invTotal = sumInvoiceInputs([]*greennotepb.InvoiceInput{payload.GetInvoice()})
+	} else {
+		// Multi-list only mode (if any)
+		invBase, invGst, invOther, invTotal = sumInvoiceInputs(payload.GetInvoices())
 	}
+
 	if invBase == 0 {
 		invBase = payload.GetBaseValue()
 	}
@@ -500,32 +582,69 @@ func (r *Repository) Update(ctx context.Context, id string, payload *greennotepb
 		return err
 	}
 
-	allInvoices := payload.GetInvoices()
-	if len(allInvoices) == 0 && payload.GetInvoice() != nil {
-		allInvoices = []*greennotepb.InvoiceInput{payload.GetInvoice()}
+	// Handle Combo Payload in Update
+	_ = qtx.DeleteInvoicesByGreenNoteID(ctx, id)
+	
+	// 1. Primary Invoice
+	primaryNumber := ""
+	if inv := payload.GetInvoice(); inv != nil {
+		primaryNumber = strings.TrimSpace(inv.GetInvoiceNumber())
+		fmt.Printf("💾 PERSISTENCE: Updating/Inserting primary invoice %s for GN-%s\n", primaryNumber, id)
+		_, err := qtx.InsertInvoice(ctx, sqlcgen.InsertInvoiceParams{
+			ID:            uuid.NewString(),
+			GreenNoteID:   id,
+			InvoiceNumber: primaryNumber,
+			InvoiceDate:   toNullString(inv.GetInvoiceDate()),
+			TaxableValue:  formatDecimal(inv.GetTaxableValue()),
+			Gst:           formatDecimal(inv.GetGst()),
+			OtherCharges:  formatDecimal(inv.GetOtherCharges()),
+			InvoiceValue:  formatDecimal(inv.GetInvoiceValue()),
+			OrgID:         toUUID(orgID),
+			TenantID:      toUUID(tenantID),
+			IsPrimary:     sql.NullBool{Valid: true, Bool: true},
+		})
+		fmt.Printf("💾 PERSISTENCE (Update): Saved primary invoice %s with IsPrimary=true\n", primaryNumber)
+		if err != nil {
+			_ = tx.Rollback()
+			return err
+		}
 	}
-	if len(allInvoices) > 0 {
-		_, _ = tx.ExecContext(ctx, "DELETE FROM green_note_invoices WHERE green_note_id = $1", id)
-		for _, in := range allInvoices {
-			if in == nil {
-				continue
-			}
-			insertInvoiceQuery := `
-				INSERT INTO green_note_invoices (
-					id, green_note_id, invoice_number, invoice_date, 
-					taxable_value, gst, other_charges, invoice_value, org_id, tenant_id
-				) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-			`
-			_, err := tx.ExecContext(ctx, insertInvoiceQuery,
-				uuid.NewString(), id, in.GetInvoiceNumber(), toNullString(in.GetInvoiceDate()),
-				formatDecimal(in.GetTaxableValue()), formatDecimal(in.GetGst()),
-				formatDecimal(in.GetOtherCharges()), formatDecimal(in.GetInvoiceValue()),
-				orgID, tenantID,
-			)
-			if err != nil {
-				_ = tx.Rollback()
-				return err
-			}
+
+	// 2. Multiple Invoices (with de-duplication)
+	insertedNumbers := make(map[string]bool)
+	if primaryNumber != "" {
+		insertedNumbers[primaryNumber] = true
+	}
+
+	for _, in := range payload.GetInvoices() {
+		if in == nil {
+			continue
+		}
+		invNum := strings.TrimSpace(in.GetInvoiceNumber())
+		if active := insertedNumbers[invNum]; active {
+			fmt.Printf("💾 PERSISTENCE: Skipping duplicate invoice %s for GN-%s\n", invNum, id)
+			continue
+		}
+		insertedNumbers[invNum] = true
+
+		fmt.Printf("💾 PERSISTENCE: Updating/Inserting multiple invoice %s for GN-%s\n", invNum, id)
+		_, err := qtx.InsertInvoice(ctx, sqlcgen.InsertInvoiceParams{
+			ID:            uuid.NewString(),
+			GreenNoteID:   id,
+			InvoiceNumber: invNum,
+			InvoiceDate:   toNullString(in.GetInvoiceDate()),
+			TaxableValue:  formatDecimal(in.GetTaxableValue()),
+			Gst:           formatDecimal(in.GetGst()),
+			OtherCharges:  formatDecimal(in.GetOtherCharges()),
+			InvoiceValue:  formatDecimal(in.GetInvoiceValue()),
+			OrgID:         toUUID(orgID),
+			TenantID:      toUUID(tenantID),
+			IsPrimary:     sql.NullBool{Valid: true, Bool: false},
+		})
+		fmt.Printf("PERSISTENCE (Update): Saved multiple invoice %s with IsPrimary=false\n", invNum)
+		if err != nil {
+			_ = tx.Rollback()
+			return err
 		}
 	}
 
@@ -582,6 +701,7 @@ func (r *Repository) insertDocumentsTx(ctx context.Context, tx *sql.Tx, noteID s
 	if r == nil || r.docs == nil {
 		return nil
 	}
+	qtx := r.q.WithTx(tx)
 	for _, u := range uploads {
 		if u == nil || len(u.GetFileContent()) == 0 {
 			continue
@@ -590,17 +710,18 @@ func (r *Repository) insertDocumentsTx(ctx context.Context, tx *sql.Tx, noteID s
 		if err := r.docs.Save(ctx, objectKey, u.GetFileContent(), u.GetMimeType()); err != nil {
 			return err
 		}
-		insertDocQuery := `
-			INSERT INTO green_note_documents (
-				id, green_note_id, name, original_filename, 
-				mime_type, file_size, object_key, org_id, tenant_id
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-		`
-		_, err := tx.ExecContext(ctx, insertDocQuery,
-			uuid.NewString(), noteID, u.GetName(), u.GetOriginalFilename(),
-			u.GetMimeType(), int64(len(u.GetFileContent())), objectKey,
-			orgID, tenantID,
-		)
+		
+		_, err := qtx.InsertSupportingDocument(ctx, sqlcgen.InsertSupportingDocumentParams{
+			ID:               uuid.NewString(),
+			GreenNoteID:      noteID,
+			Name:             u.GetName(),
+			OriginalFilename: u.GetOriginalFilename(),
+			MimeType:         u.GetMimeType(),
+			FileSize:         int64(len(u.GetFileContent())),
+			ObjectKey:        objectKey,
+			OrgID:            toUUID(orgID),
+			TenantID:         toUUID(tenantID),
+		})
 		if err != nil {
 			return err
 		}
@@ -645,19 +766,19 @@ func mapProtoEnumToDBStatus(e greennotepb.Status) string {
 
 func mapDBStatusToProtoEnum(dbStatus string) greennotepb.Status {
 	s := strings.ToLower(strings.TrimSpace(dbStatus))
-	if strings.HasPrefix(s, "pending") {
+	if strings.HasPrefix(s, "pending") || s == "0" {
 		return greennotepb.Status_STATUS_PENDING
 	}
-	if strings.Contains(s, "approved") {
+	if strings.Contains(s, "approved") || s == "1" {
 		return greennotepb.Status_STATUS_APPROVED
 	}
-	if strings.Contains(s, "rejected") || strings.Contains(s, "reject") {
+	if strings.Contains(s, "rejected") || strings.Contains(s, "reject") || s == "2" {
 		return greennotepb.Status_STATUS_REJECTED
 	}
-	if strings.Contains(s, "cancelled") {
+	if strings.Contains(s, "cancelled") || s == "4" {
 		return greennotepb.Status_STATUS_CANCELLED
 	}
-	if s == "draft" {
+	if s == "draft" || s == "3" {
 		return greennotepb.Status_STATUS_DRAFT
 	}
 	return greennotepb.Status_STATUS_PENDING
@@ -689,4 +810,11 @@ func parseDecimal(s string) float64 {
 	}
 	f, _ := strconv.ParseFloat(s, 64)
 	return f
+}
+func toUUID(s string) uuid.NullUUID {
+	u, err := uuid.Parse(s)
+	if err != nil {
+		return uuid.NullUUID{Valid: false}
+	}
+	return uuid.NullUUID{UUID: u, Valid: true}
 }

@@ -8,6 +8,8 @@ package sqlcgen
 import (
 	"context"
 	"database/sql"
+
+	"github.com/google/uuid"
 )
 
 const cancelGreenNote = `-- name: CancelGreenNote :one
@@ -16,7 +18,7 @@ SET status = 'CANCELLED',
     remarks = $2,
     updated_at = NOW()
 WHERE id = $1
-RETURNING id, project_name, supplier_name, expense_category, protest_note_raised, whether_contract, extension_of_contract_period_executed, expense_amount_within_contract, milestone_achieved, payment_approved_with_deviation, required_documents_submitted, contract_period_completed, documents_verified, contract_start_date, contract_end_date, appointed_start_date, supply_period_start, supply_period_end, base_value, other_charges, gst, total_amount, enable_multiple_invoices, status, approval_for, department_name, work_order_no, po_number, work_order_date, expense_category_type, msme_classification, activity_type, brief_of_goods_services, delayed_damages, nature_of_expenses, budget_expenditure, actual_expenditure, expenditure_over_budget, milestone_remarks, specify_deviation, documents_workdone_supply, documents_discrepancy, remarks, auditor_remarks, amount_retained_for_non_submission, created_at, updated_at
+RETURNING id, project_name, supplier_name, expense_category, protest_note_raised, whether_contract, extension_of_contract_period_executed, expense_amount_within_contract, milestone_achieved, payment_approved_with_deviation, required_documents_submitted, contract_period_completed, documents_verified, contract_start_date, contract_end_date, appointed_start_date, supply_period_start, supply_period_end, base_value, other_charges, gst, total_amount, enable_multiple_invoices, status, approval_for, department_name, work_order_no, po_number, work_order_date, expense_category_type, msme_classification, activity_type, brief_of_goods_services, delayed_damages, nature_of_expenses, budget_expenditure, actual_expenditure, expenditure_over_budget, milestone_remarks, specify_deviation, documents_workdone_supply, documents_discrepancy, remarks, auditor_remarks, amount_retained_for_non_submission, created_at, updated_at, org_id, tenant_id
 `
 
 type CancelGreenNoteParams struct {
@@ -75,6 +77,8 @@ func (q *Queries) CancelGreenNote(ctx context.Context, arg CancelGreenNoteParams
 		&i.AmountRetainedForNonSubmission,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OrgID,
+		&i.TenantID,
 	)
 	return i, err
 }
@@ -143,7 +147,7 @@ INSERT INTO green_notes (
     $18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,
     $32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42,$43,$44,$45
 )
-RETURNING id, project_name, supplier_name, expense_category, protest_note_raised, whether_contract, extension_of_contract_period_executed, expense_amount_within_contract, milestone_achieved, payment_approved_with_deviation, required_documents_submitted, contract_period_completed, documents_verified, contract_start_date, contract_end_date, appointed_start_date, supply_period_start, supply_period_end, base_value, other_charges, gst, total_amount, enable_multiple_invoices, status, approval_for, department_name, work_order_no, po_number, work_order_date, expense_category_type, msme_classification, activity_type, brief_of_goods_services, delayed_damages, nature_of_expenses, budget_expenditure, actual_expenditure, expenditure_over_budget, milestone_remarks, specify_deviation, documents_workdone_supply, documents_discrepancy, remarks, auditor_remarks, amount_retained_for_non_submission, created_at, updated_at
+RETURNING id, project_name, supplier_name, expense_category, protest_note_raised, whether_contract, extension_of_contract_period_executed, expense_amount_within_contract, milestone_achieved, payment_approved_with_deviation, required_documents_submitted, contract_period_completed, documents_verified, contract_start_date, contract_end_date, appointed_start_date, supply_period_start, supply_period_end, base_value, other_charges, gst, total_amount, enable_multiple_invoices, status, approval_for, department_name, work_order_no, po_number, work_order_date, expense_category_type, msme_classification, activity_type, brief_of_goods_services, delayed_damages, nature_of_expenses, budget_expenditure, actual_expenditure, expenditure_over_budget, milestone_remarks, specify_deviation, documents_workdone_supply, documents_discrepancy, remarks, auditor_remarks, amount_retained_for_non_submission, created_at, updated_at, org_id, tenant_id
 `
 
 type CreateGreenNoteParams struct {
@@ -291,6 +295,8 @@ func (q *Queries) CreateGreenNote(ctx context.Context, arg CreateGreenNoteParams
 		&i.AmountRetainedForNonSubmission,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OrgID,
+		&i.TenantID,
 	)
 	return i, err
 }
@@ -306,7 +312,7 @@ func (q *Queries) DeleteInvoicesByGreenNoteID(ctx context.Context, greenNoteID s
 }
 
 const getGreenNote = `-- name: GetGreenNote :one
-SELECT id, project_name, supplier_name, expense_category, protest_note_raised, whether_contract, extension_of_contract_period_executed, expense_amount_within_contract, milestone_achieved, payment_approved_with_deviation, required_documents_submitted, contract_period_completed, documents_verified, contract_start_date, contract_end_date, appointed_start_date, supply_period_start, supply_period_end, base_value, other_charges, gst, total_amount, enable_multiple_invoices, status, approval_for, department_name, work_order_no, po_number, work_order_date, expense_category_type, msme_classification, activity_type, brief_of_goods_services, delayed_damages, nature_of_expenses, budget_expenditure, actual_expenditure, expenditure_over_budget, milestone_remarks, specify_deviation, documents_workdone_supply, documents_discrepancy, remarks, auditor_remarks, amount_retained_for_non_submission, created_at, updated_at
+SELECT id, project_name, supplier_name, expense_category, protest_note_raised, whether_contract, extension_of_contract_period_executed, expense_amount_within_contract, milestone_achieved, payment_approved_with_deviation, required_documents_submitted, contract_period_completed, documents_verified, contract_start_date, contract_end_date, appointed_start_date, supply_period_start, supply_period_end, base_value, other_charges, gst, total_amount, enable_multiple_invoices, status, approval_for, department_name, work_order_no, po_number, work_order_date, expense_category_type, msme_classification, activity_type, brief_of_goods_services, delayed_damages, nature_of_expenses, budget_expenditure, actual_expenditure, expenditure_over_budget, milestone_remarks, specify_deviation, documents_workdone_supply, documents_discrepancy, remarks, auditor_remarks, amount_retained_for_non_submission, created_at, updated_at, org_id, tenant_id
 FROM green_notes
 WHERE id = $1
 LIMIT 1
@@ -363,6 +369,8 @@ func (q *Queries) GetGreenNote(ctx context.Context, id string) (GreenNote, error
 		&i.AmountRetainedForNonSubmission,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OrgID,
+		&i.TenantID,
 	)
 	return i, err
 }
@@ -376,9 +384,12 @@ INSERT INTO green_note_invoices (
     taxable_value,
     gst,
     other_charges,
-    invoice_value
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING id, green_note_id, invoice_number, invoice_date, taxable_value, gst, other_charges, invoice_value, description, created_at, updated_at
+    invoice_value,
+    org_id,
+    tenant_id,
+    is_primary
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+RETURNING id, green_note_id, invoice_number, invoice_date, taxable_value, gst, other_charges, invoice_value, description, created_at, updated_at, org_id, tenant_id, is_primary
 `
 
 type InsertInvoiceParams struct {
@@ -390,6 +401,9 @@ type InsertInvoiceParams struct {
 	Gst           string
 	OtherCharges  string
 	InvoiceValue  string
+	OrgID         uuid.NullUUID
+	TenantID      uuid.NullUUID
+	IsPrimary     sql.NullBool
 }
 
 func (q *Queries) InsertInvoice(ctx context.Context, arg InsertInvoiceParams) (GreenNoteInvoice, error) {
@@ -402,6 +416,9 @@ func (q *Queries) InsertInvoice(ctx context.Context, arg InsertInvoiceParams) (G
 		arg.Gst,
 		arg.OtherCharges,
 		arg.InvoiceValue,
+		arg.OrgID,
+		arg.TenantID,
+		arg.IsPrimary,
 	)
 	var i GreenNoteInvoice
 	err := row.Scan(
@@ -416,6 +433,9 @@ func (q *Queries) InsertInvoice(ctx context.Context, arg InsertInvoiceParams) (G
 		&i.Description,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OrgID,
+		&i.TenantID,
+		&i.IsPrimary,
 	)
 	return i, err
 }
@@ -428,9 +448,11 @@ INSERT INTO green_note_documents (
     original_filename,
     mime_type,
     file_size,
-    object_key
-) VALUES ($1,$2,$3,$4,$5,$6,$7)
-RETURNING id, green_note_id, name, original_filename, mime_type, file_size, object_key, created_at, updated_at
+    object_key,
+    org_id,
+    tenant_id
+) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+RETURNING id, green_note_id, name, original_filename, mime_type, file_size, object_key, created_at, updated_at, org_id, tenant_id
 `
 
 type InsertSupportingDocumentParams struct {
@@ -441,6 +463,8 @@ type InsertSupportingDocumentParams struct {
 	MimeType         string
 	FileSize         int64
 	ObjectKey        string
+	OrgID            uuid.NullUUID
+	TenantID         uuid.NullUUID
 }
 
 func (q *Queries) InsertSupportingDocument(ctx context.Context, arg InsertSupportingDocumentParams) (GreenNoteDocument, error) {
@@ -452,6 +476,8 @@ func (q *Queries) InsertSupportingDocument(ctx context.Context, arg InsertSuppor
 		arg.MimeType,
 		arg.FileSize,
 		arg.ObjectKey,
+		arg.OrgID,
+		arg.TenantID,
 	)
 	var i GreenNoteDocument
 	err := row.Scan(
@@ -464,6 +490,8 @@ func (q *Queries) InsertSupportingDocument(ctx context.Context, arg InsertSuppor
 		&i.ObjectKey,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OrgID,
+		&i.TenantID,
 	)
 	return i, err
 }
@@ -528,7 +556,7 @@ func (q *Queries) ListGreenNotes(ctx context.Context, arg ListGreenNotesParams) 
 }
 
 const listInvoicesByGreenNote = `-- name: ListInvoicesByGreenNote :many
-SELECT id, green_note_id, invoice_number, invoice_date, taxable_value, gst, other_charges, invoice_value, description, created_at, updated_at
+SELECT id, green_note_id, invoice_number, invoice_date, taxable_value, gst, other_charges, invoice_value, description, created_at, updated_at, org_id, tenant_id, is_primary
 FROM green_note_invoices
 WHERE green_note_id = $1
 ORDER BY invoice_date ASC
@@ -555,6 +583,9 @@ func (q *Queries) ListInvoicesByGreenNote(ctx context.Context, greenNoteID strin
 			&i.Description,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.OrgID,
+			&i.TenantID,
+			&i.IsPrimary,
 		); err != nil {
 			return nil, err
 		}
@@ -570,7 +601,7 @@ func (q *Queries) ListInvoicesByGreenNote(ctx context.Context, greenNoteID strin
 }
 
 const listSupportingDocuments = `-- name: ListSupportingDocuments :many
-SELECT id, green_note_id, name, original_filename, mime_type, file_size, object_key, created_at, updated_at
+SELECT id, green_note_id, name, original_filename, mime_type, file_size, object_key, created_at, updated_at, org_id, tenant_id
 FROM green_note_documents
 WHERE green_note_id = $1
 ORDER BY created_at ASC
@@ -595,6 +626,8 @@ func (q *Queries) ListSupportingDocuments(ctx context.Context, greenNoteID strin
 			&i.ObjectKey,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.OrgID,
+			&i.TenantID,
 		); err != nil {
 			return nil, err
 		}
@@ -658,7 +691,7 @@ SET
     amount_retained_for_non_submission = $45,
     updated_at = NOW()
 WHERE id = $1
-RETURNING id, project_name, supplier_name, expense_category, protest_note_raised, whether_contract, extension_of_contract_period_executed, expense_amount_within_contract, milestone_achieved, payment_approved_with_deviation, required_documents_submitted, contract_period_completed, documents_verified, contract_start_date, contract_end_date, appointed_start_date, supply_period_start, supply_period_end, base_value, other_charges, gst, total_amount, enable_multiple_invoices, status, approval_for, department_name, work_order_no, po_number, work_order_date, expense_category_type, msme_classification, activity_type, brief_of_goods_services, delayed_damages, nature_of_expenses, budget_expenditure, actual_expenditure, expenditure_over_budget, milestone_remarks, specify_deviation, documents_workdone_supply, documents_discrepancy, remarks, auditor_remarks, amount_retained_for_non_submission, created_at, updated_at
+RETURNING id, project_name, supplier_name, expense_category, protest_note_raised, whether_contract, extension_of_contract_period_executed, expense_amount_within_contract, milestone_achieved, payment_approved_with_deviation, required_documents_submitted, contract_period_completed, documents_verified, contract_start_date, contract_end_date, appointed_start_date, supply_period_start, supply_period_end, base_value, other_charges, gst, total_amount, enable_multiple_invoices, status, approval_for, department_name, work_order_no, po_number, work_order_date, expense_category_type, msme_classification, activity_type, brief_of_goods_services, delayed_damages, nature_of_expenses, budget_expenditure, actual_expenditure, expenditure_over_budget, milestone_remarks, specify_deviation, documents_workdone_supply, documents_discrepancy, remarks, auditor_remarks, amount_retained_for_non_submission, created_at, updated_at, org_id, tenant_id
 `
 
 type UpdateGreenNoteParams struct {
@@ -806,6 +839,8 @@ func (q *Queries) UpdateGreenNote(ctx context.Context, arg UpdateGreenNoteParams
 		&i.AmountRetainedForNonSubmission,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OrgID,
+		&i.TenantID,
 	)
 	return i, err
 }

@@ -133,18 +133,18 @@ func main() {
 
     // 5. Seed Organization
     var orgID string
+    // Check if Head Office exists by NAME to preserve existing data
     err = conn.QueryRow(context.Background(), "SELECT org_id FROM organizations WHERE name='Head Office' AND tenant_id=$1", tenantID).Scan(&orgID)
+    
     if err == pgx.ErrNoRows {
         fmt.Println("Creating Head Office organization...")
-        // Generate UUID for org defined by DB defaults if not supplied? 
-        // Migration says: org_id UUID PRIMARY KEY. It does NOT say DEFAULT gen_random_uuid(). 
-        // Wait, organization-service migration 001: org_id UUID PRIMARY KEY. No default.
-        // We must generate it in Go or use gen_random_uuid() in SQL if supported.
-        // Let's use gen_random_uuid() in SQL.
+        // Use dynamic UUID generation for fresh creation - NO HARDCODING
         err = conn.QueryRow(context.Background(),
             `INSERT INTO organizations (org_id, tenant_id, name, code, database_name, status, super_admin_email) 
-             VALUES (gen_random_uuid(), $1, 'Head Office', 'HO-001', 'nhit_db_ho', 0, 'nhit@gmail.com') RETURNING org_id`,
+             VALUES (gen_random_uuid(), $1, 'Head Office', 'HO-001', 'nhit_db_ho', 0, 'nhit@gmail.com') 
+             RETURNING org_id`,
             tenantID).Scan(&orgID)
+            
         if err != nil {
              fmt.Printf("Failed to create organization: %v\n", err)
         } else {
@@ -152,6 +152,8 @@ func main() {
         }
     } else if err != nil {
          fmt.Printf("Failed to query organization: %v\n", err)
+    } else {
+        fmt.Printf("Using existing organization: %s\n", orgID)
     }
 
     // 6. Link User to Organization
@@ -172,6 +174,25 @@ func main() {
              }
         } else {
             fmt.Println("User already linked to organization.")
+        }
+    }
+
+    // 7. Seed Projects
+    if orgID != "" && tenantID != "" {
+        var projCount int
+        err = conn.QueryRow(context.Background(), "SELECT COUNT(*) FROM projects WHERE org_id=$1", orgID).Scan(&projCount)
+        if err == nil && projCount == 0 {
+            fmt.Println("Seeding default projects for Head Office...")
+            projects := []string{"PROJECT A", "PROJECT B", "PROJECT 1", "PROJECT 2"}
+            for _, pName := range projects {
+                _, err = conn.Exec(context.Background(), 
+                    "INSERT INTO projects (id, tenant_id, org_id, project_name, created_by) VALUES (gen_random_uuid(), $1, $2, $3, 'system')",
+                    tenantID, orgID, pName)
+                if err != nil {
+                    fmt.Printf("Failed to seed project %s: %v\n", pName, err)
+                }
+            }
+            fmt.Println("Default projects seeded successfully.")
         }
     }
     

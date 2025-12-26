@@ -1,351 +1,151 @@
-# NHIT Backend - Microservices Architecture
+# NHIT Ecosystem
 
-A multi-tenant backend system built with **Hexagonal Architecture** and **Microservices** pattern using Go and gRPC.
+This documentation covers the complete architecture of the NHIT system. The system is designed as a **distributed microservices architecture** that handles everything from user management and organization hierarchy to complex approval workflows (Green Notes) and asynchronous notifications.
 
-## 🏗️ Architecture
+## 🌍 Ecosystem Overview
 
-This project follows **Hexagonal Architecture** (Ports & Adapters) with three main microservices:
+The NHIT system is built to be modular. Instead of a single monolithic application, we have splits responsibilities across three main repositories:
 
-- **User Service**: User management and role assignments
-- **Auth Service**: Authentication, authorization, and session management
-- **Organization Service**: Organization and tenant management
+1.  **NHIT Backend (`/NHIT Backend`)**:
+    *   **Role**: The "Core Foundation".
+    *   **Responsibilities**: It manages the static entities of the system—Users, Organizations, Departments, Projects, and Vendors. It also handles the **API Gateway**, which is the "front door" for all traffic.
+    *   **Key Services**: User Service, Auth Service, Project Service, Vendor Service.
 
-### Architecture Diagram
+2.  **GreenNote Service (`/Nhit-Note`)**:
+    *   **Role**: The "Business Domain".
+    *   **Responsibilities**: This is a specialized service dedicated to the "Green Note" approval process. It handles the creation of notes, tracks their approval status through various levels, and ensures compliance with project budgets. It connects back to the Core Backend to verify users and projects.
 
+3.  **Notification Service (`/notification-service`)**:
+    *   **Role**: The "Async Worker".
+    *   **Responsibilities**: It listens for events (like "Password Reset Requested" or "Green Note Approved") and sends out emails. It doesn't handle HTTP requests directly; it sits in the background processing messages from Kafka.
+
+### 🏗️ Global Architecture
+
+The diagram below visualizes how a request travels through the system. Notice how the **API Gateway** shields the internal services from the outside world, and how **Kafka** decouples the email sending from the main logic.
+
+```mermaid
+graph TD
+    Client[Client Apps (Web/Mobile)] -->|1. HTTPS Request| Gateway[API Gateway :8080]
+    
+    subgraph "Synchronous Flow (gRPC)"
+        Gateway -->|Route| Auth[Auth Service :50052]
+        Gateway -->|Route| User[User Service :50051]
+        Gateway -->|Route| Org[Organization Service :50053]
+        Gateway -->|Route| Dept[Department Service :50054]
+        Gateway -->|Route| Desig[Designation Service :50055]
+        Gateway -->|Route| Project[Project Service :50057]
+        Gateway -->|Route| Vendor[Vendor Service :50058]
+        Gateway -->|Route| GreenNote[GreenNote Service :50059]
+        
+        %% Inter-service Communication
+        GreenNote -.->|Validate| Project
+        GreenNote -.->|Validate| Vendor
+        GreenNote -.->|Validate| Dept
+        Auth -.->|Verify| User
+    end
+
+    subgraph "Asynchronous Flow (Kafka)"
+        Auth -->|Pub: PRODUCER| Kafka{Kafka Broker :9092}
+        GreenNote -->|Pub: PRODUCER| Kafka
+        
+        Kafka -->|Sub: CONSUMER| Notification[Notification Worker]
+    end
+    
+    subgraph "Storage Layer"
+        Auth --> DB[(PostgreSQL :5433)]
+        User --> DB
+        Org --> DB
+        Dept --> DB
+        Desig --> DB
+        Project --> DB
+        Vendor --> DB
+        GreenNote --> DB
+        Notification --> DB
+    end
 ```
-┌─────────────────┐
-│   API Gateway   │ (HTTP REST)
-└────────┬────────┘
-         │
-    ┌────┴────┬────────┬────────┐
-    │         │        │        │
-┌───▼───┐ ┌──▼───┐ ┌──▼────┐   │
-│ User  │ │ Auth │ │  Org  │   │
-│Service│ │Service│ │Service│   │
-└───┬───┘ └──┬───┘ └──┬────┘   │
-    │        │        │         │
-    └────────┴────────┴─────────┘
-             │
-      ┌──────▼──────┐
-      │  PostgreSQL │
-      └─────────────┘
+
+## 🔄 Key Workflows Explained
+
+To understand the system better, let's walk through two common scenarios:
+
+### 1. User Login Flow
+*   **Step 1**: The client sends a POST request with credentials to the **API Gateway**.
+*   **Step 2**: The Gateway routes this to the **Auth Service** via gRPC.
+*   **Step 3**: The Auth Service verifies the password against the database.
+*   **Step 4**: If valid, it generates a **JWT (JSON Web Token)**.
+*   **Step 5**: The JWT is returned to the user. Future requests must include this token in the header. The API Gateway validates this token before allowing access to any other service.
+
+### 2. Green Note Creation & Approval
+*   **Step 1 (Creation)**: A user submits a Green Note form. The **GreenNote Service** receives this.
+*   **Step 2 (Validation)**: The service calls the **Project Service** (to check budget) and **Vendor Service** (to check supplier details) internally using gRPC.
+*   **Step 3 (Persistence)**: If all checks pass, the note is saved to the database with status `PENDING`.
+*   **Step 4 (Notification)**: The GreenNote service publishes a `green_note_created` event to **Kafka**.
+*   **Step 5 (Email)**: The **Notification Service** picks up this event and instantly sends an email to the approver.
+
+## 📂 Project Directory Structure
+
+Here is how the project files are organized on your disk:
+
+```text
+d:\Nhit\
+├── NHIT Backend/               # [CORE REPO]
+│   ├── services/               # Contains the source code for all core microservices
+│   │   ├── api-gateway/        # The HTTP Server that routes traffic
+│   │   ├── auth-service/       # Login & Security logic
+│   │   ├── user-service/       # User profiles & Role management
+│   │   ├── ...                 # (Org, Dept, Designation, Project, Vendor)
+│   ├── pkg/                    # Shared code used by all services (Database connections, Middleware)
+│   ├── api/                    # Protobuf files (.proto) defining the data contracts
+│   └── docker-compose.yml      # Config to run the whole stack locally
+│
+├── Nhit-Note/                  # [GREENNOTE REPO]
+│   ├── services/
+│   │   └── greennote-service/  # The specific logic for Green Notes
+│   └── ...
+│
+└── notification-service/       # [NOTIFICATION REPO]
+    └── cmd/
+        └── service/            # The main worker program that listens to Kafka
 ```
 
-## 🚀 Quick Start
+## 🚀 Service Registry
 
-### Prerequisites
+| Service | Port | Description |
+| :--- | :--- | :--- |
+| **API Gateway** | `8080` | **The Traffic Cop.** It authenticates every request and directs it to the right service. |
+| **User Service** | `50051` | **The Address Book.** Stores names, emails, and roles. |
+| **Auth Service** | `50052` | **The Bouncer.** Handles passwords and issues security tokens. |
+| **Organization Service** | `50053` | **The Structure.** Manages the company hierarchy (Head Office vs. Branch). |
+| **Project Service** | `50057` | **The Planner.** Tracks active projects and their budgets. |
+| **Vendor Service** | `50058` | **The Supplier List.** Manages contractor details and banking info. |
+| **GreenNote Service** | `50059` | **The Workflow Engine.** Manages the lifecycle of approval notes. |
+| **Notification Service** | *N/A* | **The Messenger.** Sends emails. It doesn't have a port because it listens to Kafka. |
 
-- Go 1.24+
-- Docker & Docker Compose
-- PostgreSQL 15+
-- Protocol Buffers compiler (`protoc`)
+## 🚦 Quickstart Guide
 
-### Installation
-
-1. **Clone the repository**
+### 1. Start Infrastructure
+The infrastructure (Database and Kafka) is shared. Run it from the core backend folder:
 ```bash
-git clone https://github.com/ShristiRnr/NHIT_Backend.git
-cd NHIT_Backend
+cd "d:\Nhit\NHIT Backend"
+docker-compose up postgres kafka -d
 ```
 
-2. **Install dependencies**
+### 2. Run the Core Logic
+You need to run the services you are working on. For example, to run the **User Service**:
 ```bash
-go mod download
+cd "d:\Nhit\NHIT Backend\services\user-service"
+go run ./cmd/server/main.go
 ```
 
-3. **Generate protobuf code**
+### 3. Run the GreenNote System
+If you are working on approvals, you must also run the **GreenNote Service**:
 ```bash
-make proto
+cd "d:\Nhit\Nhit-Note\services\greennote-service"
+go run ./cmd/server/main.go
 ```
 
-4. **Start services with Docker**
-```bash
-docker-compose up -d
-```
-
-5. **Verify services are running**
-```bash
-docker-compose ps
-```
-
-## 📁 Project Structure
-
-```
-NHIT_Backend/
-├── api/
-│   ├── pb/                    # Generated protobuf code
-│   └── proto/                 # Proto definitions
-│       ├── auth.proto
-│       └── user_management.proto
-├── services/
-│   ├── user-service/
-│   │   ├── cmd/server/        # Entry point
-│   │   ├── internal/
-│   │   │   ├── core/
-│   │   │   │   ├── domain/    # Business entities
-│   │   │   │   ├── ports/     # Interfaces
-│   │   │   │   └── services/  # Business logic
-│   │   │   └── adapters/
-│   │   │       ├── grpc/      # gRPC handlers
-│   │   │       └── repository/# Database adapters
-│   │   └── Dockerfile
-│   ├── auth-service/          # Same structure
-│   ├── organization-service/  # Same structure
-│   └── shared/
-│       ├── config/            # Shared configuration
-│       └── database/          # Database utilities
-├── internal/
-│   ├── adapters/database/
-│   │   ├── db/                # Generated sqlc code
-│   │   └── queries/           # SQL queries
-│   └── config/
-├── docker-compose.yml
-├── Makefile
-└── README.md
-```
-
-## 🔧 Configuration
-
-Each service uses environment variables for configuration:
-
-```env
-# Service Configuration
-SERVER_PORT=50051
-SERVICE_NAME=user-service
-
-# Database
-DB_URL=postgres://user:pass@localhost:5432/nhit?sslmode=disable
-
-# JWT
-JWT_SECRET=your-secret-key
-JWT_EXPIRY=15m
-REFRESH_TOKEN_EXPIRY=168h
-
-# Service Discovery
-USER_SERVICE_URL=localhost:50051
-AUTH_SERVICE_URL=localhost:50052
-ORG_SERVICE_URL=localhost:50053
-```
-
-## 🛠️ Development
-
-### Run Individual Services
-
-```bash
-# User Service
-make run-user
-
-# Auth Service
-make run-auth
-
-# Organization Service
-make run-org
-```
-
-### Build Services
-
-```bash
-# Build all services
-make build
-
-# Build specific service
-make build-user
-make build-auth
-make build-org
-```
-
-### Generate Code
-
-```bash
-# Generate protobuf code
-make proto
-
-# Generate sqlc code
-make sqlc
-```
-
-### Testing
-
-```bash
-# Run all tests
-make test
-
-# Run tests with coverage
-make test-coverage
-```
-
-## 📊 Services
-
-### User Service (Port: 50051)
-
-Manages user data and role assignments.
-
-**Key Operations:**
-- Create, Read, Update, Delete users
-- Assign roles to users
-- List users by tenant
-
-### Auth Service (Port: 50052)
-
-Handles authentication and authorization.
-
-**Key Operations:**
-- User login/logout
-- JWT token generation
-- Refresh tokens
-- Password reset
-- Email verification
-
-### Organization Service (Port: 50053)
-
-Manages organizations and tenants.
-
-**Key Operations:**
-- Create, Read, Update, Delete organizations
-- Manage user-organization associations
-- Tenant management
-
-## 🗄️ Database
-
-### Schema
-
-The application uses PostgreSQL with the following main tables:
-
-- `users` - User information
-- `roles` - Role definitions
-- `user_roles` - User-role associations
-- `sessions` - Active sessions
-- `refresh_tokens` - Refresh tokens
-- `password_resets` - Password reset tokens
-- `email_verification_tokens` - Email verification tokens
-- `organizations` - Organization data
-- `user_organizations` - User-organization associations
-- `tenants` - Tenant information
-
-### Migrations
-
-```bash
-# Run migrations
-make migrate-up
-
-# Rollback migrations
-make migrate-down
-```
-
-## 🐳 Docker
-
-### Build Images
-
-```bash
-make docker-build
-```
-
-### Start Services
-
-```bash
-make docker-up
-```
-
-### View Logs
-
-```bash
-make docker-logs
-```
-
-### Stop Services
-
-```bash
-make docker-down
-```
-
-## 🧪 Testing
-
-### Unit Tests
-
-```bash
-go test ./services/user-service/...
-go test ./services/auth-service/...
-go test ./services/organization-service/...
-```
-
-### Integration Tests
-
-```bash
-go test -tags=integration ./...
-```
-
-## 📝 API Documentation
-
-### gRPC Services
-
-- **User Service**: See `api/proto/user_management.proto`
-- **Auth Service**: See `api/proto/auth.proto`
-
-### Example gRPC Call
-
-```go
-// Create user
-conn, _ := grpc.Dial("localhost:50051", grpc.WithInsecure())
-client := userpb.NewUserManagementClient(conn)
-
-req := &userpb.CreateUserRequest{
-    TenantId: "tenant-uuid",
-    Name:     "John Doe",
-    Email:    "john@example.com",
-    Password: "securepassword",
-}
-
-resp, err := client.CreateUser(context.Background(), req)
-```
-
-## 🔐 Security
-
-- **Authentication**: JWT-based authentication
-- **Authorization**: Role-based access control (RBAC)
-- **Password Hashing**: bcrypt
-- **TLS**: gRPC connections use TLS in production
-- **Input Validation**: All inputs validated at service layer
-
-## 📈 Monitoring
-
-- **Health Checks**: `/health` endpoint on each service
-- **Metrics**: Prometheus metrics on `/metrics`
-- **Logging**: Structured JSON logging
-- **Tracing**: Distributed tracing support
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License.
-
-## 👥 Authors
-
-- **Srishti** - Initial work
-
-## 🙏 Acknowledgments
-
-- Hexagonal Architecture pattern
-- gRPC for efficient inter-service communication
-- sqlc for type-safe SQL
-- Docker for containerization
-
-## 📚 Additional Documentation
-
-- [Microservices Migration Guide](MICROSERVICES_MIGRATION.md)
-- [API Documentation](docs/API.md)
-- [Development Guide](docs/DEVELOPMENT.md)
-
-## 🐛 Known Issues
-
-See the [Issues](https://github.com/ShristiRnr/NHIT_Backend/issues) page for known issues and feature requests.
-
-## 📞 Support
-
-For support, email support@nhit.com or open an issue in the repository.
+## 🛠️ Technology Stack
+*   **Go (Golang)**: Chosen for its speed and native support for concurrency is perfect for microservices.
+*   **gRPC**: A high-performance RPC framework. It's faster than REST because it uses binary data (Protobuf) instead of text (JSON).
+*   **PostgreSQL**: A robust relational database for safe data storage.
+*   **Kafka**: A streaming platform used for "fire and forget" tasks like sending emails, ensuring the main app doesn't slow down waiting for email servers.

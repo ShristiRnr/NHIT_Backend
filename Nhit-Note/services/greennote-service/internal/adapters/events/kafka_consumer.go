@@ -121,11 +121,14 @@ func (c *KafkaConsumer) handleMessage(ctx context.Context, m kafka.Message) {
 	}
 
 	// Update fields
-	existing.DetailedStatus = payload.Status
+	finalStatus := payload.Status
+	// If fully approved, transition to draft for payment notes
+	if finalStatus == "APPROVED" {
+		finalStatus = "draft"
+	}
+	existing.DetailedStatus = finalStatus
+	
 	// Append comments to remarks or handle as needed. 
-	// User instruction: "UpdateStatusAndComments(ctx, payload.SourceID, payload.Status, payload.Comments)"
-	// But our repo interface (seen via GreennoteService) uses generic Update usually. 
-	// Let's see if we can just update the note.
 	if payload.Comments != "" {
 		if existing.Remarks != "" {
 			existing.Remarks += "; " + payload.Comments
@@ -136,7 +139,7 @@ func (c *KafkaConsumer) handleMessage(ctx context.Context, m kafka.Message) {
 
 	if err := c.repo.Update(ctx, greenNoteId, existing, orgID, tenantID); err != nil {
 		log.Printf("❌ Failed to update GreenNote status: %v", err)
-		return // Return error to Kafka? We are in a handler, can't easily Nack here without changing signature.
+		return 
 	}
 
 	// 6. Trigger Downstream Logic (If Approved)
@@ -151,7 +154,7 @@ func (c *KafkaConsumer) publishApprovedEvent(ctx context.Context, id string, not
 		GreenNoteID: id,
 		OrderNo:     fmt.Sprintf("GN-%s", id),
 		NetAmount:   note.TotalAmount,
-		Status:      "approved",
+		Status:      "draft",
 		Comments:    approvalEvent.Comments,
 		ApprovedAt:  time.Now().UTC().Format(time.RFC3339),
 	}

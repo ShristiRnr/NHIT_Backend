@@ -61,8 +61,11 @@ INSERT INTO green_note_invoices (
     taxable_value,
     gst,
     other_charges,
-    invoice_value
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    invoice_value,
+    org_id,
+    tenant_id,
+    is_primary
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 RETURNING *;
 
 -- name: InsertSupportingDocument :one
@@ -73,8 +76,10 @@ INSERT INTO green_note_documents (
     original_filename,
     mime_type,
     file_size,
-    object_key
-) VALUES ($1,$2,$3,$4,$5,$6,$7)
+    object_key,
+    org_id,
+    tenant_id
+) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
 RETURNING *;
 
 -- name: GetGreenNote :one

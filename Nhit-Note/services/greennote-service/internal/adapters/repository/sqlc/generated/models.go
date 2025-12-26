@@ -9,6 +9,8 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type ApprovalFor string
@@ -281,8 +283,8 @@ type GreenNote struct {
 	AmountRetainedForNonSubmission    sql.NullString
 	CreatedAt                         time.Time
 	UpdatedAt                         time.Time
-	OrgID                             sql.NullString
-	TenantID                          sql.NullString
+	OrgID                             uuid.NullUUID
+	TenantID                          uuid.NullUUID
 }
 
 type GreenNoteDocument struct {
@@ -295,6 +297,8 @@ type GreenNoteDocument struct {
 	ObjectKey        string
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
+	OrgID            uuid.NullUUID
+	TenantID         uuid.NullUUID
 }
 
 type GreenNoteInvoice struct {
@@ -309,6 +313,9 @@ type GreenNoteInvoice struct {
 	Description   sql.NullString
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
+	OrgID         uuid.NullUUID
+	TenantID      uuid.NullUUID
+	IsPrimary     sql.NullBool
 }
 
 type OrderSequence struct {

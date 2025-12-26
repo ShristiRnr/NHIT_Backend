@@ -78,11 +78,12 @@ ON CONFLICT (user_id, org_id) DO NOTHING;
 -- ================================================
 
 -- Insert test projects
-INSERT INTO projects (id, tenant_id, name, org_id, created_by, created_at, updated_at) VALUES
-    ('950e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440000', 'NHIT Backend API', 'mohit', NOW(), NOW()),
-    ('950e8400-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440000', 'NHIT Frontend Portal', 'aman', NOW(), NOW()),
-    ('950e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440000', 'Mobile Application', 'om', NOW(), NOW()),
-    ('950e8400-e29b-41d4-a716-446655440004', '550e8400-e29b-41d4-a716-446655440000', 'Data Analytics Platform', 'shristi', NOW(), NOW())
+-- Insert test projects
+INSERT INTO projects (id, tenant_id, project_name, org_id, created_by, created_at, updated_at) VALUES
+    ('950e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440000', 'NHIT Backend API', '550e8400-e29b-41d4-a716-446655440001', 'mohit', NOW(), NOW()),
+    ('950e8400-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440000', 'NHIT Frontend Portal', '550e8400-e29b-41d4-a716-446655440001', 'aman', NOW(), NOW()),
+    ('950e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440000', 'Mobile Application', '550e8400-e29b-41d4-a716-446655440003', 'om', NOW(), NOW()),
+    ('950e8400-e29b-41d4-a716-446655440004', '550e8400-e29b-41d4-a716-446655440000', 'Data Analytics Platform', '550e8400-e29b-41d4-a716-446655440003', 'shristi', NOW(), NOW())
 ON CONFLICT (id) DO NOTHING;
 
 -- ================================================
